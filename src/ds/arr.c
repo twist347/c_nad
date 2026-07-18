@@ -75,7 +75,7 @@ void nad_arr_drop(nad_Arr *self) {
     return NAD_STATUS_OK;
 }
 
-[[nodiscard]] nad_Status nad_arr_copy_into(const nad_Arr *self, nad_Arr *other) {
+[[nodiscard]] nad_Status nad_arr_copy_assign(const nad_Arr *self, nad_Arr *other) {
     assert(self);
     assert(other);
     assert(self->elem_size == other->elem_size);

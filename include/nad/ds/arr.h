@@ -16,7 +16,7 @@ NAD_API void nad_arr_drop(nad_Arr *self);
 /* ========== copy ========== */
 
 [[nodiscard]] NAD_API nad_Status nad_arr_copy(const nad_Arr *self, nad_Arr **out);
-[[nodiscard]] NAD_API nad_Status nad_arr_copy_into(const nad_Arr *self, nad_Arr *other);
+[[nodiscard]] NAD_API nad_Status nad_arr_copy_assign(const nad_Arr *self, nad_Arr *other);
 
 /* ========== info ========== */
 
