@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.22)
 
-project(nadс LANGUAGES C)
+project(nadc LANGUAGES C)
 if (NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
     set(CMAKE_BUILD_TYPE Debug CACHE STRING "Build type" FORCE)
 endif ()
@@ -32,7 +32,7 @@ set(NAD_C_STANDARD 23)
 target_compile_features(nadc_api INTERFACE c_std_${NAD_C_STANDARD})
 target_link_libraries(nadc_api INTERFACE m)
 
-option(BUILD_SHARED_LIBS "Build nadс as a shared library" ON)
+option(BUILD_SHARED_LIBS "Build nadc as a shared library" ON)
 
 add_library(nadc ${NAD_SOURCES})
 add_library(nadc::nadc ALIAS nadc)
