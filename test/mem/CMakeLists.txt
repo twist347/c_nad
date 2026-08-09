@@ -1,0 +1,1 @@
+nad_add_test(test_mem_log_alloc test_mem_log_alloc.c)

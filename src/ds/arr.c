@@ -59,9 +59,9 @@ void nad_arr_drop(nad_Arr *self) {
 
     ASSERT_ARR(self);
 
-    nad_Allocator *alloc = self->alloc;
-    nad_dealloc(alloc, self->data, self->len * self->elem_size);
-    nad_dealloc(alloc, self, sizeof(nad_Arr));
+    nad_Allocator *alloc_copy = self->alloc;
+    nad_dealloc(alloc_copy, self->data, self->len * self->elem_size);
+    nad_dealloc(alloc_copy, self, sizeof(nad_Arr));
 }
 
 /* ========== copy ========== */

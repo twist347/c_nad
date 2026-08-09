@@ -19,7 +19,9 @@ set(NAD_DS_SOURCES
 
 set(NAD_MEM_SOURCES
         src/mem/alloc.c
+        src/mem/alloc_arena.c
         src/mem/alloc_default.c
+        src/mem/alloc_log.c
 )
 
 set(NAD_SOURCES

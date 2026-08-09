@@ -8,3 +8,4 @@ function(nad_add_test target_name source_file)
 endfunction()
 
 add_subdirectory(ds)
+add_subdirectory(mem)
