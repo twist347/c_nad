@@ -5,7 +5,9 @@
 #include "nad/core/export.h"
 #include "nad/core/status.h"
 #include "nad/mem/alloc.h"
+#include "nad/ds/span.h"
 
+/// fixed-len owning array of type-erased elems
 typedef struct nad_Arr nad_Arr;
 
 /* ========== lifetime ========== */
@@ -20,30 +22,28 @@ NAD_API void nad_arr_drop(nad_Arr *self);
 
 /* ========== info ========== */
 
-NAD_API size_t nad_arr_len(const nad_Arr *self);
-NAD_API size_t nad_arr_elem_size(const nad_Arr *self);
-NAD_API nad_Allocator *nad_arr_alloc(const nad_Arr *self);
+[[nodiscard]] NAD_API size_t nad_arr_len(const nad_Arr *self);
+[[nodiscard]] NAD_API size_t nad_arr_elem_size(const nad_Arr *self);
+[[nodiscard]] NAD_API nad_Allocator *nad_arr_alloc(const nad_Arr *self);
 
 /* ========== access ========== */
 
-NAD_API const void *nad_arr_get(const nad_Arr *self, size_t idx);
-NAD_API void *nad_arr_get_mut(nad_Arr *self, size_t idx);
+[[nodiscard]] NAD_API const void *nad_arr_get(const nad_Arr *self, size_t idx);
+[[nodiscard]] NAD_API void *nad_arr_get_mut(nad_Arr *self, size_t idx);
 
 NAD_API void nad_arr_set(nad_Arr *self, size_t idx, const void *val);
 
-NAD_API const void *nad_arr_data(const nad_Arr *self);
-NAD_API void *nad_arr_data_mut(nad_Arr *self);
+[[nodiscard]] NAD_API const void *nad_arr_data(const nad_Arr *self);
+[[nodiscard]] NAD_API void *nad_arr_data_mut(nad_Arr *self);
 
 /* ========== mods ========== */
 
-NAD_API void nad_arr_fill(nad_Arr *self, const void *val);
-
-NAD_API void nad_arr_swap_elems(nad_Arr *self, size_t i, size_t j);
 NAD_API void nad_arr_swap(nad_Arr *self, nad_Arr *other);
 
-/* ========== rels ========== */
+/* ========== to span ========== */
 
-NAD_API bool nad_arr_eq(const nad_Arr *self, const nad_Arr *other);
+[[nodiscard]] NAD_API nad_SpanMut nad_arr_to_span_mut(nad_Arr *self);
+[[nodiscard]] NAD_API nad_Span nad_arr_to_span(const nad_Arr *self);
 
 /* ========== macros ========== */
 
@@ -52,7 +52,6 @@ NAD_API bool nad_arr_eq(const nad_Arr *self, const nad_Arr *other);
 
 #define NAD_ARR_GET_AS(T, self, idx) \
     ((const T *) nad_arr_get((self), (idx)))
-
 
 #define NAD_ARR_GET_MUT_AS(T, self, idx) \
     ((T *) nad_arr_get_mut((self), (idx)))

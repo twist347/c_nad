@@ -8,11 +8,13 @@ endif ()
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 set(NAD_CORE_SOURCES
+        src/core/cmp.c
         src/core/status.c
 )
 
 set(NAD_DS_SOURCES
         src/ds/arr.c
+        src/ds/span.c
 )
 
 set(NAD_MEM_SOURCES

@@ -3,7 +3,12 @@
 #include <assert.h>
 #include <string.h>
 
-#include "nad/mem/alloc_default.h"
+#define ASSERT_ARR(a)                    \
+    (assert(a),                          \
+     assert((a)->elem_size > 0),         \
+     assert((a)->len == 0 || (a)->data), \
+     assert(!(a)->data || (a)->len > 0), \
+     assert((a)->alloc))
 
 struct nad_Arr {
     void *data;
@@ -41,6 +46,8 @@ nad_Status nad_arr_new(size_t len, size_t elem_size, nad_Allocator *alloc, nad_A
         set_fields(arr, data, len, elem_size, alloc);
     }
 
+    ASSERT_ARR(arr);
+
     *out = arr;
     return NAD_STATUS_OK;
 }
@@ -50,6 +57,8 @@ void nad_arr_drop(nad_Arr *self) {
         return;
     }
 
+    ASSERT_ARR(self);
+
     nad_Allocator *alloc = self->alloc;
     nad_dealloc(alloc, self->data, self->len * self->elem_size);
     nad_dealloc(alloc, self, sizeof(nad_Arr));
@@ -57,12 +66,12 @@ void nad_arr_drop(nad_Arr *self) {
 
 /* ========== copy ========== */
 
-[[nodiscard]] nad_Status nad_arr_copy(const nad_Arr *self, nad_Arr **out) {
-    assert(self);
+nad_Status nad_arr_copy(const nad_Arr *self, nad_Arr **out) {
+    ASSERT_ARR(self);
     assert(out);
 
     nad_Arr *copy;
-    nad_Status st = nad_arr_new(self->len, self->elem_size, self->alloc, &copy);
+    const nad_Status st = nad_arr_new(self->len, self->elem_size, self->alloc, &copy);
     if (NAD_STATUS_IS_ERR(st)) {
         return st;
     }
@@ -71,13 +80,15 @@ void nad_arr_drop(nad_Arr *self) {
         memcpy(copy->data, self->data, self->len * self->elem_size);
     }
 
+    ASSERT_ARR(copy);
+
     *out = copy;
     return NAD_STATUS_OK;
 }
 
-[[nodiscard]] nad_Status nad_arr_copy_assign(const nad_Arr *self, nad_Arr *other) {
-    assert(self);
-    assert(other);
+nad_Status nad_arr_copy_assign(const nad_Arr *self, nad_Arr *other) {
+    ASSERT_ARR(self);
+    ASSERT_ARR(other);
     assert(self->elem_size == other->elem_size);
 
     if (self == other) {
@@ -99,6 +110,9 @@ void nad_arr_drop(nad_Arr *self) {
         nad_dealloc(other->alloc, other->data, other_bytes);
         other->data = nullptr;
         other->len = 0;
+
+        ASSERT_ARR(other);
+
         return NAD_STATUS_OK;
     }
 
@@ -110,44 +124,50 @@ void nad_arr_drop(nad_Arr *self) {
     memcpy(new_data, self->data, self_bytes);
     other->data = new_data;
     other->len = self->len;
+
+    ASSERT_ARR(other);
+
     return NAD_STATUS_OK;
 }
 
 /* ========== info ========== */
 
 size_t nad_arr_len(const nad_Arr *self) {
-    assert(self);
+    ASSERT_ARR(self);
+
     return self->len;
 }
 
 size_t nad_arr_elem_size(const nad_Arr *self) {
-    assert(self);
+    ASSERT_ARR(self);
+
     return self->elem_size;
 }
 
 nad_Allocator *nad_arr_alloc(const nad_Arr *self) {
-    assert(self);
+    ASSERT_ARR(self);
+
     return self->alloc;
 }
 
 /* ========== access ========== */
 
 const void *nad_arr_get(const nad_Arr *self, size_t idx) {
-    assert(self);
+    ASSERT_ARR(self);
     assert(idx < self->len);
 
     return byte_offset(self->data, self->elem_size, idx);
 }
 
 void *nad_arr_get_mut(nad_Arr *self, size_t idx) {
-    assert(self);
+    ASSERT_ARR(self);
     assert(idx < self->len);
 
     return byte_offset(self->data, self->elem_size, idx);
 }
 
 void nad_arr_set(nad_Arr *self, size_t idx, const void *val) {
-    assert(self);
+    ASSERT_ARR(self);
     assert(val);
     assert(idx < self->len);
 
@@ -155,49 +175,22 @@ void nad_arr_set(nad_Arr *self, size_t idx, const void *val) {
 }
 
 const void *nad_arr_data(const nad_Arr *self) {
-    assert(self);
+    ASSERT_ARR(self);
 
     return self->data;
 }
 
 void *nad_arr_data_mut(nad_Arr *self) {
-    assert(self);
+    ASSERT_ARR(self);
 
     return self->data;
 }
 
 /* ========== mods ========== */
 
-void nad_arr_fill(nad_Arr *self, const void *val) {
-    assert(self);
-    assert(val);
-
-    for (size_t i = 0; i < self->len; ++i) {
-        memcpy(byte_offset(self->data, self->elem_size, i), val, self->elem_size);
-    }
-}
-
-void nad_arr_swap_elems(nad_Arr *self, size_t i, size_t j) {
-    assert(self);
-    assert(i < self->len);
-    assert(j < self->len);
-
-    if (i == j) {
-        return;
-    }
-
-    char *a = byte_offset(self->data, self->elem_size, i);
-    char *b = byte_offset(self->data, self->elem_size, j);
-    for (size_t k = 0; k < self->elem_size; ++k) {
-        const char tmp = a[k];
-        a[k] = b[k];
-        b[k] = tmp;
-    }
-}
-
 void nad_arr_swap(nad_Arr *self, nad_Arr *other) {
-    assert(self);
-    assert(other);
+    ASSERT_ARR(self);
+    ASSERT_ARR(other);
 
     if (self == other) {
         return;
@@ -208,22 +201,18 @@ void nad_arr_swap(nad_Arr *self, nad_Arr *other) {
     *other = tmp;
 }
 
-/* ========== rels ========== */
+/* ========== to span ========== */
 
-bool nad_arr_eq(const nad_Arr *self, const nad_Arr *other) {
-    assert(self);
-    assert(other);
+nad_SpanMut nad_arr_to_span_mut(nad_Arr *self) {
+    ASSERT_ARR(self);
 
-    if (self == other) {
-        return true;
-    }
-    if (self->elem_size != other->elem_size || self->len != other->len) {
-        return false;
-    }
-    if (self->len == 0) {
-        return true;
-    }
-    return memcmp(self->data, other->data, self->len * other->elem_size) == 0;
+    return nad_span_new_mut(self->data, self->len, self->elem_size);
+}
+
+nad_Span nad_arr_to_span(const nad_Arr *self) {
+    ASSERT_ARR(self);
+
+    return nad_span_new(self->data, self->len, self->elem_size);
 }
 
 static void set_fields(nad_Arr *arr, void *data, size_t len, size_t elem_size, nad_Allocator *alloc) {
