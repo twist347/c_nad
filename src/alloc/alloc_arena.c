@@ -16,7 +16,7 @@ static void arena_dealloc(void *ctx, void *ptr, size_t size);
 /* ========== context ========== */
 
 typedef struct {
-    nad_Al *parent;
+    nad_Al *parent_al;
     void *data;
     size_t cap;
     size_t offset;
@@ -46,7 +46,7 @@ nad_Al *nad_al_arena_new(nad_Al *parent, size_t cap) {
 
     assert(nad_ptr_is_aligned(data, DEFAULT_ALIGNMENT));
 
-    arena_ctx->parent = parent;
+    arena_ctx->parent_al = parent;
     arena_ctx->data = data;
     arena_ctx->cap = cap;
     arena_ctx->offset = 0;
@@ -68,12 +68,12 @@ void nad_al_arena_drop(nad_Al *al) {
     assert(al->ctx);
 
     nad_AlArenaCtx *arena_ctx = al->ctx;
-    nad_Al *parent = arena_ctx->parent;
-    assert(parent);
+    nad_Al *parent_al = arena_ctx->parent_al;
+    assert(parent_al);
 
-    nad_dealloc(parent, arena_ctx->data, arena_ctx->cap);
-    nad_dealloc(parent, arena_ctx, sizeof(nad_AlArenaCtx));
-    nad_dealloc(parent, al, sizeof(nad_Al));
+    nad_dealloc(parent_al, arena_ctx->data, arena_ctx->cap);
+    nad_dealloc(parent_al, arena_ctx, sizeof(nad_AlArenaCtx));
+    nad_dealloc(parent_al, al, sizeof(nad_Al));
 }
 
 void nad_al_arena_reset(nad_Al *al) {
