@@ -17,7 +17,7 @@ int main() {
         arr = new_arr;
     }
 
-    NAD_DEALLOC(int, log_alloc, arr, 10);
+    NAD_DEALLOC(int, log_alloc, arr, 20);
 
     nad_allocator_log_drop(log_alloc);
 }

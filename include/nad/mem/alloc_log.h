@@ -5,5 +5,8 @@
 
 #include <stdio.h>
 
-[[nodiscard]] NAD_API nad_Allocator *nad_allocator_log_new(nad_Allocator *wrapped, FILE *stream);
-NAD_API void nad_allocator_log_drop(nad_Allocator *self);
+[[nodiscard]] NAD_API
+nad_Allocator *nad_allocator_log_new(nad_Allocator *wrapped, FILE *stream);
+
+NAD_API
+void nad_allocator_log_drop(nad_Allocator *self);

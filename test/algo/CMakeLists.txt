@@ -1,0 +1,7 @@
+nad_add_test(test_algo_compare test_algo_compare.c)
+nad_add_test(test_algo_copy test_algo_copy.c)
+nad_add_test(test_algo_fill test_algo_fill.c)
+nad_add_test(test_algo_merge test_algo_merge.c)
+nad_add_test(test_algo_permute test_algo_permute.c)
+nad_add_test(test_algo_search test_algo_search.c)
+nad_add_test(test_algo_sort test_algo_sort.c)

@@ -11,6 +11,8 @@ const char *nad_status_to_str(nad_Status st) {
             return NAD_STRINGIFY(NAD_STATUS_OUT_OF_RANGE);
         case NAD_STATUS_OUT_OF_MEMORY:
             return NAD_STRINGIFY(NAD_STATUS_OUT_OF_MEMORY);
+        case NAD_STATUS_UNSUPPORTED:
+            return NAD_STRINGIFY(NAD_STATUS_UNSUPPORTED);
     }
     return "UNKNOWN_NAD_STATUS";
 }

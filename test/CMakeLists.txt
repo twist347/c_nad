@@ -7,5 +7,6 @@ function(nad_add_test target_name source_file)
     add_test(NAME ${target_name} COMMAND ${target_name})
 endfunction()
 
+add_subdirectory(algo)
 add_subdirectory(ds)
 add_subdirectory(mem)

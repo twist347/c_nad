@@ -1,0 +1,34 @@
+#pragma once
+
+#include "nad/core/cmp.h"
+#include "nad/core/export.h"
+#include "nad/ds/span.h"
+
+/* ========== search ========== */
+
+[[nodiscard]] NAD_API
+bool nad_span_find(nad_Span s, const void *key, nad_eq_fn eq, size_t *out_idx);
+
+[[nodiscard]] NAD_API
+bool nad_span_contains(nad_Span s, const void *key, nad_eq_fn eq);
+
+[[nodiscard]] NAD_API
+size_t nad_span_count(nad_Span s, const void *key, nad_eq_fn eq);
+
+[[nodiscard]] NAD_API
+size_t nad_span_lower_bound(nad_Span s, const void *key, nad_cmp_fn cmp);
+
+[[nodiscard]] NAD_API
+size_t nad_span_upper_bound(nad_Span s, const void *key, nad_cmp_fn cmp);
+
+[[nodiscard]] NAD_API
+bool nad_span_bsearch(nad_Span s, const void *key, nad_cmp_fn cmp, size_t *out_idx);
+
+/* ========== extremes ========== */
+
+[[nodiscard]] NAD_API
+size_t nad_span_min_elem(nad_Span s, nad_cmp_fn cmp);
+
+[[nodiscard]] NAD_API
+size_t nad_span_max_elem(nad_Span s, nad_cmp_fn cmp);
+

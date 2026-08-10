@@ -9,7 +9,18 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 set(NAD_CORE_SOURCES
         src/core/cmp.c
+        src/core/elem_ops.c
         src/core/status.c
+)
+
+set(NAD_ALGO_SOURCES
+        src/algo/copy.c
+        src/algo/compare.c
+        src/algo/fill.c
+        src/algo/merge.c
+        src/algo/search.c
+        src/algo/permute.c
+        src/algo/sort.c
 )
 
 set(NAD_DS_SOURCES
@@ -22,10 +33,12 @@ set(NAD_MEM_SOURCES
         src/mem/alloc_arena.c
         src/mem/alloc_default.c
         src/mem/alloc_log.c
+        src/mem/ptr.c
 )
 
 set(NAD_SOURCES
         ${NAD_CORE_SOURCES}
+        ${NAD_ALGO_SOURCES}
         ${NAD_DS_SOURCES}
         ${NAD_MEM_SOURCES}
 )

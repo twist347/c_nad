@@ -54,7 +54,7 @@ void *nad_realloc(nad_Allocator *al, void *ptr, size_t old_size, size_t new_size
             return nullptr;
         }
 
-        if (ptr && old_size > 0) {
+        if (ptr) {
             const size_t copy_size = old_size < new_size ? old_size : new_size;
             memcpy(new_ptr, ptr, copy_size);
             nad_dealloc(al, ptr, old_size);

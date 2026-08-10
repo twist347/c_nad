@@ -32,7 +32,7 @@ nad_Allocator *nad_allocator_log_new(nad_Allocator *wrapped, FILE *stream) {
 
     nad_Allocator *alloc = nad_alloc(wrapped, sizeof(nad_Allocator));
     if (!alloc) {
-        free(ctx);
+        nad_dealloc(wrapped, ctx, sizeof(nad_AllocatorLogCtx));
         return nullptr;
     }
 
@@ -128,8 +128,12 @@ static void log_dealloc(void *ctx, void *ptr, size_t size) {
 
     const nad_AllocatorLogCtx *log_ctx = ctx;
     assert(log_ctx->stream);
-    assert(log_ctx->wrapped->dealloc);
 
     nad_dealloc(log_ctx->wrapped, ptr, size);
+    fprintf(
+        log_ctx->stream,
+        "[NAD] dealloc %p size = %zu\n",
+        ptr, size
+    );
     fflush(log_ctx->stream);
 }

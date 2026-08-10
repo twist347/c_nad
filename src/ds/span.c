@@ -3,10 +3,6 @@
 #include <assert.h>
 #include <string.h>
 
-#define ASSERT_SPAN(s)                 \
-    (assert((s).data || (s).len == 0), \
-     assert((s).elem_size > 0))
-
 static const char *byte_offset(const void *base, size_t stride, size_t n);
 static char *byte_offset_mut(void *base, size_t stride, size_t n);
 
@@ -35,7 +31,7 @@ nad_SpanMut nad_span_new_mut(void *data, size_t len, size_t elem_size) {
 }
 
 nad_Span nad_span_from_mut(nad_SpanMut s) {
-    ASSERT_SPAN(s);
+    NAD_SPAN_ASSERT(s);
 
     return (nad_Span){
         .data = s.data,
@@ -47,7 +43,7 @@ nad_Span nad_span_from_mut(nad_SpanMut s) {
 /* ========== subspan ========== */
 
 nad_Span nad_span_sub(nad_Span s, size_t start, size_t count) {
-    ASSERT_SPAN(s);
+    NAD_SPAN_ASSERT(s);
     assert(start <= s.len);
     assert(count <= s.len - start);
 
@@ -59,7 +55,7 @@ nad_Span nad_span_sub(nad_Span s, size_t start, size_t count) {
 }
 
 nad_SpanMut nad_span_sub_mut(nad_SpanMut s, size_t start, size_t count) {
-    ASSERT_SPAN(s);
+    NAD_SPAN_ASSERT(s);
     assert(start <= s.len);
     assert(count <= s.len - start);
 
@@ -73,7 +69,7 @@ nad_SpanMut nad_span_sub_mut(nad_SpanMut s, size_t start, size_t count) {
 /* ========== info ========== */
 
 size_t nad_span_bytes(nad_Span s) {
-    ASSERT_SPAN(s);
+    NAD_SPAN_ASSERT(s);
 
     return s.len * s.elem_size;
 }
@@ -81,21 +77,21 @@ size_t nad_span_bytes(nad_Span s) {
 /* ========== access ========== */
 
 const void *nad_span_get(nad_Span s, size_t idx) {
-    ASSERT_SPAN(s);
+    NAD_SPAN_ASSERT(s);
     assert(idx < s.len);
 
     return byte_offset(s.data, s.elem_size, idx);
 }
 
 void *nad_span_get_mut(nad_SpanMut s, size_t idx) {
-    ASSERT_SPAN(s);
+    NAD_SPAN_ASSERT(s);
     assert(idx < s.len);
 
     return byte_offset_mut(s.data, s.elem_size, idx);
 }
 
 void nad_span_set(nad_SpanMut s, size_t idx, const void *val) {
-    ASSERT_SPAN(s);
+    NAD_SPAN_ASSERT(s);
     assert(idx < s.len);
     assert(val);
 
@@ -105,7 +101,7 @@ void nad_span_set(nad_SpanMut s, size_t idx, const void *val) {
 /* ========== mods ========== */
 
 void nad_span_swap_elems(nad_SpanMut s, size_t i, size_t j) {
-    ASSERT_SPAN(s);
+    NAD_SPAN_ASSERT(s);
     assert(i < s.len);
     assert(j < s.len);
 

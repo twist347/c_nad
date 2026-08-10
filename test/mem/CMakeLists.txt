@@ -1,1 +1,4 @@
+nad_add_test(test_mem_alloc test_mem_alloc.c)
+nad_add_test(test_mem_alloc_arena test_mem_alloc_arena.c)
+nad_add_test(test_mem_alloc_default test_mem_alloc_default.c)
 nad_add_test(test_mem_log_alloc test_mem_log_alloc.c)
