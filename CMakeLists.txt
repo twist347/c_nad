@@ -7,12 +7,6 @@ endif ()
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-set(NAD_CORE_SOURCES
-        src/core/cmp.c
-        src/core/elem_ops.c
-        src/core/status.c
-)
-
 set(NAD_ALGO_SOURCES
         src/algo/copy.c
         src/algo/compare.c
@@ -23,24 +17,29 @@ set(NAD_ALGO_SOURCES
         src/algo/sort.c
 )
 
+set(NAD_ALLOC_SOURCES
+        src/alloc/alloc.c
+        src/alloc/alloc_arena.c
+        src/alloc/alloc_default.c
+        src/alloc/alloc_log.c
+)
+
+set(NAD_CORE_SOURCES
+        src/core/cmp.c
+        src/core/elem_ops.c
+        src/core/status.c
+)
+
 set(NAD_DS_SOURCES
         src/ds/arr.c
         src/ds/span.c
 )
 
-set(NAD_MEM_SOURCES
-        src/mem/alloc.c
-        src/mem/alloc_arena.c
-        src/mem/alloc_default.c
-        src/mem/alloc_log.c
-        src/mem/ptr.c
-)
-
 set(NAD_SOURCES
-        ${NAD_CORE_SOURCES}
         ${NAD_ALGO_SOURCES}
+        ${NAD_ALLOC_SOURCES}
+        ${NAD_CORE_SOURCES}
         ${NAD_DS_SOURCES}
-        ${NAD_MEM_SOURCES}
 )
 
 add_library(nadc_api INTERFACE)
@@ -55,6 +54,7 @@ add_library(nadc ${NAD_SOURCES})
 add_library(nadc::nadc ALIAS nadc)
 target_link_libraries(nadc PUBLIC nadc_api)
 target_compile_options(nadc PRIVATE -Wall -Wextra -pedantic)
+target_include_directories(nadc PRIVATE ${PROJECT_SOURCE_DIR}/src)
 
 target_compile_definitions(nadc
         PRIVATE NAD_BUILD

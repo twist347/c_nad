@@ -4,8 +4,7 @@
 
 #include "nad/core/export.h"
 #include "nad/core/status.h"
-#include "nad/core/elem_ops.h"
-#include "nad/mem/alloc.h"
+#include "nad/alloc/alloc.h"
 #include "nad/ds/span.h"
 
 /// fixed-len owning array of type-erased elems
@@ -14,7 +13,7 @@ typedef struct nad_Arr nad_Arr;
 /* ========== lifetime ========== */
 
 [[nodiscard]] NAD_API
-nad_Status nad_arr_new(size_t len, size_t elem_size, nad_Allocator *alloc, nad_Arr **out);
+nad_Status nad_arr_new(size_t len, size_t elem_size, nad_Al *al, nad_Arr **out);
 
 NAD_API
 void nad_arr_drop(nad_Arr *self);
@@ -36,7 +35,7 @@ size_t nad_arr_len(const nad_Arr *self);
 size_t nad_arr_elem_size(const nad_Arr *self);
 
 [[nodiscard]] NAD_API
-nad_Allocator *nad_arr_alloc(const nad_Arr *self);
+nad_Al *nad_arr_al(const nad_Arr *self);
 
 /* ========== access ========== */
 

@@ -1,10 +1,8 @@
 #include "nad/ds/span.h"
+#include "internal/ptr.h"
 
 #include <assert.h>
 #include <string.h>
-
-static const char *byte_offset(const void *base, size_t stride, size_t n);
-static char *byte_offset_mut(void *base, size_t stride, size_t n);
 
 /* ========== construction ========== */
 
@@ -48,7 +46,7 @@ nad_Span nad_span_sub(nad_Span s, size_t start, size_t count) {
     assert(count <= s.len - start);
 
     return (nad_Span){
-        .data = s.data ? byte_offset(s.data, s.elem_size, start) : nullptr,
+        .data = s.data ? nad_byte_offset(s.data, s.elem_size, start) : nullptr,
         .len = count,
         .elem_size = s.elem_size
     };
@@ -60,7 +58,7 @@ nad_SpanMut nad_span_sub_mut(nad_SpanMut s, size_t start, size_t count) {
     assert(count <= s.len - start);
 
     return (nad_SpanMut){
-        .data = s.data ? byte_offset_mut(s.data, s.elem_size, start) : nullptr,
+        .data = s.data ? nad_byte_offset_mut(s.data, s.elem_size, start) : nullptr,
         .len = count,
         .elem_size = s.elem_size
     };
@@ -80,14 +78,14 @@ const void *nad_span_get(nad_Span s, size_t idx) {
     NAD_SPAN_ASSERT(s);
     assert(idx < s.len);
 
-    return byte_offset(s.data, s.elem_size, idx);
+    return nad_byte_offset(s.data, s.elem_size, idx);
 }
 
 void *nad_span_get_mut(nad_SpanMut s, size_t idx) {
     NAD_SPAN_ASSERT(s);
     assert(idx < s.len);
 
-    return byte_offset_mut(s.data, s.elem_size, idx);
+    return nad_byte_offset_mut(s.data, s.elem_size, idx);
 }
 
 void nad_span_set(nad_SpanMut s, size_t idx, const void *val) {
@@ -95,7 +93,7 @@ void nad_span_set(nad_SpanMut s, size_t idx, const void *val) {
     assert(idx < s.len);
     assert(val);
 
-    memcpy(byte_offset_mut(s.data, s.elem_size, idx), val, s.elem_size);
+    memcpy(nad_byte_offset_mut(s.data, s.elem_size, idx), val, s.elem_size);
 }
 
 /* ========== mods ========== */
@@ -109,19 +107,11 @@ void nad_span_swap_elems(nad_SpanMut s, size_t i, size_t j) {
         return;
     }
 
-    char *a = byte_offset_mut(s.data, s.elem_size, i);
-    char *b = byte_offset_mut(s.data, s.elem_size, j);
+    char *a = nad_byte_offset_mut(s.data, s.elem_size, i);
+    char *b = nad_byte_offset_mut(s.data, s.elem_size, j);
     for (size_t k = 0; k < s.elem_size; ++k) {
         const char tmp = a[k];
         a[k] = b[k];
         b[k] = tmp;
     }
-}
-
-static const char *byte_offset(const void *base, size_t stride, size_t n) {
-    return (const char *) base + stride * n;
-}
-
-static char *byte_offset_mut(void *base, size_t stride, size_t n) {
-    return (char *) base + stride * n;
 }

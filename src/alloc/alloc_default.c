@@ -1,4 +1,4 @@
-#include "nad/mem/alloc_default.h"
+#include "nad/alloc/alloc_default.h"
 #include "nad/core/util.h"
 
 #include <stddef.h>
@@ -9,8 +9,8 @@ static void *calloc_wrapper(void *ctx, size_t num, size_t size);
 static void *realloc_wrapper(void *ctx, void *ptr, size_t old_size, size_t new_size);
 static void free_wrapper(void *ctx, void *ptr, size_t size);
 
-nad_Allocator *nad_allocator_default() {
-    static nad_Allocator static_alloc = {
+nad_Al *nad_al_default() {
+    static nad_Al static_al = {
         .ctx = nullptr,
         .alloc = malloc_wrapper,
         .calloc = calloc_wrapper,
@@ -18,7 +18,7 @@ nad_Allocator *nad_allocator_default() {
         .dealloc = free_wrapper,
     };
 
-    return &static_alloc;
+    return &static_al;
 }
 
 static void *malloc_wrapper(void *ctx, size_t size) {
