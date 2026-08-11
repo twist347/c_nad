@@ -15,6 +15,9 @@ typedef struct nad_Arr nad_Arr;
 [[nodiscard]] NAD_API
 nad_Status nad_arr_new(size_t len, size_t elem_size, nad_Al *al, nad_Arr **out);
 
+[[nodiscard]] NAD_API
+nad_Status nad_arr_from_data(const void *data, size_t len, size_t elem_size, nad_Al *al, nad_Arr **out);
+
 NAD_API
 void nad_arr_drop(nad_Arr *self);
 

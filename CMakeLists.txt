@@ -54,7 +54,7 @@ option(BUILD_SHARED_LIBS "Build nadc as a shared library" ON)
 add_library(nadc ${NAD_SOURCES})
 add_library(nadc::nadc ALIAS nadc)
 target_link_libraries(nadc PUBLIC nadc_api)
-target_compile_options(nadc PRIVATE -Wall -Wextra -pedantic)
+target_compile_options(nadc PRIVATE -Wall -Wextra -Wpedantic)
 target_include_directories(nadc PRIVATE ${PROJECT_SOURCE_DIR}/src)
 
 target_compile_definitions(nadc

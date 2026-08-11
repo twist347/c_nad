@@ -54,7 +54,7 @@ nad_Al *nad_al_pool_new(nad_Al *parent, size_t block_size, size_t block_count) {
     }
 
     // allocate context
-    nad_AlPoolCtx *pool_ctx = nad_alloc(parent, sizeof(sizeof(nad_AlPoolCtx)));
+    nad_AlPoolCtx *pool_ctx = nad_alloc(parent, sizeof(nad_AlPoolCtx));
     if (!pool_ctx) {
         return nullptr;
     }

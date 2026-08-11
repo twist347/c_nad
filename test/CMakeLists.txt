@@ -5,6 +5,11 @@ function(nad_add_test target_name source_file)
     target_compile_options(${target_name} PRIVATE -Wall -Wextra -pedantic)
 
     add_test(NAME ${target_name} COMMAND ${target_name})
+
+    # nad_calloc contracts on getting nullptr back for an oversized request, but
+    # ASan aborts on one by default. Ignored when not built with a sanitizer.
+    set_tests_properties(${target_name} PROPERTIES
+        ENVIRONMENT "ASAN_OPTIONS=allocator_may_return_null=1")
 endfunction()
 
 add_subdirectory(algo)
