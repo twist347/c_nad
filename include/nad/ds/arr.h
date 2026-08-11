@@ -62,6 +62,8 @@ void *nad_arr_data_mut(nad_Arr *self);
 NAD_API
 void nad_arr_swap(nad_Arr *self, nad_Arr *other);
 
+// TODO: nad_arr_swap_elems
+
 /* ========== to span ========== */
 
 [[nodiscard]] NAD_API

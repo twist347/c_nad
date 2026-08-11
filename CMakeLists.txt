@@ -12,6 +12,7 @@ set(NAD_ALGO_SOURCES
         src/algo/compare.c
         src/algo/fill.c
         src/algo/merge.c
+        src/algo/modify.c
         src/algo/search.c
         src/algo/permute.c
         src/algo/sort.c
