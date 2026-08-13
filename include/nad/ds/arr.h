@@ -1,11 +1,11 @@
 #pragma once
 
-#include <stddef.h>
-
+#include "nad/alloc/alloc.h"
 #include "nad/core/export.h"
 #include "nad/core/status.h"
-#include "nad/alloc/alloc.h"
 #include "nad/ds/span.h"
+
+#include <stddef.h>
 
 /// fixed-len owning array of type-erased elems
 typedef struct nad_Arr nad_Arr;
@@ -13,10 +13,13 @@ typedef struct nad_Arr nad_Arr;
 /* ========== lifetime ========== */
 
 [[nodiscard]] NAD_API
-nad_Status nad_arr_new(size_t len, size_t elem_size, nad_Al *al, nad_Arr **out);
+nad_Status nad_arr_new_len(size_t len, size_t elem_size, nad_Al *al, nad_Arr **out);
 
 [[nodiscard]] NAD_API
 nad_Status nad_arr_from_data(const void *data, size_t len, size_t elem_size, nad_Al *al, nad_Arr **out);
+
+[[nodiscard]] NAD_API
+nad_Status nad_arr_from_span(nad_Span s, nad_Al *al, nad_Arr **out);
 
 NAD_API
 void nad_arr_drop(nad_Arr *self);
@@ -38,9 +41,24 @@ size_t nad_arr_len(const nad_Arr *self);
 size_t nad_arr_elem_size(const nad_Arr *self);
 
 [[nodiscard]] NAD_API
+size_t nad_arr_bytes(const nad_Arr *self);
+
+[[nodiscard]] NAD_API
 nad_Al *nad_arr_al(const nad_Arr *self);
 
 /* ========== access ========== */
+
+[[nodiscard]] NAD_API
+const void *nad_arr_first(const nad_Arr *self);
+
+[[nodiscard]] NAD_API
+void *nad_arr_first_mut(nad_Arr *self);
+
+[[nodiscard]] NAD_API
+const void *nad_arr_last(const nad_Arr *self);
+
+[[nodiscard]] NAD_API
+void *nad_arr_last_mut(nad_Arr *self);
 
 [[nodiscard]] NAD_API
 const void *nad_arr_get(const nad_Arr *self, size_t idx);
@@ -59,10 +77,11 @@ void *nad_arr_data_mut(nad_Arr *self);
 
 /* ========== mods ========== */
 
-NAD_API
-void nad_arr_swap(nad_Arr *self, nad_Arr *other);
+[[nodiscard]] NAD_API
+nad_Status nad_arr_swap(nad_Arr *self, nad_Arr *other);
 
-// TODO: nad_arr_swap_elems
+NAD_API
+void nad_arr_swap_elems(nad_Arr *self, size_t i, size_t j);
 
 /* ========== to span ========== */
 
@@ -74,8 +93,29 @@ nad_Span nad_arr_to_span(const nad_Arr *self);
 
 /* ========== macros ========== */
 
-#define NAD_ARR_NEW(T, len, alloc, out) \
-    nad_arr_new((len), sizeof(T), (alloc), (out))
+#define NAD_ARR_NEW_LEN(T, len, al, out) \
+    nad_arr_new_len((len), sizeof(T), (al), (out))
+
+#define NAD_ARR_FROM_DATA(T, data, len, al, out) \
+    nad_arr_from_data((const T *){ (data) }, (len), sizeof(T), (al), (out))
+
+#define NAD_ARR_OF(T, al, out, ...)                     \
+    nad_arr_from_data(                                  \
+        (const T[]){ __VA_ARGS__ },                     \
+        sizeof((const T[]){ __VA_ARGS__ }) / sizeof(T), \
+        sizeof(T), (al), (out))
+
+#define NAD_ARR_FIRST_AS(T, self) \
+    ((const T *) nad_arr_first((self)))
+
+#define NAD_ARR_FIRST_MUT_AS(T, self) \
+    ((T *) nad_arr_first_mut((self)))
+
+#define NAD_ARR_LAST_AS(T, self) \
+    ((const T *) nad_arr_last((self)))
+
+#define NAD_ARR_LAST_MUT_AS(T, self) \
+    ((T *) nad_arr_last_mut((self)))
 
 #define NAD_ARR_GET_AS(T, self, idx) \
     ((const T *) nad_arr_get((self), (idx)))
@@ -85,9 +125,3 @@ nad_Span nad_arr_to_span(const nad_Arr *self);
 
 #define NAD_ARR_SET(T, self, idx, val) \
     nad_arr_set((self), (idx), &(T){ (val) })
-
-#define NAD_ARR_FOREACH(T, it, self)               \
-    for (T *it = nad_arr_data_mut(self),           \
-            *nad_it_end_ = it + nad_arr_len(self); \
-         it != nad_it_end_;                        \
-         ++it)

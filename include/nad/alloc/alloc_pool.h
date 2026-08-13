@@ -5,14 +5,20 @@
 
 #include <stddef.h>
 
+/* ========== lifetime ========== */
+
 [[nodiscard]] NAD_API
 nad_Al *nad_al_pool_new(nad_Al *parent, size_t block_size, size_t block_count);
 
 NAD_API
 void nad_al_pool_drop(nad_Al *al);
 
+/* ========== mods ========== */
+
 NAD_API
 void nad_al_pool_reset(nad_Al *al);
+
+/* ========== stats ========== */
 
 typedef struct {
     size_t block_size;

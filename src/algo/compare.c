@@ -3,8 +3,6 @@
 #include <assert.h>
 #include <string.h>
 
-/* ========== eq ========== */
-
 bool nad_span_eq(nad_Span a, nad_Span b) {
     NAD_SPAN_ASSERT(a);
     NAD_SPAN_ASSERT(b);

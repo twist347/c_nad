@@ -5,6 +5,8 @@
 
 #include <stdio.h>
 
+/* ========== lifetime ========== */
+
 [[nodiscard]] NAD_API
 nad_Al *nad_al_log_new(nad_Al *wrapped, FILE *stream);
 

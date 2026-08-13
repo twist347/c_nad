@@ -5,14 +5,20 @@
 
 #include <stddef.h>
 
+/* ========== lifetime ========== */
+
 [[nodiscard]] NAD_API
 nad_Al *nad_al_arena_new(nad_Al *parent, size_t cap);
 
 NAD_API
 void nad_al_arena_drop(nad_Al *al);
 
+/* ========== mods ========== */
+
 NAD_API
 void nad_al_arena_reset(nad_Al *al);
+
+/* ========== stats ========== */
 
 typedef struct {
     size_t cap;

@@ -1,9 +1,9 @@
 #pragma once
 
+#include "nad/core/export.h"
+
 #include <stddef.h>
 #include <assert.h>
-
-#include "nad/core/export.h"
 
 /// non owning view over a contiguous mem
 /// borrows its source and does not extend it
@@ -19,7 +19,7 @@ typedef struct {
     size_t elem_size;
 } nad_SpanMut;
 
-#define NAD_SPAN_ASSERT(s)                 \
+#define NAD_SPAN_ASSERT(s)             \
     (assert((s).data || (s).len == 0), \
      assert((s).elem_size > 0))
 
@@ -66,6 +66,8 @@ NAD_API
 void nad_span_swap_elems(nad_SpanMut s, size_t i, size_t j);
 
 /* ========== macros ========== */
+
+// TODO: span from data
 
 #define NAD_SPAN_NEW(T, data, len) \
     nad_span_new((data), (len), sizeof(T))

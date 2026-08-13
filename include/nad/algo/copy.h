@@ -3,8 +3,6 @@
 #include "nad/core/export.h"
 #include "nad/ds/span.h"
 
-/* ========== copy ========== */
-
 NAD_API
 void nad_span_copy(nad_SpanMut dst, nad_Span src);
 

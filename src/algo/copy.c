@@ -3,8 +3,6 @@
 #include <assert.h>
 #include <string.h>
 
-/* ========== copy ========== */
-
 void nad_span_copy(nad_SpanMut dst, nad_Span src) {
     NAD_SPAN_ASSERT(dst);
     NAD_SPAN_ASSERT(src);

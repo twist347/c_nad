@@ -31,4 +31,3 @@ size_t nad_span_min_elem(nad_Span s, nad_cmp_fn cmp);
 
 [[nodiscard]] NAD_API
 size_t nad_span_max_elem(nad_Span s, nad_cmp_fn cmp);
-

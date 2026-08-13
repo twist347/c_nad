@@ -107,11 +107,9 @@ void nad_span_swap_elems(nad_SpanMut s, size_t i, size_t j) {
         return;
     }
 
-    char *a = nad_byte_offset_mut(s.data, s.elem_size, i);
-    char *b = nad_byte_offset_mut(s.data, s.elem_size, j);
-    for (size_t k = 0; k < s.elem_size; ++k) {
-        const char tmp = a[k];
-        a[k] = b[k];
-        b[k] = tmp;
-    }
+    nad_bytes_swap(
+        nad_byte_offset_mut(s.data, s.elem_size, i),
+        nad_byte_offset_mut(s.data, s.elem_size, j),
+        s.elem_size
+    );
 }

@@ -1,5 +1,7 @@
 #pragma once
 
+#include "nad/core/util.h"
+
 #include <stddef.h>
 #include <stdint.h>
 #include <assert.h>
@@ -69,4 +71,16 @@ bool nad_ptr_is_aligned(const void *ptr, size_t alignment) {
     assert((alignment & (alignment - 1)) == 0);
 
     return ((uintptr_t) ptr & (alignment - 1)) == 0;
+}
+
+static inline
+void nad_bytes_swap(void *a, void *b, size_t n) {
+    assert(a);
+    assert(b);
+
+    char *pa = a;
+    char *pb = b;
+    for (size_t i = 0; i < n; ++i) {
+        NAD_SWAP(pa[i], pb[i]);
+    }
 }

@@ -3,8 +3,6 @@
 #include <assert.h>
 #include <string.h>
 
-/* ========== fill ========== */
-
 void nad_span_fill(nad_SpanMut s, const void *val) {
     NAD_SPAN_ASSERT(s);
     assert(val);

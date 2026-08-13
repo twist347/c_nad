@@ -7,13 +7,18 @@
 #include <stddef.h>
 #include <string.h>
 
+/* ========== internals ========== */
+
 static constexpr size_t DEFAULT_ALIGNMENT = alignof(max_align_t);
 
-static void *arena_alloc(void *ctx, size_t size);
-static void *arena_calloc(void *ctx, size_t num, size_t size);
-static void arena_dealloc(void *ctx, void *ptr, size_t size);
+[[nodiscard]] static
+void *arena_alloc(void *ctx, size_t size);
 
-/* ========== context ========== */
+[[nodiscard]] static
+void *arena_calloc(void *ctx, size_t num, size_t size);
+
+static
+void arena_dealloc(void *ctx, void *ptr, size_t size);
 
 typedef struct {
     nad_Al *parent_al;
@@ -21,6 +26,8 @@ typedef struct {
     size_t cap;
     size_t offset;
 } nad_AlArenaCtx;
+
+/* ========== lifetime ========== */
 
 nad_Al *nad_al_arena_new(nad_Al *parent, size_t cap) {
     assert(parent);
@@ -76,6 +83,8 @@ void nad_al_arena_drop(nad_Al *al) {
     nad_dealloc(parent_al, al, sizeof(nad_Al));
 }
 
+/* ========== mods ========== */
+
 void nad_al_arena_reset(nad_Al *al) {
     assert(al);
     assert(al->ctx);
@@ -83,6 +92,8 @@ void nad_al_arena_reset(nad_Al *al) {
     nad_AlArenaCtx *arena_ctx = al->ctx;
     arena_ctx->offset = 0;
 }
+
+/* ========== stats ========== */
 
 nad_AlArenaStats nad_al_arena_stats(const nad_Al *al) {
     assert(al);
@@ -97,7 +108,10 @@ nad_AlArenaStats nad_al_arena_stats(const nad_Al *al) {
     };
 }
 
-static void *arena_alloc(void *ctx, size_t size) {
+/* ========== internals ========== */
+
+static
+void *arena_alloc(void *ctx, size_t size) {
     assert(ctx);
 
     nad_AlArenaCtx *arena_ctx = ctx;
@@ -121,7 +135,8 @@ static void *arena_alloc(void *ctx, size_t size) {
     return ptr;
 }
 
-static void *arena_calloc(void *ctx, size_t num, size_t size) {
+static
+void *arena_calloc(void *ctx, size_t num, size_t size) {
     assert(ctx);
 
     size_t total;
@@ -137,7 +152,8 @@ static void *arena_calloc(void *ctx, size_t num, size_t size) {
     return ptr;
 }
 
-static void arena_dealloc(void *ctx, void *ptr, size_t size) {
+static
+void arena_dealloc(void *ctx, void *ptr, size_t size) {
     // arena doesn't free individual allocations
 
     NAD_UNUSED(ctx);

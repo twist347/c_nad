@@ -4,6 +4,8 @@
 #include <stdckdint.h>
 #include <string.h>
 
+/* ========== wrappers ========== */
+
 void *nad_alloc(nad_Al *al, size_t size) {
     assert(al);
     assert(al->alloc);

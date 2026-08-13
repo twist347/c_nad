@@ -3,8 +3,6 @@
 #include <assert.h>
 #include <string.h>
 
-/* ========== merge ========== */
-
 void nad_span_merge(nad_SpanMut dst, nad_Span a, nad_Span b, nad_cmp_fn cmp) {
     NAD_SPAN_ASSERT(dst);
     NAD_SPAN_ASSERT(a);

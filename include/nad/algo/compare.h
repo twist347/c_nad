@@ -4,8 +4,6 @@
 #include "nad/core/export.h"
 #include "nad/ds/span.h"
 
-/* ========== eq ========== */
-
 [[nodiscard]] NAD_API
 bool nad_span_eq(nad_Span a, nad_Span b);
 

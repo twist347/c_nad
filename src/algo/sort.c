@@ -1,13 +1,18 @@
+#include "nad/core/util.h"
 #include "nad/algo/sort.h"
+#include "nad/algo/copy.h"
+#include "nad/algo/merge.h"
 
 #include <assert.h>
 #include <stdlib.h>
 
-#include "nad/algo/copy.h"
-#include "nad/algo/merge.h"
+/* ========== internals ========== */
 
-static size_t median3(nad_Span s, size_t a, size_t b, size_t c, nad_cmp_fn cmp);
-static size_t partition_lomuto(nad_SpanMut s, size_t left, size_t right, size_t pivot_idx, nad_cmp_fn cmp);
+[[nodiscard]] static
+size_t median3(nad_Span s, size_t a, size_t b, size_t c, nad_cmp_fn cmp);
+
+[[nodiscard]] static
+size_t partition_lomuto(nad_SpanMut s, size_t left, size_t right, size_t pivot_idx, nad_cmp_fn cmp);
 
 /* ========== sort ========== */
 
@@ -73,9 +78,7 @@ nad_Status nad_span_sort_stable(nad_SpanMut s, nad_cmp_fn cmp, nad_Al *al) {
                 cmp
             );
         }
-        const nad_SpanMut done = dst;
-        dst = src;
-        src = done;
+        NAD_SWAP(src, dst);
     }
 
     // if result ended up in buf, copy back to original
@@ -154,7 +157,10 @@ bool nad_span_is_sorted(nad_Span s, nad_cmp_fn cmp) {
     return true;
 }
 
-static size_t median3(nad_Span s, size_t a, size_t b, size_t c, nad_cmp_fn cmp) {
+/* ========== internals ========== */
+
+static
+size_t median3(nad_Span s, size_t a, size_t b, size_t c, nad_cmp_fn cmp) {
     const void *a_ptr = nad_span_get(s, a);
     const void *b_ptr = nad_span_get(s, b);
     const void *c_ptr = nad_span_get(s, c);
@@ -171,7 +177,8 @@ static size_t median3(nad_Span s, size_t a, size_t b, size_t c, nad_cmp_fn cmp) 
     return c;
 }
 
-static size_t partition_lomuto(nad_SpanMut s, size_t left, size_t right, size_t pivot_idx, nad_cmp_fn cmp) {
+static
+size_t partition_lomuto(nad_SpanMut s, size_t left, size_t right, size_t pivot_idx, nad_cmp_fn cmp) {
     assert(left <= pivot_idx && pivot_idx <= right);
 
     nad_span_swap_elems(s, pivot_idx, right);

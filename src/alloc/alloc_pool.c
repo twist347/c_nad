@@ -6,6 +6,8 @@
 #include <stdckdint.h>
 #include <string.h>
 
+/* ========== internals ========== */
+
 static constexpr size_t POOL_ALIGNMENT = alignof(max_align_t);
 
 typedef struct PoolNode PoolNode;
@@ -23,12 +25,22 @@ typedef struct {
     size_t used;
 } nad_AlPoolCtx;
 
-static void *pool_alloc(void *ctx, size_t size);
-static void *pool_calloc(void *ctx, size_t num, size_t size);
-static void pool_dealloc(void *ctx, void *ptr, size_t size);
+[[nodiscard]] static
+void *pool_alloc(void *ctx, size_t size);
 
-static void pool_build_free_list(nad_AlPoolCtx *ctx);
-static bool pool_owns(const nad_AlPoolCtx *ctx, const void *ptr);
+[[nodiscard]] static
+void *pool_calloc(void *ctx, size_t num, size_t size);
+
+static
+void pool_dealloc(void *ctx, void *ptr, size_t size);
+
+static
+void pool_build_free_list(nad_AlPoolCtx *ctx);
+
+[[nodiscard]] static
+bool pool_owns(const nad_AlPoolCtx *ctx, const void *ptr);
+
+/* ========== lifetime ========== */
 
 nad_Al *nad_al_pool_new(nad_Al *parent, size_t block_size, size_t block_count) {
     assert(parent);
@@ -132,7 +144,10 @@ nad_AlPoolStats nad_al_pool_stats(const nad_Al *al) {
     };
 }
 
-static void *pool_alloc(void *ctx, size_t size) {
+/* ========== internals ========== */
+
+static
+void *pool_alloc(void *ctx, size_t size) {
     assert(ctx);
 
     if (size == 0) {
@@ -155,7 +170,8 @@ static void *pool_alloc(void *ctx, size_t size) {
     return node;
 }
 
-static void *pool_calloc(void *ctx, size_t num, size_t size) {
+static
+void *pool_calloc(void *ctx, size_t num, size_t size) {
     assert(ctx);
 
     size_t total;
@@ -169,7 +185,8 @@ static void *pool_calloc(void *ctx, size_t num, size_t size) {
     return ptr;
 }
 
-static void pool_dealloc(void *ctx, void *ptr, size_t size) {
+static
+void pool_dealloc(void *ctx, void *ptr, size_t size) {
     assert(ctx);
     NAD_UNUSED(size);
 
@@ -189,7 +206,8 @@ static void pool_dealloc(void *ctx, void *ptr, size_t size) {
     --pool_ctx->used;
 }
 
-static void pool_build_free_list(nad_AlPoolCtx *ctx) {
+static
+void pool_build_free_list(nad_AlPoolCtx *ctx) {
     assert(ctx);
     ctx->free_head = nullptr;
 
@@ -201,7 +219,8 @@ static void pool_build_free_list(nad_AlPoolCtx *ctx) {
     }
 }
 
-static bool pool_owns(const nad_AlPoolCtx *ctx, const void *ptr) {
+static
+bool pool_owns(const nad_AlPoolCtx *ctx, const void *ptr) {
     const char *p = ptr;
     const char *begin = ctx->data;
     const char *end = ctx->data + ctx->block_size * ctx->block_count;

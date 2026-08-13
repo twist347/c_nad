@@ -6,17 +6,26 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-static void *log_alloc(void *ctx, size_t size);
-static void *log_calloc(void *ctx, size_t num, size_t size);
-static void *log_realloc(void *ctx, void *ptr, size_t old_size, size_t new_size);
-static void log_dealloc(void *ctx, void *ptr, size_t size);
+/* ========== internals ========== */
 
-/* ========== context ========== */
+[[nodiscard]] static
+void *log_alloc(void *ctx, size_t size);
+
+[[nodiscard]] static
+void *log_calloc(void *ctx, size_t num, size_t size);
+
+[[nodiscard]] static
+void *log_realloc(void *ctx, void *ptr, size_t old_size, size_t new_size);
+
+static
+void log_dealloc(void *ctx, void *ptr, size_t size);
 
 typedef struct {
     nad_Al *wrapped;
     FILE *stream;
 } nad_AlLogCtx;
+
+/* ========== lifetime ========== */
 
 nad_Al *nad_al_log_new(nad_Al *wrapped, FILE *stream) {
     assert(wrapped);
@@ -73,7 +82,10 @@ void nad_al_log_drop(nad_Al *self) {
     nad_dealloc(wrapped, log_ctx, sizeof(nad_AlLogCtx));
 }
 
-static void *log_alloc(void *ctx, size_t size) {
+/* ========== internals ========== */
+
+static
+void *log_alloc(void *ctx, size_t size) {
     assert(ctx);
 
     const nad_AlLogCtx *log_ctx = ctx;
@@ -89,7 +101,8 @@ static void *log_alloc(void *ctx, size_t size) {
     return p;
 }
 
-static void *log_calloc(void *ctx, size_t num, size_t size) {
+static
+void *log_calloc(void *ctx, size_t num, size_t size) {
     assert(ctx);
 
     const nad_AlLogCtx *log_ctx = ctx;
@@ -105,7 +118,8 @@ static void *log_calloc(void *ctx, size_t num, size_t size) {
     return p;
 }
 
-static void *log_realloc(void *ctx, void *ptr, size_t old_size, size_t new_size) {
+static
+void *log_realloc(void *ctx, void *ptr, size_t old_size, size_t new_size) {
     assert(ctx);
 
     const nad_AlLogCtx *log_ctx = ctx;
@@ -121,7 +135,8 @@ static void *log_realloc(void *ctx, void *ptr, size_t old_size, size_t new_size)
     return p;
 }
 
-static void log_dealloc(void *ctx, void *ptr, size_t size) {
+static
+void log_dealloc(void *ctx, void *ptr, size_t size) {
     assert(ctx);
 
     const nad_AlLogCtx *log_ctx = ctx;

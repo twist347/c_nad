@@ -35,6 +35,7 @@ set(NAD_CORE_SOURCES
 set(NAD_DS_SOURCES
         src/ds/arr.c
         src/ds/span.c
+        src/ds/vec.c
 )
 
 set(NAD_SOURCES

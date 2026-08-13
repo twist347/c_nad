@@ -1,7 +1,6 @@
 #include "nad/algo/modify.h"
 
 #include <assert.h>
-#include <string.h>
 
 void nad_span_reverse(nad_SpanMut s) {
     NAD_SPAN_ASSERT(s);
