@@ -67,13 +67,25 @@ void nad_span_swap_elems(nad_SpanMut s, size_t i, size_t j);
 
 /* ========== macros ========== */
 
-// TODO: span from data
-
 #define NAD_SPAN_NEW(T, data, len) \
-    nad_span_new((data), (len), sizeof(T))
+    nad_span_new((const T *){ (data) }, (len), sizeof(T))
 
 #define NAD_SPAN_NEW_MUT(T, data, len) \
-    nad_span_new_mut((data), (len), sizeof(T))
+    nad_span_new_mut((T *){ (data) }, (len), sizeof(T))
+
+/// view over a compound literal — it lives until the end of the enclosing block,
+/// so the view must not outlive it
+#define NAD_SPAN_OF(T, ...)                             \
+    nad_span_new(                                       \
+        (const T[]){ __VA_ARGS__ },                     \
+        sizeof((const T[]){ __VA_ARGS__ }) / sizeof(T), \
+        sizeof(T))
+
+#define NAD_SPAN_OF_MUT(T, ...)                   \
+    nad_span_new_mut(                             \
+        (T[]){ __VA_ARGS__ },                     \
+        sizeof((T[]){ __VA_ARGS__ }) / sizeof(T), \
+        sizeof(T))
 
 #define NAD_SPAN_GET_AS(T, s, idx) \
     ((const T *) nad_span_get((s), (idx)))

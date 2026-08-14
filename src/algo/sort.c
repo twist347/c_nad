@@ -9,14 +9,14 @@
 /* ========== internals ========== */
 
 [[nodiscard]] static
-size_t median3(nad_Span s, size_t a, size_t b, size_t c, nad_cmp_fn cmp);
+size_t median3(nad_Span s, size_t a, size_t b, size_t c, nad_CmpFn cmp);
 
 [[nodiscard]] static
-size_t partition_lomuto(nad_SpanMut s, size_t left, size_t right, size_t pivot_idx, nad_cmp_fn cmp);
+size_t partition_lomuto(nad_SpanMut s, size_t left, size_t right, size_t pivot_idx, nad_CmpFn cmp);
 
 /* ========== sort ========== */
 
-void nad_span_insertion_sort(nad_SpanMut s, nad_cmp_fn cmp) {
+void nad_span_insertion_sort(nad_SpanMut s, nad_CmpFn cmp) {
     NAD_SPAN_ASSERT(s);
     assert(cmp);
 
@@ -34,7 +34,7 @@ void nad_span_insertion_sort(nad_SpanMut s, nad_cmp_fn cmp) {
     }
 }
 
-void nad_span_sort(nad_SpanMut s, nad_cmp_fn cmp) {
+void nad_span_sort(nad_SpanMut s, nad_CmpFn cmp) {
     NAD_SPAN_ASSERT(s);
     assert(cmp);
 
@@ -45,7 +45,7 @@ void nad_span_sort(nad_SpanMut s, nad_cmp_fn cmp) {
     qsort(s.data, s.len, s.elem_size, cmp);
 }
 
-nad_Status nad_span_sort_stable(nad_SpanMut s, nad_cmp_fn cmp, nad_Al *al) {
+nad_Status nad_span_sort_stable(nad_SpanMut s, nad_CmpFn cmp, nad_Al *al) {
     NAD_SPAN_ASSERT(s);
     assert(cmp);
     assert(al);
@@ -91,7 +91,7 @@ nad_Status nad_span_sort_stable(nad_SpanMut s, nad_cmp_fn cmp, nad_Al *al) {
     return NAD_STATUS_OK;
 }
 
-void nad_span_partial_sort(nad_SpanMut s, size_t n, nad_cmp_fn cmp) {
+void nad_span_partial_sort(nad_SpanMut s, size_t n, nad_CmpFn cmp) {
     NAD_SPAN_ASSERT(s);
     assert(cmp);
     assert(n <= s.len);
@@ -112,7 +112,7 @@ void nad_span_partial_sort(nad_SpanMut s, size_t n, nad_cmp_fn cmp) {
     nad_span_sort(nad_span_sub_mut(s, 0, n), cmp);
 }
 
-void nad_span_nth_elem(nad_SpanMut s, size_t nth, nad_cmp_fn cmp) {
+void nad_span_nth_elem(nad_SpanMut s, size_t nth, nad_CmpFn cmp) {
     NAD_SPAN_ASSERT(s);
     assert(cmp);
     assert(nth < s.len);
@@ -143,7 +143,7 @@ void nad_span_nth_elem(nad_SpanMut s, size_t nth, nad_cmp_fn cmp) {
 
 /* ========== info ========== */
 
-bool nad_span_is_sorted(nad_Span s, nad_cmp_fn cmp) {
+bool nad_span_is_sorted(nad_Span s, nad_CmpFn cmp) {
     NAD_SPAN_ASSERT(s);
     assert(cmp);
 
@@ -160,7 +160,7 @@ bool nad_span_is_sorted(nad_Span s, nad_cmp_fn cmp) {
 /* ========== internals ========== */
 
 static
-size_t median3(nad_Span s, size_t a, size_t b, size_t c, nad_cmp_fn cmp) {
+size_t median3(nad_Span s, size_t a, size_t b, size_t c, nad_CmpFn cmp) {
     const void *a_ptr = nad_span_get(s, a);
     const void *b_ptr = nad_span_get(s, b);
     const void *c_ptr = nad_span_get(s, c);
@@ -178,7 +178,7 @@ size_t median3(nad_Span s, size_t a, size_t b, size_t c, nad_cmp_fn cmp) {
 }
 
 static
-size_t partition_lomuto(nad_SpanMut s, size_t left, size_t right, size_t pivot_idx, nad_cmp_fn cmp) {
+size_t partition_lomuto(nad_SpanMut s, size_t left, size_t right, size_t pivot_idx, nad_CmpFn cmp) {
     assert(left <= pivot_idx && pivot_idx <= right);
 
     nad_span_swap_elems(s, pivot_idx, right);

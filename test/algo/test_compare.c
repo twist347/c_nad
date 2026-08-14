@@ -10,22 +10,18 @@ void setUp() {
 void tearDown() {
 }
 
-static bool eq_i32(const void *a, const void *b) {
-    return *(const int32_t *) a == *(const int32_t *) b;
-}
-
 // equality that deliberately disagrees with memcmp
 static bool eq_abs_i32(const void *a, const void *b) {
     const int32_t x = *(const int32_t *) a;
     const int32_t y = *(const int32_t *) b;
-    return (x < 0 ? -x : x) == (y < 0 ? -y : y);
+    return nad_eq_i32(x < 0 ? -x : x, y < 0 ? -y : y);
 }
 
 static size_t eq_calls = 0;
 
 static bool eq_counting_i32(const void *a, const void *b) {
     ++eq_calls;
-    return eq_i32(a, b);
+    return nad_eq_fn_i32(a, b);
 }
 
 /* ========== eq ========== */
@@ -124,7 +120,7 @@ static void test_eq_by_different_lengths() {
     TEST_ASSERT_FALSE(nad_span_eq_by(
         NAD_SPAN_NEW(int32_t, a, 3),
         NAD_SPAN_NEW(int32_t, a, 2),
-        eq_i32
+        nad_eq_fn_i32
     ));
 }
 

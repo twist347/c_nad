@@ -31,6 +31,16 @@ first argument (like `FILE*` in `fprintf`, not `file_printf`).
 Rule of thumb: **owned object → `nad_<slug>_verb(self,...)`; interface you dispatch
 through → `nad_verb(iface,...)`.**
 
+**Function-pointer typedefs** are types, so they take the type rule plus an `Fn` suffix:
+`nad_CmpFn`, `nad_EqFn`. Not `_cb` — these are invoked synchronously as part of the
+operation's own definition (a comparator is what gives `sort` its meaning), not registered
+to be called back later. The suffix also keeps the bare name free for a result type:
+`nad_Cmp` should stay available for a Less/Equal/Greater enum.
+
+Function pointers that only ever live inside one interface aggregate stay inline members
+with no typedef, as in `nad_Al` and `nad_ElemOps` — a typedef there would name a type that
+is never written a second time.
+
 **Macros** are `NAD_UPPER`. Type-generic wrappers over functions:
 `NAD_ARR_NEW(T, ...)`, `NAD_ALLOC(T, ...)`.
 

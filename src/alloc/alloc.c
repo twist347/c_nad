@@ -24,12 +24,13 @@ void *nad_calloc(nad_Al *al, size_t num, size_t size) {
         return nullptr;
     }
 
+    size_t total;
+    if (ckd_mul(&total, num, size)) {
+        return nullptr;
+    }
+
     // fallback
     if (!al->calloc) {
-        size_t total;
-        if (ckd_mul(&total, num, size)) {
-            return nullptr;
-        }
         void *ptr = nad_alloc(al, total);
         if (!ptr) {
             return nullptr;

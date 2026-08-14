@@ -5,4 +5,4 @@
 #include "nad/ds/span.h"
 
 NAD_API
-void nad_span_merge(nad_SpanMut dst, nad_Span a, nad_Span b, nad_cmp_fn cmp);
+void nad_span_merge(nad_SpanMut dst, nad_Span a, nad_Span b, nad_CmpFn cmp);

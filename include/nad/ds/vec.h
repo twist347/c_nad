@@ -109,6 +109,8 @@ nad_Status nad_vec_shrink_to_fit(nad_Vec *self);
 [[nodiscard]] NAD_API
 nad_Status nad_vec_resize(nad_Vec *self, size_t new_len);
 
+/// on one allocator the buffers are handed over and the capacity travels with them;
+/// on two the bytes are moved and each side is left sized to its new content
 [[nodiscard]] NAD_API
 nad_Status nad_vec_swap(nad_Vec *self, nad_Vec *other);
 

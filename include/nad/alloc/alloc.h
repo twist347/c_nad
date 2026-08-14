@@ -3,6 +3,7 @@
 #include "nad/core/export.h"
 
 #include <stddef.h>
+#include <stdint.h>
 
 typedef struct {
     void *ctx;
@@ -39,14 +40,18 @@ void nad_dealloc(nad_Al *al, void *ptr, size_t size);
 
 /* ========== macros ========== */
 
-#define NAD_ALLOC(T, al, count) \
-    ((T*) nad_alloc((al), (count) * sizeof(T)))
+#define NAD_ALLOC(T, al, count)                \
+    ((T *) ((count) > SIZE_MAX / sizeof(T)     \
+        ? nullptr                              \
+        : nad_alloc((al), (count) * sizeof(T))))
 
 #define NAD_CALLOC(T, al, count) \
     ((T*) nad_calloc((al), (count), sizeof(T)))
 
-#define NAD_REALLOC(T, al, ptr, old_count, new_count) \
-    ((T*) nad_realloc((al), (ptr), (old_count) * sizeof(T), (new_count) * sizeof(T)))
+#define NAD_REALLOC(T, al, ptr, old_count, new_count)                                 \
+    ((T *) ((new_count) > SIZE_MAX / sizeof(T)                                        \
+        ? nullptr                                                                     \
+        : nad_realloc((al), (ptr), (old_count) * sizeof(T), (new_count) * sizeof(T))))
 
 #define NAD_DEALLOC(T, al, ptr, count) \
     nad_dealloc((al), (ptr), (count) * sizeof(T))

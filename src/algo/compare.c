@@ -19,7 +19,7 @@ bool nad_span_eq(nad_Span a, nad_Span b) {
     return memcmp(a.data, b.data, a.len * a.elem_size) == 0;
 }
 
-bool nad_span_eq_by(nad_Span a, nad_Span b, nad_eq_fn eq) {
+bool nad_span_eq_by(nad_Span a, nad_Span b, nad_EqFn eq) {
     NAD_SPAN_ASSERT(a);
     NAD_SPAN_ASSERT(b);
     assert(a.elem_size == b.elem_size);

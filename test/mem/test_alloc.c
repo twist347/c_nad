@@ -196,12 +196,16 @@ static void test_calloc_fallback_zeroes_the_block() {
     nad_dealloc(&al, p, 32);
 }
 
-// num * size overflowing size_t is caught before anything is requested
-static void test_calloc_fallback_rejects_overflow() {
-    nad_Al al = bare_al();
-
-    TEST_ASSERT_NULL(nad_calloc(&al, SIZE_MAX, 2));
+// num * size overflowing size_t is caught above the interface, on both paths: a hook is
+// never handed a request that cannot exist, whether or not it brings its own calloc
+static void test_calloc_rejects_overflow_on_either_path() {
+    nad_Al bare = bare_al();
+    TEST_ASSERT_NULL(nad_calloc(&bare, SIZE_MAX, 2));
     TEST_ASSERT_EQUAL_size_t(0, probe.alloc_calls);
+
+    nad_Al full = full_al();
+    TEST_ASSERT_NULL(nad_calloc(&full, SIZE_MAX, 2));
+    TEST_ASSERT_EQUAL_size_t(0, probe.calloc_calls);
 }
 
 static void test_calloc_fallback_propagates_failure() {
@@ -317,6 +321,115 @@ static void test_realloc_fallback_failure_keeps_the_original() {
     nad_dealloc(&al, p, 8);
 }
 
+/* ========== macros ==========
+ *
+ * These are the only cases that expand NAD_ALLOC and friends. Nothing else in the
+ * project uses them, so without these the preprocessor never reads the macro bodies
+ * and a broken one ships behind a green build.
+ *
+ * NAD_ALLOC and NAD_REALLOC evaluate their count twice, so every count here is a
+ * plain value.
+ */
+
+static void test_macro_alloc_scales_the_count_by_elem_size() {
+    nad_Al al = bare_al();
+
+    int32_t *p = NAD_ALLOC(int32_t, &al, 4);
+    TEST_ASSERT_NOT_NULL(p);
+    TEST_ASSERT_EQUAL_size_t(4 * sizeof(int32_t), probe.last_alloc_size);
+
+    p[0] = 1;
+    p[3] = 4;
+    TEST_ASSERT_EQUAL_INT32(1, p[0]);
+    TEST_ASSERT_EQUAL_INT32(4, p[3]);
+
+    NAD_DEALLOC(int32_t, &al, p, 4);
+    TEST_ASSERT_EQUAL_size_t(4 * sizeof(int32_t), probe.last_dealloc_size);
+    TEST_ASSERT_EQUAL_size_t(0, probe.live);
+}
+
+// count * sizeof(T) would wrap: the request is refused before it reaches the
+// allocator, which would otherwise be asked for a buffer smaller than the caller wants
+static void test_macro_alloc_rejects_a_count_that_would_wrap() {
+    nad_Al al = bare_al();
+
+    TEST_ASSERT_NULL(NAD_ALLOC(int32_t, &al, SIZE_MAX / sizeof(int32_t) + 2));
+    TEST_ASSERT_EQUAL_size_t(0, probe.alloc_calls);
+}
+
+// the largest count that still fits is not the guard's business: it goes through and
+// fails as an ordinary out-of-memory
+static void test_macro_alloc_passes_the_largest_fitting_count_through() {
+    nad_Al al = bare_al();
+
+    TEST_ASSERT_NULL(NAD_ALLOC(int32_t, &al, SIZE_MAX / sizeof(int32_t)));
+    TEST_ASSERT_EQUAL_size_t(1, probe.alloc_calls);
+}
+
+static void test_macro_calloc_hands_the_operands_over_unmultiplied() {
+    nad_Al al = full_al();
+
+    int32_t *p = NAD_CALLOC(int32_t, &al, 4);
+    TEST_ASSERT_NOT_NULL(p);
+    TEST_ASSERT_EQUAL_size_t(1, probe.calloc_calls);
+    TEST_ASSERT_EQUAL_INT32(0, p[0]);
+    TEST_ASSERT_EQUAL_INT32(0, p[3]);
+
+    NAD_DEALLOC(int32_t, &al, p, 4);
+}
+
+// the count is never multiplied by the macro, so the overflow is nad_calloc's to catch
+// and NAD_CALLOC needs no guard of its own — see test_calloc_rejects_overflow_on_either_path
+// for the contract this leans on.
+static void test_macro_calloc_overflow_is_caught_below_the_macro() {
+    nad_Al al = bare_al();
+
+    TEST_ASSERT_NULL(NAD_CALLOC(int32_t, &al, SIZE_MAX));
+    TEST_ASSERT_EQUAL_size_t(0, probe.alloc_calls);
+}
+
+static void test_macro_realloc_scales_both_counts() {
+    nad_Al al = bare_al();
+
+    int32_t *p = NAD_ALLOC(int32_t, &al, 4);
+    for (int32_t i = 0; i < 4; ++i) {
+        p[i] = i + 1;
+    }
+
+    int32_t *q = NAD_REALLOC(int32_t, &al, p, 4, 8);
+    TEST_ASSERT_NOT_NULL(q);
+    TEST_ASSERT_EQUAL_size_t(8 * sizeof(int32_t), probe.last_alloc_size);
+    TEST_ASSERT_EQUAL_size_t(4 * sizeof(int32_t), probe.last_dealloc_size);
+
+    for (int32_t i = 0; i < 4; ++i) {
+        TEST_ASSERT_EQUAL_INT32(i + 1, q[i]);
+    }
+
+    NAD_DEALLOC(int32_t, &al, q, 8);
+}
+
+// new_count * sizeof(T) wraps to exactly 0 here. Unguarded that reaches nad_realloc as
+// "resize to nothing", which releases the block and reports nullptr — and the caller,
+// told its pointer survives a failure, is left holding freed memory.
+static void test_macro_realloc_rejects_a_new_count_that_would_wrap() {
+    nad_Al al = bare_al();
+
+    int32_t *p = NAD_ALLOC(int32_t, &al, 4);
+    for (int32_t i = 0; i < 4; ++i) {
+        p[i] = i + 1;
+    }
+
+    TEST_ASSERT_NULL(NAD_REALLOC(int32_t, &al, p, 4, (size_t) 1 << 62));
+
+    TEST_ASSERT_EQUAL_size_t(0, probe.dealloc_calls);
+    TEST_ASSERT_EQUAL_size_t(1, probe.live);
+    for (int32_t i = 0; i < 4; ++i) {
+        TEST_ASSERT_EQUAL_INT32(i + 1, p[i]);
+    }
+
+    NAD_DEALLOC(int32_t, &al, p, 4);
+}
+
 int main() {
     UNITY_BEGIN();
 
@@ -330,7 +443,7 @@ int main() {
     RUN_TEST(test_calloc_zero_operand_is_null_and_does_not_dispatch);
     RUN_TEST(test_calloc_prefers_the_native_hook);
     RUN_TEST(test_calloc_fallback_zeroes_the_block);
-    RUN_TEST(test_calloc_fallback_rejects_overflow);
+    RUN_TEST(test_calloc_rejects_overflow_on_either_path);
     RUN_TEST(test_calloc_fallback_propagates_failure);
 
     RUN_TEST(test_realloc_prefers_the_native_hook);
@@ -339,6 +452,14 @@ int main() {
     RUN_TEST(test_realloc_fallback_shrinks);
     RUN_TEST(test_realloc_fallback_from_null_is_an_alloc);
     RUN_TEST(test_realloc_fallback_failure_keeps_the_original);
+
+    RUN_TEST(test_macro_alloc_scales_the_count_by_elem_size);
+    RUN_TEST(test_macro_alloc_rejects_a_count_that_would_wrap);
+    RUN_TEST(test_macro_alloc_passes_the_largest_fitting_count_through);
+    RUN_TEST(test_macro_calloc_hands_the_operands_over_unmultiplied);
+    RUN_TEST(test_macro_calloc_overflow_is_caught_below_the_macro);
+    RUN_TEST(test_macro_realloc_scales_both_counts);
+    RUN_TEST(test_macro_realloc_rejects_a_new_count_that_would_wrap);
 
     return UNITY_END();
 }

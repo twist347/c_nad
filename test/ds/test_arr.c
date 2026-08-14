@@ -20,6 +20,18 @@ typedef struct {
     int64_t b;
 } Pair;
 
+// burns arena space until exactly `want` bytes are left
+static void arena_leave(nad_Al *arena, size_t want) {
+    const size_t available = nad_al_arena_stats(arena).available;
+    TEST_ASSERT_TRUE(available >= want);
+
+    const size_t burn = available - want;
+    if (burn > 0) {
+        TEST_ASSERT_NOT_NULL(nad_alloc(arena, burn));
+    }
+    TEST_ASSERT_EQUAL_size_t(want, nad_al_arena_stats(arena).available);
+}
+
 // int32_t array holding 0, 1, ... len-1
 static nad_Arr *make_arr(size_t len) {
     nad_Arr *a = nullptr;
@@ -41,7 +53,7 @@ static void test_new_sets_shape_and_zeroes() {
     TEST_ASSERT_EQUAL_size_t(sizeof(int32_t), nad_arr_elem_size(a));
     TEST_ASSERT_EQUAL_PTR(nad_al_default(), nad_arr_al(a));
 
-    const int32_t zeroes[4] = {0, 0, 0, 0};
+    constexpr int32_t zeroes[4] = {0, 0, 0, 0};
     TEST_ASSERT_EQUAL_INT32_ARRAY(zeroes, nad_arr_data(a), 4);
 
     nad_arr_drop(a);
@@ -453,6 +465,69 @@ static void test_swap_across_allocators_with_an_empty_side() {
     nad_al_arena_drop(arena);
 }
 
+// the first allocation fails: nothing has been claimed yet, so there is nothing to undo
+static void test_swap_across_allocators_reports_a_failed_first_alloc() {
+    nad_Al *arena = nad_al_arena_new(nad_al_default(), 1024);
+    TEST_ASSERT_NOT_NULL(arena);
+
+    // a sits on the arena, so a's side is the one that allocates first
+    nad_Arr *a = nullptr;
+    TEST_ASSERT_EQUAL_INT(NAD_STATUS_OK, NAD_ARR_OF(int32_t, arena, &a, 1, 2));
+
+    nad_Arr *b = make_arr(3); // default: 0, 1, 2
+
+    const void *pa = nad_arr_data(a);
+    const void *pb = nad_arr_data(b);
+
+    arena_leave(arena, 0);
+
+    TEST_ASSERT_EQUAL_INT(NAD_STATUS_OUT_OF_MEMORY, nad_arr_swap(a, b));
+
+    TEST_ASSERT_EQUAL_size_t(2, nad_arr_len(a));
+    TEST_ASSERT_EQUAL_size_t(3, nad_arr_len(b));
+    TEST_ASSERT_EQUAL_PTR(pa, nad_arr_data(a));
+    TEST_ASSERT_EQUAL_PTR(pb, nad_arr_data(b));
+    TEST_ASSERT_EQUAL_INT32(1, *NAD_ARR_GET_AS(int32_t, a, 0));
+    TEST_ASSERT_EQUAL_INT32(2, *NAD_ARR_GET_AS(int32_t, b, 2));
+
+    nad_arr_drop(b);
+    nad_al_arena_drop(arena);
+}
+
+// The second allocation fails: the first must be given back and both arrays left as they
+// were. The order matters for what this can observe — a's side allocates first, through
+// the default allocator, so a skipped rollback leaks a real block and LeakSanitizer
+// reports it. An arena on that side would swallow it, since its dealloc is a no-op.
+static void test_swap_across_allocators_rolls_back_a_failed_second_alloc() {
+    nad_Al *arena = nad_al_arena_new(nad_al_default(), 1024);
+    TEST_ASSERT_NOT_NULL(arena);
+
+    nad_Arr *a = make_arr(2); // default: 0, 1
+
+    nad_Arr *b = nullptr;
+    TEST_ASSERT_EQUAL_INT(NAD_STATUS_OK, NAD_ARR_OF(int32_t, arena, &b, 10, 20, 30));
+
+    const void *pa = nad_arr_data(a);
+    const void *pb = nad_arr_data(b);
+
+    // b's side has nothing left to give
+    arena_leave(arena, 0);
+
+    TEST_ASSERT_EQUAL_INT(NAD_STATUS_OUT_OF_MEMORY, nad_arr_swap(a, b));
+
+    // both arrays untouched
+    TEST_ASSERT_EQUAL_size_t(2, nad_arr_len(a));
+    TEST_ASSERT_EQUAL_size_t(3, nad_arr_len(b));
+    TEST_ASSERT_EQUAL_PTR(pa, nad_arr_data(a));
+    TEST_ASSERT_EQUAL_PTR(pb, nad_arr_data(b));
+    TEST_ASSERT_EQUAL_INT32(0, *NAD_ARR_GET_AS(int32_t, a, 0));
+    TEST_ASSERT_EQUAL_INT32(1, *NAD_ARR_GET_AS(int32_t, a, 1));
+    TEST_ASSERT_EQUAL_INT32(30, *NAD_ARR_GET_AS(int32_t, b, 2));
+
+    nad_arr_drop(a);
+    nad_al_arena_drop(arena);
+}
+
 /* ========== to span ========== */
 
 static void test_to_span_matches_the_arr_shape() {
@@ -680,6 +755,8 @@ int main() {
     RUN_TEST(test_swap_same_allocator_hands_over_buffers);
     RUN_TEST(test_swap_across_allocators_moves_the_bytes);
     RUN_TEST(test_swap_across_allocators_with_an_empty_side);
+    RUN_TEST(test_swap_across_allocators_reports_a_failed_first_alloc);
+    RUN_TEST(test_swap_across_allocators_rolls_back_a_failed_second_alloc);
 
     RUN_TEST(test_to_span_matches_the_arr_shape);
     RUN_TEST(test_to_span_of_empty_keeps_elem_size);

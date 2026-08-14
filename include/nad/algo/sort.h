@@ -7,19 +7,19 @@
 #include "nad/ds/span.h"
 
 NAD_API
-void nad_span_insertion_sort(nad_SpanMut s, nad_cmp_fn cmp);
+void nad_span_insertion_sort(nad_SpanMut s, nad_CmpFn cmp);
 
 NAD_API
-void nad_span_sort(nad_SpanMut s, nad_cmp_fn cmp);
+void nad_span_sort(nad_SpanMut s, nad_CmpFn cmp);
 
 [[nodiscard]] NAD_API
-nad_Status nad_span_sort_stable(nad_SpanMut s, nad_cmp_fn cmp, nad_Al *al);
+nad_Status nad_span_sort_stable(nad_SpanMut s, nad_CmpFn cmp, nad_Al *al);
 
 NAD_API
-void nad_span_partial_sort(nad_SpanMut s, size_t n, nad_cmp_fn cmp);
+void nad_span_partial_sort(nad_SpanMut s, size_t n, nad_CmpFn cmp);
 
 NAD_API
-void nad_span_nth_elem(nad_SpanMut s, size_t nth, nad_cmp_fn cmp);
+void nad_span_nth_elem(nad_SpanMut s, size_t nth, nad_CmpFn cmp);
 
 [[nodiscard]] NAD_API
-bool nad_span_is_sorted(nad_Span s, nad_cmp_fn cmp);
+bool nad_span_is_sorted(nad_Span s, nad_CmpFn cmp);
