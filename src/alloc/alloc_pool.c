@@ -37,7 +37,7 @@ void pool_dealloc(void *ctx, void *ptr, size_t size);
 static
 void pool_build_free_list(nad_AlPoolCtx *ctx);
 
-[[nodiscard]] static
+[[nodiscard]] [[maybe_unused]] static
 bool pool_owns(const nad_AlPoolCtx *ctx, const void *ptr);
 
 /* ========== lifetime ========== */

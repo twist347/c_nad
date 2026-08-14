@@ -34,100 +34,232 @@ typedef bool (*nad_EqFn)(const void *, const void *);
 
 /* ========== value comparators ========== */
 
-[[nodiscard]] NAD_API int nad_cmp_i8(int8_t a, int8_t b);
-[[nodiscard]] NAD_API int nad_cmp_i16(int16_t a, int16_t b);
-[[nodiscard]] NAD_API int nad_cmp_i32(int32_t a, int32_t b);
-[[nodiscard]] NAD_API int nad_cmp_i64(int64_t a, int64_t b);
+/* ========== int ========== */
 
-[[nodiscard]] NAD_API int nad_cmp_u8(uint8_t a, uint8_t b);
-[[nodiscard]] NAD_API int nad_cmp_u16(uint16_t a, uint16_t b);
-[[nodiscard]] NAD_API int nad_cmp_u32(uint32_t a, uint32_t b);
-[[nodiscard]] NAD_API int nad_cmp_u64(uint64_t a, uint64_t b);
+[[nodiscard]] NAD_API
+int nad_cmp_i8(int8_t a, int8_t b);
 
-[[nodiscard]] NAD_API int nad_cmp_size(size_t a, size_t b);
+[[nodiscard]] NAD_API
+int nad_cmp_i16(int16_t a, int16_t b);
 
-[[nodiscard]] NAD_API int nad_cmp_f32(float a, float b);
-[[nodiscard]] NAD_API int nad_cmp_f64(double a, double b);
+[[nodiscard]] NAD_API
+int nad_cmp_i32(int32_t a, int32_t b);
 
-[[nodiscard]] NAD_API int nad_cmp_cstr(const char *a, const char *b);
+[[nodiscard]] NAD_API
+int nad_cmp_i64(int64_t a, int64_t b);
+
+/* ========== uint ========== */
+
+[[nodiscard]] NAD_API
+int nad_cmp_u8(uint8_t a, uint8_t b);
+
+[[nodiscard]] NAD_API
+int nad_cmp_u16(uint16_t a, uint16_t b);
+
+[[nodiscard]] NAD_API
+int nad_cmp_u32(uint32_t a, uint32_t b);
+
+[[nodiscard]] NAD_API
+int nad_cmp_u64(uint64_t a, uint64_t b);
+
+[[nodiscard]] NAD_API
+int nad_cmp_size(size_t a, size_t b);
+
+/* ========== floating point ========== */
+
+[[nodiscard]] NAD_API
+int nad_cmp_f32(float a, float b);
+
+[[nodiscard]] NAD_API
+int nad_cmp_f64(double a, double b);
+
+/* ========== str ========== */
+
+[[nodiscard]] NAD_API
+int nad_cmp_cstr(const char *a, const char *b);
 
 /* ========== ascending callbacks ========== */
 
-[[nodiscard]] NAD_API int nad_cmp_fn_i8(const void *lhs, const void *rhs);
-[[nodiscard]] NAD_API int nad_cmp_fn_i16(const void *lhs, const void *rhs);
-[[nodiscard]] NAD_API int nad_cmp_fn_i32(const void *lhs, const void *rhs);
-[[nodiscard]] NAD_API int nad_cmp_fn_i64(const void *lhs, const void *rhs);
+/* ========== int ========== */
 
-[[nodiscard]] NAD_API int nad_cmp_fn_u8(const void *lhs, const void *rhs);
-[[nodiscard]] NAD_API int nad_cmp_fn_u16(const void *lhs, const void *rhs);
-[[nodiscard]] NAD_API int nad_cmp_fn_u32(const void *lhs, const void *rhs);
-[[nodiscard]] NAD_API int nad_cmp_fn_u64(const void *lhs, const void *rhs);
+[[nodiscard]] NAD_API
+int nad_cmp_fn_i8(const void *lhs, const void *rhs);
 
-[[nodiscard]] NAD_API int nad_cmp_fn_size(const void *lhs, const void *rhs);
+[[nodiscard]] NAD_API
+int nad_cmp_fn_i16(const void *lhs, const void *rhs);
 
-[[nodiscard]] NAD_API int nad_cmp_fn_f32(const void *lhs, const void *rhs);
-[[nodiscard]] NAD_API int nad_cmp_fn_f64(const void *lhs, const void *rhs);
+[[nodiscard]] NAD_API
+int nad_cmp_fn_i32(const void *lhs, const void *rhs);
+
+[[nodiscard]] NAD_API
+int nad_cmp_fn_i64(const void *lhs, const void *rhs);
+
+/* ========== uint ========== */
+
+[[nodiscard]] NAD_API
+int nad_cmp_fn_u8(const void *lhs, const void *rhs);
+
+[[nodiscard]] NAD_API
+int nad_cmp_fn_u16(const void *lhs, const void *rhs);
+
+[[nodiscard]] NAD_API
+int nad_cmp_fn_u32(const void *lhs, const void *rhs);
+
+[[nodiscard]] NAD_API
+int nad_cmp_fn_u64(const void *lhs, const void *rhs);
+
+[[nodiscard]] NAD_API
+int nad_cmp_fn_size(const void *lhs, const void *rhs);
+
+/* ========== floating point ========== */
+
+[[nodiscard]] NAD_API
+int nad_cmp_fn_f32(const void *lhs, const void *rhs);
+
+[[nodiscard]] NAD_API
+int nad_cmp_fn_f64(const void *lhs, const void *rhs);
+
+/* ========== str ========== */
 
 /// operands point to const char *
 [[nodiscard]] NAD_API int nad_cmp_fn_cstr(const void *lhs, const void *rhs);
 
 /* ========== descending callbacks ========== */
 
-[[nodiscard]] NAD_API int nad_cmp_fn_desc_i8(const void *lhs, const void *rhs);
-[[nodiscard]] NAD_API int nad_cmp_fn_desc_i16(const void *lhs, const void *rhs);
-[[nodiscard]] NAD_API int nad_cmp_fn_desc_i32(const void *lhs, const void *rhs);
-[[nodiscard]] NAD_API int nad_cmp_fn_desc_i64(const void *lhs, const void *rhs);
+/* ========== int ========== */
 
-[[nodiscard]] NAD_API int nad_cmp_fn_desc_u8(const void *lhs, const void *rhs);
-[[nodiscard]] NAD_API int nad_cmp_fn_desc_u16(const void *lhs, const void *rhs);
-[[nodiscard]] NAD_API int nad_cmp_fn_desc_u32(const void *lhs, const void *rhs);
-[[nodiscard]] NAD_API int nad_cmp_fn_desc_u64(const void *lhs, const void *rhs);
+[[nodiscard]] NAD_API
+int nad_cmp_fn_desc_i8(const void *lhs, const void *rhs);
 
-[[nodiscard]] NAD_API int nad_cmp_fn_desc_size(const void *lhs, const void *rhs);
+[[nodiscard]] NAD_API
+int nad_cmp_fn_desc_i16(const void *lhs, const void *rhs);
 
-[[nodiscard]] NAD_API int nad_cmp_fn_desc_f32(const void *lhs, const void *rhs);
-[[nodiscard]] NAD_API int nad_cmp_fn_desc_f64(const void *lhs, const void *rhs);
+[[nodiscard]] NAD_API
+int nad_cmp_fn_desc_i32(const void *lhs, const void *rhs);
 
-[[nodiscard]] NAD_API int nad_cmp_fn_desc_cstr(const void *lhs, const void *rhs);
+[[nodiscard]] NAD_API
+int nad_cmp_fn_desc_i64(const void *lhs, const void *rhs);
+
+/* ========== uint ========== */
+
+[[nodiscard]] NAD_API
+int nad_cmp_fn_desc_u8(const void *lhs, const void *rhs);
+
+[[nodiscard]] NAD_API
+int nad_cmp_fn_desc_u16(const void *lhs, const void *rhs);
+
+[[nodiscard]] NAD_API
+int nad_cmp_fn_desc_u32(const void *lhs, const void *rhs);
+
+[[nodiscard]] NAD_API
+int nad_cmp_fn_desc_u64(const void *lhs, const void *rhs);
+
+[[nodiscard]] NAD_API
+int nad_cmp_fn_desc_size(const void *lhs, const void *rhs);
+
+/* ========== floating point ========== */
+
+[[nodiscard]] NAD_API
+int nad_cmp_fn_desc_f32(const void *lhs, const void *rhs);
+
+[[nodiscard]] NAD_API
+int nad_cmp_fn_desc_f64(const void *lhs, const void *rhs);
+
+/* ========== str ========== */
+
+[[nodiscard]] NAD_API
+int nad_cmp_fn_desc_cstr(const void *lhs, const void *rhs);
 
 /* ========== value equality ========== */
 
-[[nodiscard]] NAD_API bool nad_eq_i8(int8_t a, int8_t b);
-[[nodiscard]] NAD_API bool nad_eq_i16(int16_t a, int16_t b);
-[[nodiscard]] NAD_API bool nad_eq_i32(int32_t a, int32_t b);
-[[nodiscard]] NAD_API bool nad_eq_i64(int64_t a, int64_t b);
+/* ========== int ========== */
 
-[[nodiscard]] NAD_API bool nad_eq_u8(uint8_t a, uint8_t b);
-[[nodiscard]] NAD_API bool nad_eq_u16(uint16_t a, uint16_t b);
-[[nodiscard]] NAD_API bool nad_eq_u32(uint32_t a, uint32_t b);
-[[nodiscard]] NAD_API bool nad_eq_u64(uint64_t a, uint64_t b);
+[[nodiscard]] NAD_API
+bool nad_eq_i8(int8_t a, int8_t b);
 
-[[nodiscard]] NAD_API bool nad_eq_size(size_t a, size_t b);
+[[nodiscard]] NAD_API
+bool nad_eq_i16(int16_t a, int16_t b);
 
-[[nodiscard]] NAD_API bool nad_eq_f32(float a, float b);
-[[nodiscard]] NAD_API bool nad_eq_f64(double a, double b);
+[[nodiscard]] NAD_API
+bool nad_eq_i32(int32_t a, int32_t b);
 
-[[nodiscard]] NAD_API bool nad_eq_cstr(const char *a, const char *b);
+[[nodiscard]] NAD_API
+bool nad_eq_i64(int64_t a, int64_t b);
+
+/* ========== uint ========== */
+
+[[nodiscard]] NAD_API
+bool nad_eq_u8(uint8_t a, uint8_t b);
+
+[[nodiscard]] NAD_API
+bool nad_eq_u16(uint16_t a, uint16_t b);
+
+[[nodiscard]] NAD_API
+bool nad_eq_u32(uint32_t a, uint32_t b);
+
+[[nodiscard]] NAD_API
+bool nad_eq_u64(uint64_t a, uint64_t b);
+
+[[nodiscard]] NAD_API
+bool nad_eq_size(size_t a, size_t b);
+
+/* ========== floating point ========== */
+
+[[nodiscard]] NAD_API
+bool nad_eq_f32(float a, float b);
+
+[[nodiscard]] NAD_API
+bool nad_eq_f64(double a, double b);
+
+/* ========== str ========== */
+
+[[nodiscard]] NAD_API
+bool nad_eq_cstr(const char *a, const char *b);
 
 /* ========== equality callbacks ========== */
 
-[[nodiscard]] NAD_API bool nad_eq_fn_i8(const void *lhs, const void *rhs);
-[[nodiscard]] NAD_API bool nad_eq_fn_i16(const void *lhs, const void *rhs);
-[[nodiscard]] NAD_API bool nad_eq_fn_i32(const void *lhs, const void *rhs);
-[[nodiscard]] NAD_API bool nad_eq_fn_i64(const void *lhs, const void *rhs);
+/* ========== int ========== */
 
-[[nodiscard]] NAD_API bool nad_eq_fn_u8(const void *lhs, const void *rhs);
-[[nodiscard]] NAD_API bool nad_eq_fn_u16(const void *lhs, const void *rhs);
-[[nodiscard]] NAD_API bool nad_eq_fn_u32(const void *lhs, const void *rhs);
-[[nodiscard]] NAD_API bool nad_eq_fn_u64(const void *lhs, const void *rhs);
+[[nodiscard]] NAD_API
+bool nad_eq_fn_i8(const void *lhs, const void *rhs);
 
-[[nodiscard]] NAD_API bool nad_eq_fn_size(const void *lhs, const void *rhs);
+[[nodiscard]] NAD_API
+bool nad_eq_fn_i16(const void *lhs, const void *rhs);
 
-[[nodiscard]] NAD_API bool nad_eq_fn_f32(const void *lhs, const void *rhs);
-[[nodiscard]] NAD_API bool nad_eq_fn_f64(const void *lhs, const void *rhs);
+[[nodiscard]] NAD_API
+bool nad_eq_fn_i32(const void *lhs, const void *rhs);
+
+[[nodiscard]] NAD_API
+bool nad_eq_fn_i64(const void *lhs, const void *rhs);
+
+/* ========== uint ========== */
+
+[[nodiscard]] NAD_API
+bool nad_eq_fn_u8(const void *lhs, const void *rhs);
+
+[[nodiscard]] NAD_API
+bool nad_eq_fn_u16(const void *lhs, const void *rhs);
+
+[[nodiscard]] NAD_API
+bool nad_eq_fn_u32(const void *lhs, const void *rhs);
+
+[[nodiscard]] NAD_API
+bool nad_eq_fn_u64(const void *lhs, const void *rhs);
+
+[[nodiscard]] NAD_API
+bool nad_eq_fn_size(const void *lhs, const void *rhs);
+
+/* ========== floating point ========== */
+
+[[nodiscard]] NAD_API
+bool nad_eq_fn_f32(const void *lhs, const void *rhs);
+
+[[nodiscard]] NAD_API
+bool nad_eq_fn_f64(const void *lhs, const void *rhs);
 
 /// operands point to const char *
-[[nodiscard]] NAD_API bool nad_eq_fn_cstr(const void *lhs, const void *rhs);
+[[nodiscard]] NAD_API
+bool nad_eq_fn_cstr(const void *lhs, const void *rhs);
 
 /* ========== macros ========== */
 

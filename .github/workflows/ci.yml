@@ -1,0 +1,33 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  build:
+    name: ${{ matrix.name }}
+    runs-on: ubuntu-26.04
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { name: debug, type: Debug, flags: "" }
+          - { name: release, type: Release, flags: "" }
+          # -fno-sanitize-recover is load-bearing: UBSan otherwise reports and exits 0
+          - { name: sanitizers, type: Debug, flags: "-fsanitize=address,undefined,implicit-conversion,local-bounds -fno-sanitize-recover=all" }
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - run: >-
+          cmake -S . -B build
+          -DCMAKE_C_COMPILER=clang-22
+          -DCMAKE_BUILD_TYPE=${{ matrix.type }}
+          -DCMAKE_C_FLAGS="-Werror ${{ matrix.flags }}"
+
+      - run: cmake --build build -j
+
+      - run: ctest --test-dir build --output-on-failure
