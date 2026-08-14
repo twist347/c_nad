@@ -1,0 +1,12 @@
+# build trees — out-of-source, one directory per configuration
+# (build/, build-asan/, build-release/, ...)
+/build*/
+
+# CLion writes its own .gitignore inside these, but do not depend on that
+/cmake-build-*/
+
+# IDE
+/.idea/
+
+# generated into the build tree; catches a symlink left at the root
+/compile_commands.json
