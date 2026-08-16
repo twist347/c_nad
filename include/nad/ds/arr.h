@@ -2,6 +2,7 @@
 
 #include "nad/alloc/alloc.h"
 #include "nad/core/export.h"
+#include "nad/core/print.h"
 #include "nad/core/status.h"
 #include "nad/ds/span.h"
 
@@ -90,6 +91,14 @@ nad_SpanMut nad_arr_to_span_mut(nad_Arr *self);
 
 [[nodiscard]] NAD_API
 nad_Span nad_arr_to_span(const nad_Arr *self);
+
+/* ========== print ========== */
+
+NAD_API
+void nad_arr_fprint(const nad_Arr *self, FILE *stream, nad_FPrint fprint);
+
+NAD_API
+void nad_arr_print(const nad_Arr *self, nad_FPrint fprint);
 
 /* ========== macros ========== */
 

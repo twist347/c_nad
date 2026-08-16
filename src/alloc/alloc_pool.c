@@ -1,4 +1,5 @@
 #include "nad/alloc/alloc_pool.h"
+
 #include "nad/core/util.h"
 #include "internal/ptr.h"
 

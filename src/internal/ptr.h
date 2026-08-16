@@ -2,9 +2,9 @@
 
 #include "nad/core/util.h"
 
+#include <assert.h>
 #include <stddef.h>
 #include <stdint.h>
-#include <assert.h>
 
 /* ========== byte-level pointer arithmetic ========== */
 

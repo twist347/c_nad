@@ -1,6 +1,7 @@
 #pragma once
 
 #include "nad/core/export.h"
+#include "nad/core/print.h"
 
 #include <stddef.h>
 #include <assert.h>
@@ -39,31 +40,45 @@ nad_Span nad_span_from_mut(nad_SpanMut s);
 
 /// 'start == s.len' is legal and yields and empty view
 [[nodiscard]] NAD_API
-nad_Span nad_span_sub(nad_Span s, size_t start, size_t count);
+nad_Span nad_span_sub(nad_Span self, size_t start, size_t count);
 
 [[nodiscard]] NAD_API
-nad_SpanMut nad_span_sub_mut(nad_SpanMut s, size_t start, size_t count);
+nad_SpanMut nad_span_sub_mut(nad_SpanMut self, size_t start, size_t count);
 
 /* ========== info ========== */
 
 [[nodiscard]] NAD_API
-size_t nad_span_bytes(nad_Span s);
+size_t nad_span_bytes(nad_Span self);
 
 /* ========== access ========== */
 
 [[nodiscard]] NAD_API
-const void *nad_span_get(nad_Span s, size_t idx);
+const void *nad_span_get(nad_Span self, size_t idx);
 
 [[nodiscard]] NAD_API
-void *nad_span_get_mut(nad_SpanMut s, size_t idx);
+void *nad_span_get_mut(nad_SpanMut self, size_t idx);
 
 NAD_API
-void nad_span_set(nad_SpanMut s, size_t idx, const void *val);
+void nad_span_set(nad_SpanMut self, size_t idx, const void *val);
 
 /* ========== mods ========== */
 
 NAD_API
-void nad_span_swap_elems(nad_SpanMut s, size_t i, size_t j);
+void nad_span_swap_elems(nad_SpanMut self, size_t i, size_t j);
+
+/* ========== print ========== */
+
+NAD_API
+void nad_span_fprint(nad_Span self, FILE *stream, nad_FPrint fprint);
+
+NAD_API
+void nad_span_mut_fprint(nad_SpanMut self, FILE *stream, nad_FPrint fprint);
+
+NAD_API
+void nad_span_print(nad_Span self, nad_FPrint fprint);
+
+NAD_API
+void nad_span_mut_print(nad_SpanMut self, nad_FPrint fprint);
 
 /* ========== macros ========== */
 

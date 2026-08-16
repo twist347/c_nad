@@ -1,9 +1,10 @@
 #include "nad/ds/vec.h"
+
 #include "internal/ptr.h"
 
+#include <assert.h>
 #include <stdckdint.h>
 #include <string.h>
-#include <assert.h>
 
 /* ========== internals ========== */
 
@@ -468,6 +469,23 @@ nad_Span nad_vec_to_span(const nad_Vec *self) {
     ASSERT_VEC(self);
 
     return nad_span_new(self->data, self->len, self->elem_size);
+}
+
+/* ========== print ========== */
+
+void nad_vec_fprint(const nad_Vec *self, FILE *stream, nad_FPrint fprint) {
+    ASSERT_VEC(self);
+    assert(stream);
+    assert(fprint);
+
+    nad_span_fprint(nad_vec_to_span(self), stream, fprint);
+}
+
+void nad_vec_print(const nad_Vec *self, nad_FPrint fprint) {
+    ASSERT_VEC(self);
+    assert(fprint);
+
+    nad_vec_fprint(self, stdout, fprint);
 }
 
 /* ========== internals ========== */

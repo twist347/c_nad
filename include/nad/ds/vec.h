@@ -125,6 +125,14 @@ nad_SpanMut nad_vec_to_span_mut(nad_Vec *self);
 [[nodiscard]] NAD_API
 nad_Span nad_vec_to_span(const nad_Vec *self);
 
+/* ========== print ========== */
+
+NAD_API
+void nad_vec_fprint(const nad_Vec *self, FILE *stream, nad_FPrint fprint);
+
+NAD_API
+void nad_vec_print(const nad_Vec *self, nad_FPrint fprint);
+
 /* ========== macros ========== */
 
 #define NAD_VEC_NEW(T, al, out) \

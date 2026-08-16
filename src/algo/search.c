@@ -4,7 +4,7 @@
 
 /* ========== search ========== */
 
-bool nad_span_find(nad_Span s, const void *key, nad_EqFn eq, size_t *out_idx) {
+bool nad_span_find(nad_Span s, const void *key, nad_Eq eq, size_t *out_idx) {
     assert(key);
     assert(eq);
     assert(out_idx);
@@ -18,12 +18,12 @@ bool nad_span_find(nad_Span s, const void *key, nad_EqFn eq, size_t *out_idx) {
     return false;
 }
 
-bool nad_span_contains(nad_Span s, const void *key, nad_EqFn eq) {
+bool nad_span_contains(nad_Span s, const void *key, nad_Eq eq) {
     size_t idx;
     return nad_span_find(s, key, eq, &idx);
 }
 
-size_t nad_span_count(nad_Span s, const void *key, nad_EqFn eq) {
+size_t nad_span_count(nad_Span s, const void *key, nad_Eq eq) {
     assert(key);
     assert(eq);
 
@@ -36,7 +36,7 @@ size_t nad_span_count(nad_Span s, const void *key, nad_EqFn eq) {
     return count;
 }
 
-size_t nad_span_lower_bound(nad_Span s, const void *key, nad_CmpFn cmp) {
+size_t nad_span_lower_bound(nad_Span s, const void *key, nad_Cmp cmp) {
     NAD_SPAN_ASSERT(s);
     assert(key);
     assert(cmp);
@@ -57,7 +57,7 @@ size_t nad_span_lower_bound(nad_Span s, const void *key, nad_CmpFn cmp) {
     return lo;
 }
 
-size_t nad_span_upper_bound(nad_Span s, const void *key, nad_CmpFn cmp) {
+size_t nad_span_upper_bound(nad_Span s, const void *key, nad_Cmp cmp) {
     NAD_SPAN_ASSERT(s);
     assert(key);
     assert(cmp);
@@ -78,7 +78,7 @@ size_t nad_span_upper_bound(nad_Span s, const void *key, nad_CmpFn cmp) {
     return lo;
 }
 
-bool nad_span_bsearch(nad_Span s, const void *key, nad_CmpFn cmp, size_t *out_idx) {
+bool nad_span_bsearch(nad_Span s, const void *key, nad_Cmp cmp, size_t *out_idx) {
     NAD_SPAN_ASSERT(s);
     assert(key);
     assert(cmp);
@@ -99,7 +99,7 @@ bool nad_span_bsearch(nad_Span s, const void *key, nad_CmpFn cmp, size_t *out_id
 
 /* ========== extremes ========== */
 
-size_t nad_span_min_elem(nad_Span s, nad_CmpFn cmp) {
+size_t nad_span_min_elem(nad_Span s, nad_Cmp cmp) {
     NAD_SPAN_ASSERT(s);
     assert(cmp);
     assert(s.len > 0);
@@ -118,7 +118,7 @@ size_t nad_span_min_elem(nad_Span s, nad_CmpFn cmp) {
     return best;
 }
 
-size_t nad_span_max_elem(nad_Span s, nad_CmpFn cmp) {
+size_t nad_span_max_elem(nad_Span s, nad_Cmp cmp) {
     NAD_SPAN_ASSERT(s);
     assert(cmp);
     assert(s.len > 0);

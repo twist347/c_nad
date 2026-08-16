@@ -16,9 +16,9 @@ NAD_API
 void nad_span_swap_ranges(nad_SpanMut a, nad_SpanMut b);
 
 [[nodiscard]] NAD_API
-bool nad_span_next_permutation(nad_SpanMut s, nad_CmpFn cmp);
+bool nad_span_next_permutation(nad_SpanMut s, nad_Cmp cmp);
 
 [[nodiscard]] NAD_API
-bool nad_span_prev_permutation(nad_SpanMut s, nad_CmpFn cmp);
+bool nad_span_prev_permutation(nad_SpanMut s, nad_Cmp cmp);
 
 // TODO: nad_span_shuffle, nad_span_partition

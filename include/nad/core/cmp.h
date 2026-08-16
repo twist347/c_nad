@@ -6,12 +6,12 @@
 #include <stdint.h>
 
 /// comparator: <0 if a<b, 0 if a==b, >0 if a>b. qsort compatible
-typedef int (*nad_CmpFn)(const void *, const void *);
+typedef int (*nad_Cmp)(const void *, const void *);
 
-typedef int (*nad_CmpCtxFn)(const void *, const void *, void *);
+typedef int (*nad_CmpCtx)(const void *, const void *, void *);
 
 /// equality: true if a == b.
-typedef bool (*nad_EqFn)(const void *, const void *);
+typedef bool (*nad_Eq)(const void *, const void *);
 
 /*
  * Comparison and equality for the built-in types. Three forms per type:

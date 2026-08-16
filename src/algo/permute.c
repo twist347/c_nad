@@ -1,11 +1,11 @@
 #include "nad/algo/permute.h"
 
-#include <assert.h>
-
 #include "internal/ptr.h"
 
+#include <assert.h>
+
 [[nodiscard]] static
-bool permute_step(nad_SpanMut s, nad_CmpFn cmp, bool asc);
+bool permute_step(nad_SpanMut s, nad_Cmp cmp, bool asc);
 
 void nad_span_reverse(nad_SpanMut s) {
     NAD_SPAN_ASSERT(s);
@@ -55,21 +55,21 @@ void nad_span_swap_ranges(nad_SpanMut a, nad_SpanMut b) {
     }
 }
 
-bool nad_span_next_permutation(nad_SpanMut s, nad_CmpFn cmp) {
+bool nad_span_next_permutation(nad_SpanMut s, nad_Cmp cmp) {
     NAD_SPAN_ASSERT(s);
     assert(cmp);
 
     return permute_step(s, cmp, true);
 }
 
-bool nad_span_prev_permutation(nad_SpanMut s, nad_CmpFn cmp) {
+bool nad_span_prev_permutation(nad_SpanMut s, nad_Cmp cmp) {
     NAD_SPAN_ASSERT(s);
     assert(cmp);
 
     return permute_step(s, cmp, false);
 }
 
-bool permute_step(nad_SpanMut s, nad_CmpFn cmp, bool asc) {
+bool permute_step(nad_SpanMut s, nad_Cmp cmp, bool asc) {
     if (s.len < 2) {
         return false;
     }

@@ -1,10 +1,10 @@
 #include "nad/alloc/alloc_log.h"
+
 #include "nad/alloc/alloc.h"
 
 #include <assert.h>
 #include <stddef.h>
 #include <stdio.h>
-#include <stdlib.h>
 
 /* ========== internals ========== */
 

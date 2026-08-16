@@ -8,12 +8,12 @@ endif ()
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 set(NAD_ALGO_SOURCES
-        src/algo/copy.c
         src/algo/compare.c
+        src/algo/copy.c
         src/algo/fill.c
         src/algo/merge.c
-        src/algo/search.c
         src/algo/permute.c
+        src/algo/search.c
         src/algo/sort.c
 )
 
@@ -33,6 +33,7 @@ set(NAD_CORE_SOURCES
 
 set(NAD_DS_SOURCES
         src/ds/arr.c
+        src/ds/list.c
         src/ds/span.c
         src/ds/vec.c
 )
@@ -68,6 +69,17 @@ set_target_properties(nadc PROPERTIES
         C_VISIBILITY_PRESET hidden
         VISIBILITY_INLINES_HIDDEN ON
 )
+
+# Release only. The algo modules reach into ds/span for every element access, so without
+# cross-TU inlining those stay real calls; with it the sort loses about a third of its
+# time. Debug keeps it off — it slows linking and blurs the code the debugger shows.
+include(CheckIPOSupported)
+check_ipo_supported(RESULT NAD_IPO_SUPPORTED OUTPUT NAD_IPO_ERROR)
+if (NAD_IPO_SUPPORTED)
+    set_property(TARGET nadc PROPERTY INTERPROCEDURAL_OPTIMIZATION_RELEASE ON)
+else ()
+    message(STATUS "  LTO unavailable : ${NAD_IPO_ERROR}")
+endif ()
 
 option(NAD_BUILD_TEST "Build unit tests" ${PROJECT_IS_TOP_LEVEL})
 

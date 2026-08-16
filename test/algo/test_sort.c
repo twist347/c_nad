@@ -476,6 +476,79 @@ static void test_nth_elem_stays_within_the_subspan() {
     TEST_ASSERT_EQUAL_INT32(9, buf[5]);
 }
 
+/* ========== scaling ==========
+ *
+ * A bad pivot choice still produces the right answer, just after far too many
+ * comparisons — no assertion about the output can see it. These count the comparisons
+ * instead. 65536 is 2^16, so n * log2(n) is exact and needs no math.h.
+ *
+ * The size is not arbitrary. Sampling the pivot only at the ends degrades to about
+ * n^1.5, which at n = 4096 is still within 4x of n*log n and hides; measured against
+ * this implementation it is 4.0x at 4096, 6.6x at 16384 and 11.3x at 65536, against
+ * 1.0x here. The counts are fully deterministic, so the margin is real, not statistical.
+ */
+
+static constexpr size_t SCALE_N = 65536;
+static constexpr size_t SCALE_N_LOG_N = SCALE_N * 16;
+static constexpr size_t SCALE_LIMIT = 3 * SCALE_N_LOG_N;
+
+static size_t cmp_calls = 0;
+
+static int cmp_i32_counting(const void *a, const void *b) {
+    ++cmp_calls;
+    return nad_cmp_fn_i32(a, b);
+}
+
+static void test_sort_stays_n_log_n_on_ordered_input() {
+    static int32_t buf[SCALE_N];
+
+    for (size_t i = 0; i < SCALE_N; ++i) {
+        buf[i] = (int32_t) i;
+    }
+    cmp_calls = 0;
+    nad_span_sort(NAD_SPAN_NEW_MUT(int32_t, buf, SCALE_N), cmp_i32_counting);
+    TEST_ASSERT_LESS_THAN_size_t(SCALE_LIMIT, cmp_calls);
+
+    for (size_t i = 0; i < SCALE_N; ++i) {
+        buf[i] = (int32_t) (SCALE_N - i);
+    }
+    cmp_calls = 0;
+    nad_span_sort(NAD_SPAN_NEW_MUT(int32_t, buf, SCALE_N), cmp_i32_counting);
+    TEST_ASSERT_LESS_THAN_size_t(SCALE_LIMIT, cmp_calls);
+}
+
+// a run of equal keys must be settled in one pass, not peeled off one elem at a time
+static void test_sort_stays_linear_on_equal_keys() {
+    static int32_t buf[SCALE_N];
+    for (size_t i = 0; i < SCALE_N; ++i) {
+        buf[i] = 7;
+    }
+
+    cmp_calls = 0;
+    nad_span_sort(NAD_SPAN_NEW_MUT(int32_t, buf, SCALE_N), cmp_i32_counting);
+
+    TEST_ASSERT_LESS_THAN_size_t(8 * SCALE_N, cmp_calls);
+}
+
+// nth_elem is expected linear, and shares the pivot choice and the partition with sort
+static void test_nth_elem_stays_linear() {
+    static int32_t buf[SCALE_N];
+
+    for (size_t i = 0; i < SCALE_N; ++i) {
+        buf[i] = (int32_t) i;
+    }
+    cmp_calls = 0;
+    nad_span_nth_elem(NAD_SPAN_NEW_MUT(int32_t, buf, SCALE_N), SCALE_N / 2, cmp_i32_counting);
+    TEST_ASSERT_LESS_THAN_size_t(8 * SCALE_N, cmp_calls);
+
+    for (size_t i = 0; i < SCALE_N; ++i) {
+        buf[i] = 7;
+    }
+    cmp_calls = 0;
+    nad_span_nth_elem(NAD_SPAN_NEW_MUT(int32_t, buf, SCALE_N), SCALE_N / 2, cmp_i32_counting);
+    TEST_ASSERT_LESS_THAN_size_t(8 * SCALE_N, cmp_calls);
+}
+
 /* ========== is_sorted ========== */
 
 static void test_is_sorted_accepts_ascending() {
@@ -552,6 +625,10 @@ int main() {
     RUN_TEST(test_nth_elem_of_a_single_is_a_noop);
     RUN_TEST(test_nth_elem_handles_duplicates);
     RUN_TEST(test_nth_elem_stays_within_the_subspan);
+
+    RUN_TEST(test_sort_stays_n_log_n_on_ordered_input);
+    RUN_TEST(test_sort_stays_linear_on_equal_keys);
+    RUN_TEST(test_nth_elem_stays_linear);
 
     RUN_TEST(test_is_sorted_accepts_ascending);
     RUN_TEST(test_is_sorted_allows_equal_neighbours);

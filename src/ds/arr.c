@@ -1,4 +1,5 @@
 #include "nad/ds/arr.h"
+
 #include "nad/core/util.h"
 #include "internal/ptr.h"
 
@@ -291,6 +292,23 @@ nad_Span nad_arr_to_span(const nad_Arr *self) {
     ASSERT_ARR(self);
 
     return nad_span_new(self->data, self->len, self->elem_size);
+}
+
+/* ========== print ========== */
+
+void nad_arr_fprint(const nad_Arr *self, FILE *stream, nad_FPrint fprint) {
+    ASSERT_ARR(self);
+    assert(stream);
+    assert(fprint);
+
+    nad_span_fprint(nad_arr_to_span(self), stream, fprint);
+}
+
+void nad_arr_print(const nad_Arr *self, nad_FPrint fprint) {
+    ASSERT_ARR(self);
+    assert(fprint);
+
+    nad_arr_fprint(self, stdout, fprint);
 }
 
 /* ========== internals ========== */
