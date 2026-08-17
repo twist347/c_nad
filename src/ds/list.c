@@ -13,9 +13,10 @@
 #define ASSERT_LIST(l)                                          \
     (assert(l),                                                 \
      assert((l)->elem_size > 0),                                \
-     assert((l)->al),                                          \
-     assert(((l)->len > 0) == ((l)->head != nullptr)),         \
+     assert((l)->al),                                           \
+     assert(((l)->len > 0) == ((l)->head != nullptr)),          \
      assert(((l)->head != nullptr) == ((l)->tail != nullptr)))
+
 #define ASSERT_NODE(n)                             \
     (assert(n),                                    \
      assert(!(n)->prev || (n)->prev->next == (n)), \
