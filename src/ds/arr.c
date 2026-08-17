@@ -33,10 +33,10 @@ void set_fields(nad_Arr *arr, void *data, size_t len, size_t elem_size, nad_Al *
 size_t len_bytes(const nad_Arr *self);
 
 [[nodiscard]] static
-const char *arr_offset(const nad_Arr *self, size_t idx);
+const unsigned char *arr_offset(const nad_Arr *self, size_t idx);
 
 [[nodiscard]] static
-char *arr_offset_mut(nad_Arr *self, size_t idx);
+unsigned char *arr_offset_mut(nad_Arr *self, size_t idx);
 
 /* ========== lifetime ========== */
 
@@ -363,11 +363,11 @@ size_t len_bytes(const nad_Arr *self) {
 }
 
 static
-const char *arr_offset(const nad_Arr *self, size_t idx) {
+const unsigned char *arr_offset(const nad_Arr *self, size_t idx) {
     return nad_byte_offset(self->data, self->elem_size, idx);
 }
 
 static
-char *arr_offset_mut(nad_Arr *self, size_t idx) {
+unsigned char *arr_offset_mut(nad_Arr *self, size_t idx) {
     return nad_byte_offset_mut(self->data, self->elem_size, idx);
 }

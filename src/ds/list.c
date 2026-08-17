@@ -25,7 +25,7 @@
 struct nad_ListNode {
     nad_ListNode *next;
     nad_ListNode *prev;
-    alignas(max_align_t) char elem[];
+    alignas(max_align_t) unsigned char elem[];
 };
 
 struct nad_List {
@@ -253,7 +253,7 @@ size_t node_bytes(size_t elem_size) {
     return sizeof(nad_ListNode) + elem_size;
 }
 
-static
+[[maybe_unused]] static
 nad_Status node_new(nad_Al *al, size_t elem_size, const void *val, nad_ListNode **out) {
     assert(al);
     assert(elem_size > 0);
@@ -281,7 +281,7 @@ nad_Status node_new(nad_Al *al, size_t elem_size, const void *val, nad_ListNode 
     return NAD_STATUS_OK;
 }
 
-static
+[[maybe_unused]] static
 void node_drop(nad_Al *al, size_t elem_size, nad_ListNode *node) {
     nad_dealloc(al, node, node_bytes(elem_size));
 }

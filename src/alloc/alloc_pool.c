@@ -19,7 +19,7 @@ struct PoolNode {
 
 typedef struct {
     nad_Al *parent_al;
-    char *data;
+    unsigned char *data;
     PoolNode *free_head;
     size_t block_size;
     size_t block_count;
@@ -72,7 +72,7 @@ nad_Al *nad_al_pool_new(nad_Al *parent, size_t block_size, size_t block_count) {
         return nullptr;
     }
 
-    char *data = nad_alloc(parent, total_bytes);
+    unsigned char *data = nad_alloc(parent, total_bytes);
     if (!data) {
         nad_dealloc(parent, pool_ctx, sizeof(nad_AlPoolCtx));
         return nullptr;
@@ -222,9 +222,9 @@ void pool_build_free_list(nad_AlPoolCtx *ctx) {
 
 static
 bool pool_owns(const nad_AlPoolCtx *ctx, const void *ptr) {
-    const char *p = ptr;
-    const char *begin = ctx->data;
-    const char *end = ctx->data + ctx->block_size * ctx->block_count;
+    const unsigned char *p = ptr;
+    const unsigned char *begin = ctx->data;
+    const unsigned char *end = ctx->data + ctx->block_size * ctx->block_count;
 
     if (p < begin || p >= end) {
         return false;

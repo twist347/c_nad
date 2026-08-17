@@ -1,14 +1,12 @@
 #include "nad/core/elem_ops.h"
 
+#include "internal/ptr.h"
+
 #include <assert.h>
 #include <string.h>
 
 static constexpr size_t ELEM_ASSIGN_TMP_MAX = 256;
 static constexpr size_t ELEM_MAX_ALIGN = 32;
-
-static const char *byte_offset(const void *base, size_t stride, size_t n);
-
-static char *byte_offset_mut(void *base, size_t stride, size_t n);
 
 /* ========== single elem ========== */
 
@@ -122,7 +120,7 @@ nad_Status nad_elem_construct_n(
     }
 
     for (size_t i = 0; i < n; ++i) {
-        const nad_Status st = ops->construct(byte_offset_mut(dst, elem_size, i), ctx);
+        const nad_Status st = ops->construct(nad_byte_offset_mut(dst, elem_size, i), ctx);
         if (NAD_STATUS_IS_ERR(st)) {
             nad_elem_destroy_n(ops, elem_size, dst, i, ctx);
             return st;
@@ -154,8 +152,8 @@ nad_Status nad_elem_clone_n(
     for (size_t i = 0; i < n; ++i) {
         const nad_Status st =
                 ops->clone(
-                    byte_offset_mut(dst, elem_size, i),
-                    byte_offset(src, elem_size, i),
+                    nad_byte_offset_mut(dst, elem_size, i),
+                    nad_byte_offset(src, elem_size, i),
                     ctx
                 );
         if (NAD_STATUS_IS_ERR(st)) {
@@ -182,14 +180,6 @@ void nad_elem_destroy_n(
     }
 
     for (size_t i = 0; i < n; ++i) {
-        ops->destroy(byte_offset_mut(base, elem_size, i), ctx);
+        ops->destroy(nad_byte_offset_mut(base, elem_size, i), ctx);
     }
-}
-
-static const char *byte_offset(const void *base, size_t stride, size_t n) {
-    return (const char *) base + stride * n;
-}
-
-static char *byte_offset_mut(void *base, size_t stride, size_t n) {
-    return (char *) base + stride * n;
 }

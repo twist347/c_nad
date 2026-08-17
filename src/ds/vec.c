@@ -46,10 +46,10 @@ size_t len_bytes(const nad_Vec *self);
 size_t cap_bytes(const nad_Vec *self);
 
 [[nodiscard]] static
-const char *vec_offset(const nad_Vec *self, size_t idx);
+const unsigned char *vec_offset(const nad_Vec *self, size_t idx);
 
 [[nodiscard]] static
-char *vec_offset_mut(nad_Vec *self, size_t idx);
+unsigned char *vec_offset_mut(nad_Vec *self, size_t idx);
 
 /* ========== lifetime ========== */
 
@@ -582,11 +582,11 @@ size_t cap_bytes(const nad_Vec *self) {
 }
 
 static
-const char *vec_offset(const nad_Vec *self, size_t idx) {
+const unsigned char *vec_offset(const nad_Vec *self, size_t idx) {
     return nad_byte_offset(self->data, self->elem_size, idx);
 }
 
 static
-char *vec_offset_mut(nad_Vec *self, size_t idx) {
+unsigned char *vec_offset_mut(nad_Vec *self, size_t idx) {
     return nad_byte_offset_mut(self->data, self->elem_size, idx);
 }

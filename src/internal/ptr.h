@@ -9,19 +9,19 @@
 /* ========== byte-level pointer arithmetic ========== */
 
 [[nodiscard]] static inline
-const char *nad_byte_offset(const void *base, size_t stride, size_t n) {
+const unsigned char *nad_byte_offset(const void *base, size_t stride, size_t n) {
     assert(base || n == 0);
     assert(stride > 0);
 
-    return (const char *) base + stride * n;
+    return (const unsigned char *) base + stride * n;
 }
 
 [[nodiscard]] static inline
-char *nad_byte_offset_mut(void *base, size_t stride, size_t n) {
+unsigned char *nad_byte_offset_mut(void *base, size_t stride, size_t n) {
     assert(base || n == 0);
     assert(stride > 0);
 
-    return (char *) base + stride * n;
+    return (unsigned char *) base + stride * n;
 }
 
 [[nodiscard]] static inline
@@ -29,7 +29,7 @@ ptrdiff_t nad_byte_diff(const void *a, const void *b) {
     assert(a);
     assert(b);
 
-    return (const char *) a - (const char *) b;
+    return (const unsigned char *) a - (const unsigned char *) b;
 }
 
 [[nodiscard]] static inline
@@ -78,8 +78,8 @@ void nad_bytes_swap(void *a, void *b, size_t n) {
     assert(a);
     assert(b);
 
-    char *pa = a;
-    char *pb = b;
+    unsigned char *pa = a;
+    unsigned char *pb = b;
     for (size_t i = 0; i < n; ++i) {
         NAD_SWAP(pa[i], pb[i]);
     }

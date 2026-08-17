@@ -130,7 +130,7 @@ void *arena_alloc(void *ctx, size_t size) {
         return nullptr;
     }
 
-    void *ptr = (char *) arena_ctx->data + arena_ctx->offset;
+    void *ptr = (unsigned char *) arena_ctx->data + arena_ctx->offset;
     arena_ctx->offset += aligned_size;
 
     return ptr;
