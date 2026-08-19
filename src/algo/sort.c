@@ -19,16 +19,17 @@ size_t median3(nad_Span s, size_t a, size_t b, size_t c, nad_Cmp cmp);
 [[nodiscard]] static
 size_t ninther(nad_Span s, size_t left, size_t right, nad_Cmp cmp);
 
-/// splits [left, right] into < pivot | == pivot | > pivot and reports the bounds of the
-/// middle run through 'lt' and 'gt'
-static
-void partition3(
-    nad_SpanMut s,
-    size_t left, size_t right,
-    size_t pivot_idx,
-    nad_Cmp cmp,
-    size_t *lt, size_t *gt
-);
+// the block of elems equal to the pivot after a three-way split, as the
+// inclusive range [lt, gt]: everything below lt is smaller, above gt larger
+typedef struct {
+    size_t lt;
+    size_t gt;
+} Split;
+
+/// splits [left, right] into < pivot | == pivot | > pivot and returns the
+/// bounds of the middle run
+[[nodiscard]] static
+Split partition3(nad_SpanMut s, size_t left, size_t right, size_t pivot_idx, nad_Cmp cmp);
 
 /// sorts the inclusive range [left, right]
 static
@@ -148,8 +149,9 @@ void nad_span_nth_elem(nad_SpanMut s, size_t nth, nad_Cmp cmp) {
     while (left < right) {
         const size_t pivot_idx = ninther(nad_span_from_mut(s), left, right, cmp);
 
-        size_t lt, gt;
-        partition3(s, left, right, pivot_idx, cmp, &lt, &gt);
+        const Split p = partition3(s, left, right, pivot_idx, cmp);
+        const size_t lt = p.lt;
+        const size_t gt = p.gt;
 
         if (nth < lt) {
             right = lt - 1;
@@ -167,14 +169,18 @@ bool nad_span_is_sorted(nad_Span s, nad_Cmp cmp) {
     NAD_SPAN_ASSERT(s);
     assert(cmp);
 
+    return nad_span_is_sorted_until(s, cmp) == s.len;
+}
+
+size_t nad_span_is_sorted_until(nad_Span s, nad_Cmp cmp) {
     for (size_t i = 1; i < s.len; ++i) {
         const void *prev = nad_span_get(s, i - 1);
         const void *cur = nad_span_get(s, i);
         if (cmp(prev, cur) > 0) {
-            return false;
+            return i;
         }
     }
-    return true;
+    return s.len;
 }
 
 /* ========== internals ========== */
@@ -215,16 +221,8 @@ size_t ninther(nad_Span s, size_t left, size_t right, nad_Cmp cmp) {
 }
 
 static
-void partition3(
-    nad_SpanMut s,
-    size_t left, size_t right,
-    size_t pivot_idx,
-    nad_Cmp cmp,
-    size_t *lt, size_t *gt
-) {
+Split partition3(nad_SpanMut s, size_t left, size_t right, size_t pivot_idx, nad_Cmp cmp) {
     assert(left <= pivot_idx && pivot_idx <= right);
-    assert(lt);
-    assert(gt);
 
     nad_span_swap_elems(s, left, pivot_idx);
 
@@ -253,8 +251,7 @@ void partition3(
         }
     }
 
-    *lt = lo;
-    *gt = hi;
+    return (Split){.lt = lo, .gt = hi};
 }
 
 static
@@ -272,9 +269,9 @@ void quicksort(nad_SpanMut s, size_t left, size_t right, nad_Cmp cmp) {
 
         // three-way, so a run of equal keys is settled in one pass. A two-way split
         // peels those off one elem at a time, which is quadratic on repeated keys.
-        size_t lt;
-        size_t gt;
-        partition3(s, left, right, pivot_idx, cmp, &lt, &gt);
+        const Split p = partition3(s, left, right, pivot_idx, cmp);
+        const size_t lt = p.lt;
+        const size_t gt = p.gt;
 
         // recurse into the shorter side and loop on the longer one: the recursion then
         // halves its range every time, so the stack stays O(log n) whatever the data

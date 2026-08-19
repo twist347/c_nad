@@ -586,6 +586,45 @@ static void test_is_sorted_agrees_with_sort() {
     TEST_ASSERT_TRUE(nad_span_is_sorted(nad_span_from_mut(s), nad_cmp_fn_i32));
 }
 
+/* ========== is_sorted_until ========== */
+
+static void test_is_sorted_until_points_at_the_first_break() {
+    constexpr int32_t buf[6] = {1, 2, 3, 2, 5, 6};
+
+    TEST_ASSERT_EQUAL_size_t(3, nad_span_is_sorted_until(NAD_SPAN_NEW(int32_t, buf, 6), nad_cmp_fn_i32));
+}
+
+// a sorted span answers with its own length, which is what makes
+// is_sorted a one-liner over it
+static void test_is_sorted_until_of_a_sorted_span_is_its_length() {
+    constexpr int32_t buf[4] = {1, 2, 3, 4};
+    const nad_Span s = NAD_SPAN_NEW(int32_t, buf, 4);
+
+    TEST_ASSERT_EQUAL_size_t(4, nad_span_is_sorted_until(s, nad_cmp_fn_i32));
+    TEST_ASSERT_TRUE(nad_span_is_sorted(s, nad_cmp_fn_i32));
+}
+
+static void test_is_sorted_until_on_short_and_flat_spans() {
+    constexpr int32_t one[1] = {5};
+    constexpr int32_t flat[3] = {7, 7, 7};
+
+    TEST_ASSERT_EQUAL_size_t(0, nad_span_is_sorted_until(NAD_SPAN_NEW(int32_t, nullptr, 0), nad_cmp_fn_i32));
+    TEST_ASSERT_EQUAL_size_t(1, nad_span_is_sorted_until(NAD_SPAN_NEW(int32_t, one, 1), nad_cmp_fn_i32));
+    TEST_ASSERT_EQUAL_size_t(3, nad_span_is_sorted_until(NAD_SPAN_NEW(int32_t, flat, 3), nad_cmp_fn_i32));
+}
+
+static void test_is_sorted_until_breaks_at_the_second_elem() {
+    constexpr int32_t buf[3] = {9, 1, 2};
+
+    TEST_ASSERT_EQUAL_size_t(1, nad_span_is_sorted_until(NAD_SPAN_NEW(int32_t, buf, 3), nad_cmp_fn_i32));
+}
+
+static void test_is_sorted_until_follows_the_comparator() {
+    constexpr int32_t buf[4] = {4, 3, 2, 9};
+
+    TEST_ASSERT_EQUAL_size_t(3, nad_span_is_sorted_until(NAD_SPAN_NEW(int32_t, buf, 4), nad_cmp_fn_desc_i32));
+}
+
 int main() {
     UNITY_BEGIN();
 
@@ -635,6 +674,12 @@ int main() {
     RUN_TEST(test_is_sorted_rejects_a_late_inversion);
     RUN_TEST(test_is_sorted_empty_and_single_are_sorted);
     RUN_TEST(test_is_sorted_agrees_with_sort);
+
+    RUN_TEST(test_is_sorted_until_points_at_the_first_break);
+    RUN_TEST(test_is_sorted_until_of_a_sorted_span_is_its_length);
+    RUN_TEST(test_is_sorted_until_on_short_and_flat_spans);
+    RUN_TEST(test_is_sorted_until_breaks_at_the_second_elem);
+    RUN_TEST(test_is_sorted_until_follows_the_comparator);
 
     return UNITY_END();
 }

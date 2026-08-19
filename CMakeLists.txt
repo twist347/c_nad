@@ -11,10 +11,13 @@ set(NAD_ALGO_SOURCES
         src/algo/compare.c
         src/algo/copy.c
         src/algo/fill.c
+        src/algo/fold.c
         src/algo/merge.c
+        src/algo/modify.c
         src/algo/permute.c
         src/algo/search.c
         src/algo/sort.c
+        src/algo/transform.c
 )
 
 set(NAD_ALLOC_SOURCES

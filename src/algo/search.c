@@ -130,6 +130,40 @@ bool nad_span_bsearch(nad_Span s, const void *key, nad_Cmp cmp, size_t *out_idx)
     return false;
 }
 
+nad_Range nad_span_equal_range(nad_Span s, const void *key, nad_Cmp cmp) {
+    NAD_SPAN_ASSERT(s);
+    assert(key);
+    assert(cmp);
+
+    const size_t lo = nad_span_lower_bound(s, key, cmp);
+
+    const nad_Span tail = nad_span_sub(s, lo, s.len - lo);
+
+    return (nad_Range){
+        .lo = lo,
+        .hi = lo + nad_span_upper_bound(tail, key, cmp)
+    };
+}
+
+size_t nad_span_partition_point(nad_Span s, nad_Pred pred, void *ctx) {
+    NAD_SPAN_ASSERT(s);
+    assert(pred);
+
+    size_t lo = 0, hi = s.len;
+
+    while (lo < hi) {
+        const size_t mid = lo + (hi - lo) / 2;
+
+        if (pred(nad_span_get(s, mid), ctx)) {
+            lo = mid + 1;
+        } else {
+            hi = mid;
+        }
+    }
+
+    return lo;
+}
+
 /* ========== predicates ========== */
 
 bool nad_span_all_of(nad_Span s, nad_Pred pred, void *ctx) {
@@ -197,4 +231,29 @@ size_t nad_span_max_elem(nad_Span s, nad_Cmp cmp) {
     }
 
     return best;
+}
+
+nad_MinMax nad_span_minmax_elem(nad_Span s, nad_Cmp cmp) {
+    NAD_SPAN_ASSERT(s);
+    assert(cmp);
+    assert(s.len > 0);
+
+    nad_MinMax out = {.min = 0, .max = 0};
+    const void *min_p = nad_span_get(s, 0);
+    const void *max_p = min_p;
+
+    for (size_t i = 1; i < s.len; ++i) {
+        const void *cur = nad_span_get(s, i);
+
+        if (cmp(cur, min_p) < 0) {
+            out.min = i;
+            min_p = cur;
+        }
+        if (cmp(cur, max_p) > 0) {
+            out.max = i;
+            max_p = cur;
+        }
+    }
+
+    return out;
 }

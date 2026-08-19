@@ -21,3 +21,12 @@ void nad_span_fill_zero(nad_SpanMut s) {
 
     memset(s.data, 0, s.len * s.elem_size);
 }
+
+void nad_span_generate(nad_SpanMut s, nad_Gen gen, void *ctx) {
+    NAD_SPAN_ASSERT(s);
+    assert(gen);
+
+    for (size_t i = 0; i < s.len; ++i) {
+        gen(nad_span_get_mut(s, i), i, ctx);
+    }
+}

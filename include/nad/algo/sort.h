@@ -23,3 +23,6 @@ void nad_span_nth_elem(nad_SpanMut s, size_t nth, nad_Cmp cmp);
 
 [[nodiscard]] NAD_API
 bool nad_span_is_sorted(nad_Span s, nad_Cmp cmp);
+
+[[nodiscard]] NAD_API
+size_t nad_span_is_sorted_until(nad_Span s, nad_Cmp cmp);

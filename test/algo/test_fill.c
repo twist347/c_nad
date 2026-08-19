@@ -1,4 +1,5 @@
 #include "nad/algo/fill.h"
+#include "nad/core/util.h"
 
 #include "unity.h"
 
@@ -14,6 +15,29 @@ typedef struct {
     int64_t a;
     int64_t b;
 } Pair;
+
+// iota: the index alone is enough
+static void gen_index(void *dst, size_t idx, void *ctx) {
+    NAD_UNUSED(ctx);
+
+    *(int32_t *) dst = (int32_t) idx;
+}
+
+// a counter in ctx, for a sequence the index cannot express
+static void gen_doubling(void *dst, size_t idx, void *ctx) {
+    NAD_UNUSED(idx);
+
+    int32_t *next = ctx;
+    *(int32_t *) dst = *next;
+    *next *= 2;
+}
+
+static void gen_pair(void *dst, size_t idx, void *ctx) {
+    NAD_UNUSED(ctx);
+
+    ((Pair *) dst)->a = (int64_t) idx;
+    ((Pair *) dst)->b = (int64_t) idx * 10;
+}
 
 /* ========== fill ========== */
 
@@ -115,6 +139,43 @@ static void test_fill_zero_null_view_is_noop() {
     nad_span_fill_zero(s);
 }
 
+/* ========== generate ========== */
+
+// generate + the index is iota
+static void test_generate_fills_from_the_index() {
+    int32_t buf[5] = {9, 9, 9, 9, 9};
+
+    nad_span_generate(NAD_SPAN_NEW_MUT(int32_t, buf, 5), gen_index, nullptr);
+
+    constexpr int32_t want[5] = {0, 1, 2, 3, 4};
+    TEST_ASSERT_EQUAL_INT32_ARRAY(want, buf, 5);
+}
+
+static void test_generate_passes_the_ctx_through() {
+    int32_t buf[4] = {0};
+    int32_t next = 3;
+
+    nad_span_generate(NAD_SPAN_NEW_MUT(int32_t, buf, 4), gen_doubling, &next);
+
+    constexpr int32_t want[4] = {3, 6, 12, 24};
+    TEST_ASSERT_EQUAL_INT32_ARRAY(want, buf, 4);
+    TEST_ASSERT_EQUAL_INT32(48, next); // the ctx carried the state along
+}
+
+static void test_generate_of_an_empty_span_is_a_noop() {
+    nad_span_generate(NAD_SPAN_NEW_MUT(int32_t, nullptr, 0), gen_index, nullptr);
+}
+
+static void test_generate_writes_whole_elems() {
+    Pair buf[3] = {0};
+
+    nad_span_generate(NAD_SPAN_NEW_MUT(Pair, buf, 3), gen_pair, nullptr);
+
+    TEST_ASSERT_EQUAL_INT64(2, buf[2].a);
+    TEST_ASSERT_EQUAL_INT64(20, buf[2].b);
+    TEST_ASSERT_EQUAL_INT64(0, buf[0].a);
+}
+
 int main() {
     UNITY_BEGIN();
 
@@ -128,6 +189,11 @@ int main() {
     RUN_TEST(test_fill_zero_empty_is_noop);
     RUN_TEST(test_fill_zero_stays_within_the_subspan);
     RUN_TEST(test_fill_zero_null_view_is_noop);
+
+    RUN_TEST(test_generate_fills_from_the_index);
+    RUN_TEST(test_generate_passes_the_ctx_through);
+    RUN_TEST(test_generate_of_an_empty_span_is_a_noop);
+    RUN_TEST(test_generate_writes_whole_elems);
 
     return UNITY_END();
 }

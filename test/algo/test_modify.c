@@ -1,0 +1,320 @@
+#include "nad/algo/modify.h"
+#include "nad/algo/sort.h"
+#include "nad/core/util.h"
+
+#include "unity.h"
+
+#include <stdint.h>
+
+void setUp() {
+}
+
+void tearDown() {
+}
+
+// an elem wider than a word, to keep elem_size honest
+typedef struct {
+    int64_t a;
+    int64_t b;
+} Pair;
+
+static bool is_even(const void *elem, void *ctx) {
+    NAD_UNUSED(ctx);
+
+    return *(const int32_t *) elem % 2 == 0;
+}
+
+static bool greater_than(const void *elem, void *ctx) {
+    return *(const int32_t *) elem > *(const int32_t *) ctx;
+}
+
+static bool pair_a_is_negative(const void *elem, void *ctx) {
+    NAD_UNUSED(ctx);
+
+    return ((const Pair *) elem)->a < 0;
+}
+
+// equality that deliberately disagrees with memcmp, to prove the callback is used
+static bool eq_abs_i32(const void *a, const void *b) {
+    const int32_t x = *(const int32_t *) a;
+    const int32_t y = *(const int32_t *) b;
+
+    return nad_eq_i32(x < 0 ? -x : x, y < 0 ? -y : y);
+}
+
+// "within one" is deliberately NOT transitive: 1~2 and 2~3, but 1 !~ 3.
+// That is what tells apart comparing against the last KEPT elem and
+// comparing against the previous one read
+static bool eq_within_one(const void *a, const void *b) {
+    const int32_t x = *(const int32_t *) a;
+    const int32_t y = *(const int32_t *) b;
+    const int32_t d = x > y ? x - y : y - x;
+
+    return d <= 1;
+}
+
+/* ========== unique ========== */
+
+static void test_unique_collapses_runs() {
+    int32_t buf[7] = {1, 1, 2, 3, 3, 3, 4};
+
+    const size_t n = nad_span_unique(NAD_SPAN_NEW_MUT(int32_t, buf, 7), nad_eq_fn_i32);
+
+    TEST_ASSERT_EQUAL_size_t(4, n);
+    constexpr int32_t want[4] = {1, 2, 3, 4};
+    TEST_ASSERT_EQUAL_INT32_ARRAY(want, buf, 4);
+}
+
+// only ADJACENT elems are compared, so a value coming back later survives
+static void test_unique_keeps_non_adjacent_repeats() {
+    int32_t buf[4] = {1, 1, 2, 1};
+
+    const size_t n = nad_span_unique(NAD_SPAN_NEW_MUT(int32_t, buf, 4), nad_eq_fn_i32);
+
+    TEST_ASSERT_EQUAL_size_t(3, n);
+    constexpr int32_t want[3] = {1, 2, 1};
+    TEST_ASSERT_EQUAL_INT32_ARRAY(want, buf, 3);
+}
+
+static void test_unique_of_all_equal_keeps_one() {
+    int32_t buf[4] = {7, 7, 7, 7};
+
+    TEST_ASSERT_EQUAL_size_t(1, nad_span_unique(NAD_SPAN_NEW_MUT(int32_t, buf, 4), nad_eq_fn_i32));
+    TEST_ASSERT_EQUAL_INT32(7, buf[0]);
+}
+
+static void test_unique_without_runs_changes_nothing() {
+    int32_t buf[4] = {1, 2, 3, 4};
+
+    TEST_ASSERT_EQUAL_size_t(4, nad_span_unique(NAD_SPAN_NEW_MUT(int32_t, buf, 4), nad_eq_fn_i32));
+    constexpr int32_t want[4] = {1, 2, 3, 4};
+    TEST_ASSERT_EQUAL_INT32_ARRAY(want, buf, 4);
+}
+
+static void test_unique_of_short_spans() {
+    int32_t one[1] = {5};
+
+    TEST_ASSERT_EQUAL_size_t(0, nad_span_unique(NAD_SPAN_NEW_MUT(int32_t, nullptr, 0), nad_eq_fn_i32));
+    TEST_ASSERT_EQUAL_size_t(1, nad_span_unique(NAD_SPAN_NEW_MUT(int32_t, one, 1), nad_eq_fn_i32));
+}
+
+static void test_unique_honours_the_callback() {
+    int32_t buf[4] = {1, -1, 2, 3};
+
+    const size_t n = nad_span_unique(NAD_SPAN_NEW_MUT(int32_t, buf, 4), eq_abs_i32);
+
+    TEST_ASSERT_EQUAL_size_t(3, n); // 1 and -1 are equal by absolute value
+    constexpr int32_t want[3] = {1, 2, 3};
+    TEST_ASSERT_EQUAL_INT32_ARRAY(want, buf, 3);
+}
+
+// sorting first is what turns unique into "make a set"
+// with a non-transitive equality the two readings diverge: against the last
+// kept elem {1,2,3} collapses to {1,3}, against the previous read one to {1}
+static void test_unique_compares_against_the_last_kept_elem() {
+    int32_t buf[3] = {1, 2, 3};
+
+    const size_t n = nad_span_unique(NAD_SPAN_NEW_MUT(int32_t, buf, 3), eq_within_one);
+
+    TEST_ASSERT_EQUAL_size_t(2, n);
+    constexpr int32_t want[2] = {1, 3};
+    TEST_ASSERT_EQUAL_INT32_ARRAY(want, buf, 2);
+}
+
+static void test_sort_then_unique_yields_a_set() {
+    int32_t buf[8] = {3, 1, 2, 3, 1, 2, 1, 3};
+    const nad_SpanMut s = NAD_SPAN_NEW_MUT(int32_t, buf, 8);
+
+    nad_span_sort(s, nad_cmp_fn_i32);
+    const size_t n = nad_span_unique(s, nad_eq_fn_i32);
+
+    TEST_ASSERT_EQUAL_size_t(3, n);
+    constexpr int32_t want[3] = {1, 2, 3};
+    TEST_ASSERT_EQUAL_INT32_ARRAY(want, buf, 3);
+}
+
+static void test_unique_moves_whole_elems() {
+    Pair buf[3] = {{1, 10}, {1, 20}, {2, 30}};
+
+    const size_t n = nad_span_unique(NAD_SPAN_NEW_MUT(Pair, buf, 3), nad_eq_fn_i64);
+
+    TEST_ASSERT_EQUAL_size_t(2, n);
+    TEST_ASSERT_EQUAL_INT64(1, buf[0].a);
+    TEST_ASSERT_EQUAL_INT64(10, buf[0].b);
+    TEST_ASSERT_EQUAL_INT64(2, buf[1].a);
+    TEST_ASSERT_EQUAL_INT64(30, buf[1].b); // b travelled with its a
+}
+
+/* ========== remove ========== */
+
+static void test_remove_drops_every_occurrence() {
+    int32_t buf[6] = {1, 9, 2, 9, 3, 9};
+    constexpr int32_t key = 9;
+
+    const size_t n = nad_span_remove(NAD_SPAN_NEW_MUT(int32_t, buf, 6), &key, nad_eq_fn_i32);
+
+    TEST_ASSERT_EQUAL_size_t(3, n);
+    constexpr int32_t want[3] = {1, 2, 3};
+    TEST_ASSERT_EQUAL_INT32_ARRAY(want, buf, 3);
+}
+
+static void test_remove_of_a_missing_key_changes_nothing() {
+    int32_t buf[3] = {1, 2, 3};
+    constexpr int32_t key = 9;
+
+    TEST_ASSERT_EQUAL_size_t(3, nad_span_remove(NAD_SPAN_NEW_MUT(int32_t, buf, 3), &key, nad_eq_fn_i32));
+    constexpr int32_t want[3] = {1, 2, 3};
+    TEST_ASSERT_EQUAL_INT32_ARRAY(want, buf, 3);
+}
+
+static void test_remove_can_empty_the_span() {
+    int32_t buf[3] = {9, 9, 9};
+    constexpr int32_t key = 9;
+
+    TEST_ASSERT_EQUAL_size_t(0, nad_span_remove(NAD_SPAN_NEW_MUT(int32_t, buf, 3), &key, nad_eq_fn_i32));
+}
+
+static void test_remove_of_an_empty_span_is_zero() {
+    constexpr int32_t key = 1;
+
+    TEST_ASSERT_EQUAL_size_t(0, nad_span_remove(NAD_SPAN_NEW_MUT(int32_t, nullptr, 0), &key, nad_eq_fn_i32));
+}
+
+static void test_remove_if_drops_matching_elems() {
+    int32_t buf[6] = {1, 2, 3, 4, 5, 6};
+
+    const size_t n = nad_span_remove_if(NAD_SPAN_NEW_MUT(int32_t, buf, 6), is_even, nullptr);
+
+    TEST_ASSERT_EQUAL_size_t(3, n);
+    constexpr int32_t want[3] = {1, 3, 5};
+    TEST_ASSERT_EQUAL_INT32_ARRAY(want, buf, 3);
+}
+
+static void test_remove_if_passes_the_ctx_through() {
+    int32_t buf[5] = {1, 5, 2, 4, 3};
+    int32_t bound = 3;
+
+    const size_t n = nad_span_remove_if(NAD_SPAN_NEW_MUT(int32_t, buf, 5), greater_than, &bound);
+
+    TEST_ASSERT_EQUAL_size_t(3, n);
+    constexpr int32_t want[3] = {1, 2, 3};
+    TEST_ASSERT_EQUAL_INT32_ARRAY(want, buf, 3);
+}
+
+static void test_remove_if_keeps_the_order_of_survivors() {
+    int32_t buf[7] = {5, 2, 7, 4, 9, 6, 1};
+
+    const size_t n = nad_span_remove_if(NAD_SPAN_NEW_MUT(int32_t, buf, 7), is_even, nullptr);
+
+    TEST_ASSERT_EQUAL_size_t(4, n);
+    constexpr int32_t want[4] = {5, 7, 9, 1};
+    TEST_ASSERT_EQUAL_INT32_ARRAY(want, buf, 4);
+}
+
+static void test_remove_if_moves_whole_elems() {
+    Pair buf[4] = {{-1, 10}, {1, 20}, {-2, 30}, {2, 40}};
+
+    const size_t n = nad_span_remove_if(NAD_SPAN_NEW_MUT(Pair, buf, 4), pair_a_is_negative, nullptr);
+
+    TEST_ASSERT_EQUAL_size_t(2, n);
+    TEST_ASSERT_EQUAL_INT64(1, buf[0].a);
+    TEST_ASSERT_EQUAL_INT64(20, buf[0].b);
+    TEST_ASSERT_EQUAL_INT64(2, buf[1].a);
+    TEST_ASSERT_EQUAL_INT64(40, buf[1].b);
+}
+
+/* ========== replace ========== */
+
+static void test_replace_overwrites_every_occurrence() {
+    int32_t buf[5] = {1, 9, 2, 9, 3};
+    constexpr int32_t key = 9;
+    constexpr int32_t val = 0;
+
+    nad_span_replace(NAD_SPAN_NEW_MUT(int32_t, buf, 5), &key, &val, nad_eq_fn_i32);
+
+    constexpr int32_t want[5] = {1, 0, 2, 0, 3};
+    TEST_ASSERT_EQUAL_INT32_ARRAY(want, buf, 5);
+}
+
+static void test_replace_of_a_missing_key_changes_nothing() {
+    int32_t buf[3] = {1, 2, 3};
+    constexpr int32_t key = 9;
+    constexpr int32_t val = 0;
+
+    nad_span_replace(NAD_SPAN_NEW_MUT(int32_t, buf, 3), &key, &val, nad_eq_fn_i32);
+
+    constexpr int32_t want[3] = {1, 2, 3};
+    TEST_ASSERT_EQUAL_INT32_ARRAY(want, buf, 3);
+}
+
+static void test_replace_if_overwrites_matching_elems() {
+    int32_t buf[6] = {1, 2, 3, 4, 5, 6};
+    constexpr int32_t val = 0;
+
+    nad_span_replace_if(NAD_SPAN_NEW_MUT(int32_t, buf, 6), is_even, nullptr, &val);
+
+    constexpr int32_t want[6] = {1, 0, 3, 0, 5, 0};
+    TEST_ASSERT_EQUAL_INT32_ARRAY(want, buf, 6);
+}
+
+static void test_replace_if_passes_the_ctx_through() {
+    int32_t buf[5] = {1, 5, 2, 4, 3};
+    int32_t bound = 3;
+    constexpr int32_t val = 0;
+
+    nad_span_replace_if(NAD_SPAN_NEW_MUT(int32_t, buf, 5), greater_than, &bound, &val);
+
+    constexpr int32_t want[5] = {1, 0, 2, 0, 3};
+    TEST_ASSERT_EQUAL_INT32_ARRAY(want, buf, 5);
+}
+
+static void test_replace_writes_whole_elems() {
+    Pair buf[3] = {{1, 10}, {-1, 20}, {2, 30}};
+    const Pair val = {7, 70};
+
+    nad_span_replace_if(NAD_SPAN_NEW_MUT(Pair, buf, 3), pair_a_is_negative, nullptr, &val);
+
+    TEST_ASSERT_EQUAL_INT64(7, buf[1].a);
+    TEST_ASSERT_EQUAL_INT64(70, buf[1].b);
+    TEST_ASSERT_EQUAL_INT64(1, buf[0].a); // untouched
+    TEST_ASSERT_EQUAL_INT64(30, buf[2].b);
+}
+
+static void test_replace_of_an_empty_span_is_a_noop() {
+    constexpr int32_t key = 1;
+    constexpr int32_t val = 0;
+
+    nad_span_replace(NAD_SPAN_NEW_MUT(int32_t, nullptr, 0), &key, &val, nad_eq_fn_i32);
+}
+
+int main() {
+    UNITY_BEGIN();
+
+    RUN_TEST(test_unique_collapses_runs);
+    RUN_TEST(test_unique_keeps_non_adjacent_repeats);
+    RUN_TEST(test_unique_of_all_equal_keeps_one);
+    RUN_TEST(test_unique_without_runs_changes_nothing);
+    RUN_TEST(test_unique_of_short_spans);
+    RUN_TEST(test_unique_honours_the_callback);
+    RUN_TEST(test_unique_compares_against_the_last_kept_elem);
+    RUN_TEST(test_sort_then_unique_yields_a_set);
+    RUN_TEST(test_unique_moves_whole_elems);
+
+    RUN_TEST(test_remove_drops_every_occurrence);
+    RUN_TEST(test_remove_of_a_missing_key_changes_nothing);
+    RUN_TEST(test_remove_can_empty_the_span);
+    RUN_TEST(test_remove_of_an_empty_span_is_zero);
+    RUN_TEST(test_remove_if_drops_matching_elems);
+    RUN_TEST(test_remove_if_passes_the_ctx_through);
+    RUN_TEST(test_remove_if_keeps_the_order_of_survivors);
+    RUN_TEST(test_remove_if_moves_whole_elems);
+
+    RUN_TEST(test_replace_overwrites_every_occurrence);
+    RUN_TEST(test_replace_of_a_missing_key_changes_nothing);
+    RUN_TEST(test_replace_if_overwrites_matching_elems);
+    RUN_TEST(test_replace_if_passes_the_ctx_through);
+    RUN_TEST(test_replace_writes_whole_elems);
+    RUN_TEST(test_replace_of_an_empty_span_is_a_noop);
+
+    return UNITY_END();
+}
