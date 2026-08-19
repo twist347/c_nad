@@ -2,6 +2,8 @@
 #include "nad/alloc/alloc_default.h"
 #include "nad/alloc/alloc_arena.h"
 
+#include "support/arena.h"
+
 #include "unity.h"
 
 #include <stddef.h>
@@ -24,18 +26,6 @@ static constexpr size_t ARENA_STEP = alignof(max_align_t);
 
 static size_t arena_charge(size_t bytes) {
     return (bytes + ARENA_STEP - 1) / ARENA_STEP * ARENA_STEP;
-}
-
-// burns arena space until exactly `want` bytes are left
-static void arena_leave(nad_Al *arena, size_t want) {
-    const size_t available = nad_al_arena_stats(arena).available;
-    TEST_ASSERT_TRUE(available >= want);
-
-    const size_t burn = available - want;
-    if (burn > 0) {
-        TEST_ASSERT_NOT_NULL(nad_alloc(arena, burn));
-    }
-    TEST_ASSERT_EQUAL_size_t(want, nad_al_arena_stats(arena).available);
 }
 
 // int32_t vec of len elems holding 0, 1, ... len-1; cap == len
@@ -989,7 +979,7 @@ static void test_swap_across_allocators_rolls_back_a_failed_second_alloc() {
     const void *pb = nad_vec_data(b);
 
     // b's side has nothing left to give
-    arena_leave(arena, 0);
+    nad_test_arena_leave(arena, 0);
 
     TEST_ASSERT_EQUAL_INT(NAD_STATUS_OUT_OF_MEMORY, nad_vec_swap(a, b));
 
@@ -1154,10 +1144,9 @@ static void test_push_reports_an_exhausted_arena() {
     push_int(v, 2);
     const void *before = nad_vec_data(v);
 
-    arena_leave(arena, 0);
+    nad_test_arena_leave(arena, 0);
 
-    int32_t val = 3;
-    TEST_ASSERT_EQUAL_INT(NAD_STATUS_OUT_OF_MEMORY, nad_vec_push(v, &val));
+    TEST_ASSERT_EQUAL_INT(NAD_STATUS_OUT_OF_MEMORY, NAD_VEC_PUSH(int32_t, v, 3));
 
     TEST_ASSERT_EQUAL_size_t(2, nad_vec_len(v));
     TEST_ASSERT_EQUAL_size_t(2, nad_vec_cap(v));
@@ -1187,7 +1176,7 @@ static void test_push_falls_back_to_one_more_slot_when_doubling_fails() {
     TEST_ASSERT_EQUAL_INT(NAD_STATUS_OK, nad_vec_push(v, &(Pair){3, 4}));
 
     // room for three elems, not for the four that doubling would ask for
-    arena_leave(arena, for_three);
+    nad_test_arena_leave(arena, for_three);
 
     TEST_ASSERT_EQUAL_INT(NAD_STATUS_OK, nad_vec_push(v, &(Pair){5, 6}));
 
@@ -1224,6 +1213,37 @@ static void test_macro_of_derives_len_from_the_list() {
 
     TEST_ASSERT_EQUAL_size_t(5, nad_vec_len(v));
     TEST_ASSERT_EQUAL_size_t(sizeof(int64_t), nad_vec_elem_size(v));
+
+    nad_vec_drop(v);
+}
+
+static void test_macro_push_appends_a_value() {
+    nad_Vec *v = nullptr;
+    TEST_ASSERT_EQUAL_INT(NAD_STATUS_OK, NAD_VEC_NEW(int32_t, nad_al_default(), &v));
+
+    TEST_ASSERT_EQUAL_INT(NAD_STATUS_OK, NAD_VEC_PUSH(int32_t, v, 4));
+    TEST_ASSERT_EQUAL_INT(NAD_STATUS_OK, NAD_VEC_PUSH(int32_t, v, 5));
+
+    TEST_ASSERT_EQUAL_size_t(2, nad_vec_len(v));
+    constexpr int32_t want[2] = {4, 5};
+    TEST_ASSERT_EQUAL_INT32_ARRAY(want, nad_vec_data(v), 2);
+
+    nad_vec_drop(v);
+}
+
+// the value lands in a compound literal, so it must be spelled out exactly once
+static void test_macro_push_evaluates_its_value_once() {
+    nad_Vec *v = nullptr;
+    TEST_ASSERT_EQUAL_INT(NAD_STATUS_OK, NAD_VEC_NEW(int32_t, nad_al_default(), &v));
+
+    int32_t next = 0;
+    for (int i = 0; i < 3; ++i) {
+        TEST_ASSERT_EQUAL_INT(NAD_STATUS_OK, NAD_VEC_PUSH(int32_t, v, next++));
+    }
+
+    TEST_ASSERT_EQUAL_INT32(3, next);
+    constexpr int32_t want[3] = {0, 1, 2};
+    TEST_ASSERT_EQUAL_INT32_ARRAY(want, nad_vec_data(v), 3);
 
     nad_vec_drop(v);
 }
@@ -1334,6 +1354,8 @@ int main() {
 
     RUN_TEST(test_macro_of_builds_from_literals);
     RUN_TEST(test_macro_of_derives_len_from_the_list);
+    RUN_TEST(test_macro_push_appends_a_value);
+    RUN_TEST(test_macro_push_evaluates_its_value_once);
     RUN_TEST(test_macro_from_data_infers_elem_size);
 
     return UNITY_END();

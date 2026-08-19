@@ -1,5 +1,7 @@
 #include "nad/alloc/alloc.h"
 
+#include "support/probe.h"
+
 #include "unity.h"
 
 #include <stdint.h>
@@ -8,96 +10,23 @@
 
 /* ========== probe allocator ==========
  *
- * A counting allocator over malloc that can be told to fail on demand. Two
- * flavours are built from it: a "bare" one exposing only alloc/dealloc, which
- * forces nad_calloc/nad_realloc down their fallback paths, and a "full" one
- * whose own calloc/realloc must be preferred over those fallbacks.
+ * Two flavours of the shared probe (test/support/probe.h): a "bare" one exposing
+ * only alloc/dealloc, which forces nad_calloc/nad_realloc down their fallback
+ * paths, and a "full" one whose own calloc/realloc must be preferred over those.
  */
 
-typedef struct {
-    size_t alloc_calls;
-    size_t calloc_calls;
-    size_t realloc_calls;
-    size_t dealloc_calls;
-    size_t live;
-    size_t last_alloc_size;
-    size_t last_dealloc_size;
-    size_t fail_after; // number of successful allocs before failing
-} Probe;
+static nad_TestProbe probe;
 
-static Probe probe;
-
-static void probe_reset() {
-    probe = (Probe){.fail_after = SIZE_MAX};
-}
-
-static void *probe_alloc(void *ctx, size_t size) {
-    Probe *p = ctx;
-    ++p->alloc_calls;
-    p->last_alloc_size = size;
-
-    if (p->alloc_calls > p->fail_after) {
-        return nullptr;
-    }
-
-    void *ptr = malloc(size);
-    if (ptr) {
-        ++p->live;
-    }
-    return ptr;
-}
-
-static void *probe_calloc(void *ctx, size_t num, size_t size) {
-    Probe *p = ctx;
-    ++p->calloc_calls;
-
-    void *ptr = calloc(num, size);
-    if (ptr) {
-        ++p->live;
-    }
-    return ptr;
-}
-
-static void *probe_realloc(void *ctx, void *ptr, size_t old_size, size_t new_size) {
-    Probe *p = ctx;
-    ++p->realloc_calls;
-    (void) old_size;
-
-    return realloc(ptr, new_size);
-}
-
-static void probe_dealloc(void *ctx, void *ptr, size_t size) {
-    Probe *p = ctx;
-    ++p->dealloc_calls;
-    p->last_dealloc_size = size;
-    --p->live;
-
-    free(ptr);
-}
-
-// no calloc, no realloc — nad_calloc/nad_realloc must synthesize them
 static nad_Al bare_al() {
-    return (nad_Al){
-        .ctx = &probe,
-        .alloc = probe_alloc,
-        .calloc = nullptr,
-        .realloc = nullptr,
-        .dealloc = probe_dealloc,
-    };
+    return nad_test_probe_bare(&probe);
 }
 
 static nad_Al full_al() {
-    return (nad_Al){
-        .ctx = &probe,
-        .alloc = probe_alloc,
-        .calloc = probe_calloc,
-        .realloc = probe_realloc,
-        .dealloc = probe_dealloc,
-    };
+    return nad_test_probe_full(&probe);
 }
 
 void setUp() {
-    probe_reset();
+    nad_test_probe_reset(&probe);
 }
 
 void tearDown() {

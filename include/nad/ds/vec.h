@@ -174,5 +174,8 @@ void nad_vec_print(const nad_Vec *self, nad_FPrint fprint);
 #define NAD_VEC_SET(T, self, idx, val) \
     nad_vec_set((self), (idx), &(T){ (val) })
 
+#define NAD_VEC_PUSH(T, self, val) \
+    nad_vec_push((self), &(T){ (val) })
+
 #define NAD_VEC_INSERT(T, self, idx, val) \
     nad_vec_insert((self), (idx), &(T){ (val) })

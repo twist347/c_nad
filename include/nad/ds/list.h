@@ -109,6 +109,33 @@ void nad_list_pop_front(nad_List *self);
 NAD_API
 void nad_list_pop_back(nad_List *self);
 
+[[nodiscard]] NAD_API
+nad_Status nad_list_insert_before(nad_List *self, nad_ListNode *at, const void *val);
+
+[[nodiscard]] NAD_API
+nad_Status nad_list_insert_after(nad_List *self, nad_ListNode *at, const void *val);
+
+NAD_API
+void nad_list_remove(nad_List *self, nad_ListNode *node);
+
+NAD_API
+void nad_list_clear(nad_List *self);
+
+/// moves every node of 'src' to the back of 'self', leaving 'src' empty;
+/// O(1) if both share al, a copy of every elem otherwise
+[[nodiscard]] NAD_API
+nad_Status nad_list_splice_front(nad_List *self, nad_List *src);
+
+/// moves every node of 'src' to the front of 'self', leaving 'src' empty;
+/// O(1) if both share al, a copy of every elem otherwise
+[[nodiscard]] NAD_API
+nad_Status nad_list_splice_back(nad_List *self, nad_List *src);
+
+/// both lists must share an allocator: the nodes change list
+/// without moving, so every borrowed node stays valid
+NAD_API
+void nad_list_swap(nad_List *self, nad_List *other);
+
 /* ========== print ========== */
 
 NAD_API
@@ -116,3 +143,47 @@ void nad_list_fprint(const nad_List *self, FILE *stream, nad_FPrint fprint);
 
 NAD_API
 void nad_list_print(const nad_List *self, nad_FPrint fprint);
+
+/* ========== macros ========== */
+
+#define NAD_LIST_NEW(T, al, out) \
+    nad_list_new(sizeof(T), (al), (out))
+
+#define NAD_LIST_FROM_DATA(T, data, len, al, out) \
+    nad_list_from_data((const T *){ (data) }, (len), sizeof(T), (al), (out))
+
+#define NAD_LIST_OF(T, al, out, ...)                    \
+    nad_list_from_data(                                 \
+        (const T[]){ __VA_ARGS__ },                     \
+        sizeof((const T[]){ __VA_ARGS__ }) / sizeof(T), \
+        sizeof(T), (al), (out))
+
+#define NAD_LIST_FIRST_AS(T, self) \
+    ((const T *) nad_list_first((self)))
+
+#define NAD_LIST_FIRST_MUT_AS(T, self) \
+    ((T *) nad_list_first_mut((self)))
+
+#define NAD_LIST_LAST_AS(T, self) \
+    ((const T *) nad_list_last((self)))
+
+#define NAD_LIST_LAST_MUT_AS(T, self) \
+    ((T *) nad_list_last_mut((self)))
+
+#define NAD_LIST_NODE_ELEM_AS(T, node) \
+    ((const T *) nad_list_node_elem((node)))
+
+#define NAD_LIST_NODE_ELEM_MUT_AS(T, node) \
+    ((T *) nad_list_node_elem_mut((node)))
+
+#define NAD_LIST_PUSH_FRONT(T, self, val) \
+    nad_list_push_front((self), &(T){ (val) })
+
+#define NAD_LIST_PUSH_BACK(T, self, val) \
+    nad_list_push_back((self), &(T){ (val) })
+
+#define NAD_LIST_INSERT_BEFORE(T, self, at, val) \
+    nad_list_insert_before((self), (at), &(T){ (val) })
+
+#define NAD_LIST_INSERT_AFTER(T, self, at, val) \
+    nad_list_insert_after((self), (at), &(T){ (val) })

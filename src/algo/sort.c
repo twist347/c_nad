@@ -148,8 +148,7 @@ void nad_span_nth_elem(nad_SpanMut s, size_t nth, nad_Cmp cmp) {
     while (left < right) {
         const size_t pivot_idx = ninther(nad_span_from_mut(s), left, right, cmp);
 
-        size_t lt;
-        size_t gt;
+        size_t lt, gt;
         partition3(s, left, right, pivot_idx, cmp, &lt, &gt);
 
         if (nth < lt) {

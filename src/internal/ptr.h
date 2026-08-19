@@ -61,7 +61,7 @@ size_t nad_align_down(size_t val, size_t alignment) {
     assert(alignment > 0);
     assert((alignment & (alignment - 1)) == 0);
 
-    return (val) & ~(alignment - 1);
+    return val & ~(alignment - 1);
 }
 
 [[nodiscard]] static inline

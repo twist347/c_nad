@@ -2,6 +2,8 @@
 #include "nad/alloc/alloc_default.h"
 #include "nad/alloc/alloc_arena.h"
 
+#include "support/arena.h"
+
 #include "unity.h"
 
 #include <stdint.h>
@@ -19,18 +21,6 @@ typedef struct {
     int64_t a;
     int64_t b;
 } Pair;
-
-// burns arena space until exactly `want` bytes are left
-static void arena_leave(nad_Al *arena, size_t want) {
-    const size_t available = nad_al_arena_stats(arena).available;
-    TEST_ASSERT_TRUE(available >= want);
-
-    const size_t burn = available - want;
-    if (burn > 0) {
-        TEST_ASSERT_NOT_NULL(nad_alloc(arena, burn));
-    }
-    TEST_ASSERT_EQUAL_size_t(want, nad_al_arena_stats(arena).available);
-}
 
 // int32_t array holding 0, 1, ... len-1
 static nad_Arr *make_arr(size_t len) {
@@ -479,7 +469,7 @@ static void test_swap_across_allocators_reports_a_failed_first_alloc() {
     const void *pa = nad_arr_data(a);
     const void *pb = nad_arr_data(b);
 
-    arena_leave(arena, 0);
+    nad_test_arena_leave(arena, 0);
 
     TEST_ASSERT_EQUAL_INT(NAD_STATUS_OUT_OF_MEMORY, nad_arr_swap(a, b));
 
@@ -511,7 +501,7 @@ static void test_swap_across_allocators_rolls_back_a_failed_second_alloc() {
     const void *pb = nad_arr_data(b);
 
     // b's side has nothing left to give
-    arena_leave(arena, 0);
+    nad_test_arena_leave(arena, 0);
 
     TEST_ASSERT_EQUAL_INT(NAD_STATUS_OUT_OF_MEMORY, nad_arr_swap(a, b));
 
