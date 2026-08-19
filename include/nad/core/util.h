@@ -1,6 +1,6 @@
 #pragma once
 
-/* ========== macro helpers ========== */
+/* ========== macro ========== */
 
 #define NAD_STRINGIFY_(x)   #x
 

@@ -1,4 +1,5 @@
 #include "nad/algo/permute.h"
+#include "nad/core/util.h"
 
 #include "unity.h"
 
@@ -16,6 +17,35 @@ typedef struct {
     int64_t a;
     int64_t b;
 } Pair;
+
+static bool is_even(const void *elem, void *ctx) {
+    NAD_UNUSED(ctx);
+
+    return *(const int32_t *) elem % 2 == 0;
+}
+
+static bool greater_than(const void *elem, void *ctx) {
+    return *(const int32_t *) elem > *(const int32_t *) ctx;
+}
+
+static bool pair_a_is_positive(const void *elem, void *ctx) {
+    NAD_UNUSED(ctx);
+
+    return ((const Pair *) elem)->a > 0;
+}
+
+// the multiset must survive a permutation, whatever the order
+static void assert_same_elems(const int32_t *got, const int32_t *want, size_t n) {
+    for (size_t i = 0; i < n; ++i) {
+        size_t got_count = 0;
+        size_t want_count = 0;
+        for (size_t j = 0; j < n; ++j) {
+            got_count += got[j] == want[i];
+            want_count += want[j] == want[i];
+        }
+        TEST_ASSERT_EQUAL_size_t(want_count, got_count);
+    }
+}
 
 /* ========== reverse ========== */
 
@@ -331,6 +361,88 @@ static void test_prev_permutation_moves_whole_elems() {
     TEST_ASSERT_EQUAL_INT64(30, buf[1].b);
 }
 
+/* ========== partition ========== */
+
+static void test_partition_moves_matches_to_the_front() {
+    int32_t buf[6] = {1, 2, 3, 4, 5, 6};
+
+    const size_t boundary = nad_span_partition(NAD_SPAN_NEW_MUT(int32_t, buf, 6), is_even, nullptr);
+
+    TEST_ASSERT_EQUAL_size_t(3, boundary);
+    for (size_t i = 0; i < boundary; ++i) {
+        TEST_ASSERT_TRUE(buf[i] % 2 == 0);
+    }
+    for (size_t i = boundary; i < 6; ++i) {
+        TEST_ASSERT_FALSE(buf[i] % 2 == 0);
+    }
+
+    constexpr int32_t want[6] = {1, 2, 3, 4, 5, 6};
+    assert_same_elems(buf, want, 6);
+}
+
+static void test_partition_at_the_ends() {
+    int32_t all[3] = {2, 4, 6};
+    int32_t none[3] = {1, 3, 5};
+
+    TEST_ASSERT_EQUAL_size_t(3, nad_span_partition(NAD_SPAN_NEW_MUT(int32_t, all, 3), is_even, nullptr));
+    TEST_ASSERT_EQUAL_size_t(0, nad_span_partition(NAD_SPAN_NEW_MUT(int32_t, none, 3), is_even, nullptr));
+
+    constexpr int32_t want_all[3] = {2, 4, 6};
+    constexpr int32_t want_none[3] = {1, 3, 5};
+    TEST_ASSERT_EQUAL_INT32_ARRAY(want_all, all, 3);
+    TEST_ASSERT_EQUAL_INT32_ARRAY(want_none, none, 3);
+}
+
+static void test_partition_of_an_empty_span_is_zero() {
+    TEST_ASSERT_EQUAL_size_t(0, nad_span_partition(NAD_SPAN_NEW_MUT(int32_t, nullptr, 0), is_even, nullptr));
+}
+
+static void test_partition_passes_the_ctx_through() {
+    int32_t buf[5] = {1, 5, 2, 4, 3};
+    int32_t bound = 3;
+
+    const size_t boundary = nad_span_partition(NAD_SPAN_NEW_MUT(int32_t, buf, 5), greater_than, &bound);
+
+    TEST_ASSERT_EQUAL_size_t(2, boundary);
+    for (size_t i = 0; i < boundary; ++i) {
+        TEST_ASSERT_TRUE(buf[i] > bound);
+    }
+
+    constexpr int32_t want[5] = {1, 2, 3, 4, 5};
+    assert_same_elems(buf, want, 5);
+}
+
+static void test_partition_moves_whole_elems() {
+    Pair buf[4] = {{-1, 10}, {1, 20}, {-2, 30}, {2, 40}};
+
+    const size_t boundary = nad_span_partition(NAD_SPAN_NEW_MUT(Pair, buf, 4), pair_a_is_positive, nullptr);
+
+    TEST_ASSERT_EQUAL_size_t(2, boundary);
+    for (size_t i = 0; i < boundary; ++i) {
+        TEST_ASSERT_TRUE(buf[i].a > 0);
+        TEST_ASSERT_EQUAL_INT64(buf[i].a == 1 ? 20 : 40, buf[i].b); // b travelled with a
+    }
+}
+
+/* ========== is_partitioned ========== */
+
+static void test_is_partitioned_accepts_a_split_span() {
+    constexpr int32_t split[5] = {2, 4, 1, 3, 5};
+    constexpr int32_t mixed[5] = {2, 1, 4, 3, 5};
+
+    TEST_ASSERT_TRUE(nad_span_is_partitioned(NAD_SPAN_NEW(int32_t, split, 5), is_even, nullptr));
+    TEST_ASSERT_FALSE(nad_span_is_partitioned(NAD_SPAN_NEW(int32_t, mixed, 5), is_even, nullptr));
+}
+
+static void test_is_partitioned_on_uniform_and_empty_spans() {
+    constexpr int32_t all[3] = {2, 4, 6};
+    constexpr int32_t none[3] = {1, 3, 5};
+
+    TEST_ASSERT_TRUE(nad_span_is_partitioned(NAD_SPAN_NEW(int32_t, all, 3), is_even, nullptr));
+    TEST_ASSERT_TRUE(nad_span_is_partitioned(NAD_SPAN_NEW(int32_t, none, 3), is_even, nullptr));
+    TEST_ASSERT_TRUE(nad_span_is_partitioned(NAD_SPAN_NEW(int32_t, nullptr, 0), is_even, nullptr));
+}
+
 int main() {
     UNITY_BEGIN();
 
@@ -363,6 +475,15 @@ int main() {
     RUN_TEST(test_prev_permutation_undoes_next_permutation);
     RUN_TEST(test_prev_permutation_empty_and_single_report_false);
     RUN_TEST(test_prev_permutation_moves_whole_elems);
+
+    RUN_TEST(test_partition_moves_matches_to_the_front);
+    RUN_TEST(test_partition_at_the_ends);
+    RUN_TEST(test_partition_of_an_empty_span_is_zero);
+    RUN_TEST(test_partition_passes_the_ctx_through);
+    RUN_TEST(test_partition_moves_whole_elems);
+
+    RUN_TEST(test_is_partitioned_accepts_a_split_span);
+    RUN_TEST(test_is_partitioned_on_uniform_and_empty_spans);
 
     return UNITY_END();
 }

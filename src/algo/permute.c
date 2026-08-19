@@ -4,8 +4,12 @@
 
 #include <assert.h>
 
+/* ========== internals ========== */
+
 [[nodiscard]] static
 bool permute_step(nad_SpanMut s, nad_Cmp cmp, bool asc);
+
+/* ========== permute ========== */
 
 void nad_span_reverse(nad_SpanMut s) {
     NAD_SPAN_ASSERT(s);
@@ -69,6 +73,42 @@ bool nad_span_prev_permutation(nad_SpanMut s, nad_Cmp cmp) {
     return permute_step(s, cmp, false);
 }
 
+size_t nad_span_partition(nad_SpanMut s, nad_Pred pred, void *ctx) {
+    NAD_SPAN_ASSERT(s);
+    assert(pred);
+
+    const nad_Span view = nad_span_from_mut(s);
+    size_t boundary = 0;
+
+    for (size_t i = 0; i < s.len; ++i) {
+        if (pred(nad_span_get(view, i), ctx)) {
+            if (i != boundary) {
+                nad_span_swap_elems(s, i, boundary);
+            }
+            ++boundary;
+        }
+    }
+    return boundary;
+}
+
+bool nad_span_is_partitioned(nad_Span s, nad_Pred pred, void *ctx) {
+    NAD_SPAN_ASSERT(s);
+    assert(pred);
+
+    size_t i = 0;
+    while (i < s.len && pred(nad_span_get(s, i), ctx)) {
+        ++i;
+    }
+    while (i < s.len && !pred(nad_span_get(s, i), ctx)) {
+        ++i;
+    }
+
+    return i == s.len;
+}
+
+/* ========== internals ========== */
+
+static
 bool permute_step(nad_SpanMut s, nad_Cmp cmp, bool asc) {
     if (s.len < 2) {
         return false;

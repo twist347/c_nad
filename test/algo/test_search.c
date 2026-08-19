@@ -1,4 +1,5 @@
 #include "nad/algo/search.h"
+#include "nad/core/util.h"
 
 #include "unity.h"
 
@@ -18,6 +19,18 @@ typedef struct {
 
 static int cmp_tagged(const void *a, const void *b) {
     return nad_cmp_i32(((const Tagged *) a)->key, ((const Tagged *) b)->key);
+}
+
+// a predicate that needs nothing: ctx stays null
+static bool is_even(const void *elem, void *ctx) {
+    NAD_UNUSED(ctx);
+
+    return *(const int32_t *) elem % 2 == 0;
+}
+
+// a predicate parameterized through ctx — the whole point of carrying one
+static bool greater_than(const void *elem, void *ctx) {
+    return *(const int32_t *) elem > *(const int32_t *) ctx;
 }
 
 /* ========== find ========== */
@@ -226,6 +239,91 @@ static void test_bsearch_finds_every_element() {
     }
 }
 
+/* ========== find_if ========== */
+
+static void test_find_if_reports_the_first_match() {
+    constexpr int32_t buf[5] = {3, 1, 4, 2, 6};
+
+    size_t idx = 999;
+    TEST_ASSERT_TRUE(nad_span_find_if(NAD_SPAN_NEW(int32_t, buf, 5), is_even, nullptr, &idx));
+    TEST_ASSERT_EQUAL_size_t(2, idx);
+}
+
+static void test_find_if_miss_leaves_the_out_param_alone() {
+    constexpr int32_t buf[3] = {1, 3, 5};
+
+    size_t idx = 777;
+    TEST_ASSERT_FALSE(nad_span_find_if(NAD_SPAN_NEW(int32_t, buf, 3), is_even, nullptr, &idx));
+    TEST_ASSERT_EQUAL_size_t(777, idx);
+}
+
+static void test_find_if_on_an_empty_span_finds_nothing() {
+    size_t idx = 555;
+    TEST_ASSERT_FALSE(nad_span_find_if(NAD_SPAN_NEW(int32_t, nullptr, 0), is_even, nullptr, &idx));
+    TEST_ASSERT_EQUAL_size_t(555, idx);
+}
+
+// ctx is what makes a predicate parameterizable at all
+static void test_find_if_passes_the_ctx_through() {
+    constexpr int32_t buf[5] = {1, 2, 3, 4, 5};
+    int32_t bound = 3;
+
+    size_t idx = 999;
+    TEST_ASSERT_TRUE(nad_span_find_if(NAD_SPAN_NEW(int32_t, buf, 5), greater_than, &bound, &idx));
+    TEST_ASSERT_EQUAL_size_t(3, idx);
+
+    bound = 4;
+    TEST_ASSERT_TRUE(nad_span_find_if(NAD_SPAN_NEW(int32_t, buf, 5), greater_than, &bound, &idx));
+    TEST_ASSERT_EQUAL_size_t(4, idx);
+}
+
+static void test_count_if_counts_every_match() {
+    constexpr int32_t buf[6] = {1, 2, 3, 4, 5, 6};
+
+    TEST_ASSERT_EQUAL_size_t(3, nad_span_count_if(NAD_SPAN_NEW(int32_t, buf, 6), is_even, nullptr));
+}
+
+static void test_count_if_of_none_is_zero() {
+    constexpr int32_t buf[3] = {1, 3, 5};
+
+    TEST_ASSERT_EQUAL_size_t(0, nad_span_count_if(NAD_SPAN_NEW(int32_t, buf, 3), is_even, nullptr));
+    TEST_ASSERT_EQUAL_size_t(0, nad_span_count_if(NAD_SPAN_NEW(int32_t, nullptr, 0), is_even, nullptr));
+}
+
+/* ========== all_of / any_of / none_of ========== */
+
+static void test_all_of_holds_only_when_every_elem_satisfies() {
+    constexpr int32_t all[3] = {2, 4, 6};
+    constexpr int32_t one_odd[3] = {2, 4, 5};
+
+    TEST_ASSERT_TRUE(nad_span_all_of(NAD_SPAN_NEW(int32_t, all, 3), is_even, nullptr));
+    TEST_ASSERT_FALSE(nad_span_all_of(NAD_SPAN_NEW(int32_t, one_odd, 3), is_even, nullptr));
+}
+
+static void test_any_of_holds_when_at_least_one_satisfies() {
+    constexpr int32_t one_even[3] = {1, 3, 4};
+    constexpr int32_t none_even[3] = {1, 3, 5};
+
+    TEST_ASSERT_TRUE(nad_span_any_of(NAD_SPAN_NEW(int32_t, one_even, 3), is_even, nullptr));
+    TEST_ASSERT_FALSE(nad_span_any_of(NAD_SPAN_NEW(int32_t, none_even, 3), is_even, nullptr));
+}
+
+static void test_none_of_is_the_negation_of_any_of() {
+    constexpr int32_t buf[3] = {1, 3, 5};
+
+    TEST_ASSERT_TRUE(nad_span_none_of(NAD_SPAN_NEW(int32_t, buf, 3), is_even, nullptr));
+    TEST_ASSERT_FALSE(nad_span_none_of(NAD_SPAN_NEW(int32_t, buf, 3), greater_than, &(int32_t){2}));
+}
+
+// the empty span: all_of is vacuously true, any_of false, none_of true
+static void test_the_quantifiers_agree_on_an_empty_span() {
+    const nad_Span empty = NAD_SPAN_NEW(int32_t, nullptr, 0);
+
+    TEST_ASSERT_TRUE(nad_span_all_of(empty, is_even, nullptr));
+    TEST_ASSERT_FALSE(nad_span_any_of(empty, is_even, nullptr));
+    TEST_ASSERT_TRUE(nad_span_none_of(empty, is_even, nullptr));
+}
+
 /* ========== extremes ========== */
 
 static void test_min_and_max_elem() {
@@ -295,6 +393,19 @@ int main() {
     RUN_TEST(test_extremes_pick_the_first_of_equals);
     RUN_TEST(test_extremes_of_a_single_elem);
     RUN_TEST(test_extremes_at_the_edges);
+
+    RUN_TEST(test_find_if_reports_the_first_match);
+    RUN_TEST(test_find_if_miss_leaves_the_out_param_alone);
+    RUN_TEST(test_find_if_on_an_empty_span_finds_nothing);
+    RUN_TEST(test_find_if_passes_the_ctx_through);
+    RUN_TEST(test_count_if_counts_every_match);
+    RUN_TEST(test_count_if_of_none_is_zero);
+
+    RUN_TEST(test_all_of_holds_only_when_every_elem_satisfies);
+    RUN_TEST(test_any_of_holds_when_at_least_one_satisfies);
+    RUN_TEST(test_none_of_is_the_negation_of_any_of);
+    RUN_TEST(test_the_quantifiers_agree_on_an_empty_span);
+
 
     return UNITY_END();
 }

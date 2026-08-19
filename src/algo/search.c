@@ -5,6 +5,7 @@
 /* ========== search ========== */
 
 bool nad_span_find(nad_Span s, const void *key, nad_Eq eq, size_t *out_idx) {
+    NAD_SPAN_ASSERT(s);
     assert(key);
     assert(eq);
     assert(out_idx);
@@ -18,18 +19,50 @@ bool nad_span_find(nad_Span s, const void *key, nad_Eq eq, size_t *out_idx) {
     return false;
 }
 
+bool nad_span_find_if(nad_Span s, nad_Pred pred, void *ctx, size_t *out_idx) {
+    NAD_SPAN_ASSERT(s);
+    assert(pred);
+    assert(out_idx);
+
+    for (size_t i = 0; i < s.len; ++i) {
+        if (pred(nad_span_get(s, i), ctx)) {
+            *out_idx = i;
+            return true;
+        }
+    }
+    return false;
+}
+
 bool nad_span_contains(nad_Span s, const void *key, nad_Eq eq) {
+    NAD_SPAN_ASSERT(s);
+    assert(key);
+    assert(eq);
+
     size_t idx;
     return nad_span_find(s, key, eq, &idx);
 }
 
 size_t nad_span_count(nad_Span s, const void *key, nad_Eq eq) {
+    NAD_SPAN_ASSERT(s);
     assert(key);
     assert(eq);
 
     size_t count = 0;
     for (size_t i = 0; i < s.len; ++i) {
         if (eq(nad_span_get(s, i), key)) {
+            ++count;
+        }
+    }
+    return count;
+}
+
+size_t nad_span_count_if(nad_Span s, nad_Pred pred, void *ctx) {
+    NAD_SPAN_ASSERT(s);
+    assert(pred);
+
+    size_t count = 0;
+    for (size_t i = 0; i < s.len; ++i) {
+        if (pred(nad_span_get(s, i), ctx)) {
             ++count;
         }
     }
@@ -95,6 +128,35 @@ bool nad_span_bsearch(nad_Span s, const void *key, nad_Cmp cmp, size_t *out_idx)
         return true;
     }
     return false;
+}
+
+/* ========== predicates ========== */
+
+bool nad_span_all_of(nad_Span s, nad_Pred pred, void *ctx) {
+    NAD_SPAN_ASSERT(s);
+    assert(pred);
+
+    for (size_t i = 0; i < s.len; ++i) {
+        if (!pred(nad_span_get(s, i), ctx)) {
+            return false;
+        }
+    }
+    return true;
+}
+
+bool nad_span_any_of(nad_Span s, nad_Pred pred, void *ctx) {
+    NAD_SPAN_ASSERT(s);
+    assert(pred);
+
+    size_t idx;
+    return nad_span_find_if(s, pred, ctx, &idx);
+}
+
+bool nad_span_none_of(nad_Span s, nad_Pred pred, void *ctx) {
+    NAD_SPAN_ASSERT(s);
+    assert(pred);
+
+    return !nad_span_any_of(s, pred, ctx);
 }
 
 /* ========== extremes ========== */

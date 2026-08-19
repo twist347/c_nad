@@ -8,8 +8,6 @@
 /// comparator: <0 if a<b, 0 if a==b, >0 if a>b. qsort compatible
 typedef int (*nad_Cmp)(const void *, const void *);
 
-typedef int (*nad_CmpCtx)(const void *, const void *, void *);
-
 /// equality: true if a == b.
 typedef bool (*nad_Eq)(const void *, const void *);
 

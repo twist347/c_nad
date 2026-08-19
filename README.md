@@ -37,7 +37,7 @@ nad_al_arena_drop(arena); // the vec went with it
 |---|---|
 | `core` | `nad_Status`, comparators for the built-in types, `nad_ElemOps` |
 | `alloc` | the `nad_Al` interface + default, arena, pool and logging allocators |
-| `ds` | `nad_Span` (non-owning view), `nad_Arr` (fixed), `nad_Vec` (growable) |
+| `ds` | `nad_Span` (non-owning view), `nad_Arr` (fixed), `nad_Vec` (growable), `nad_List` (doubly linked) |
 | `algo` | operations over spans: sort, search, merge, permute, copy, fill, compare |
 
 ## Build

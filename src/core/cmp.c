@@ -4,7 +4,7 @@
 #include <math.h>
 #include <string.h>
 
-/* ========== inner macros ========== */
+/* ========== internals ========== */
 
 #define DEFINE_CMP_INT(name, T)    \
     int nad_cmp_##name(T a, T b) { \

@@ -133,13 +133,23 @@ void nad_span_fprint(nad_Span self, FILE *stream, nad_FPrint fprint) {
 }
 
 void nad_span_mut_fprint(nad_SpanMut self, FILE *stream, nad_FPrint fprint) {
+    NAD_SPAN_ASSERT(self);
+    assert(stream);
+    assert(fprint);
+
     nad_span_fprint(nad_span_from_mut(self), stream, fprint);
 }
 
 void nad_span_print(nad_Span self, nad_FPrint fprint) {
+    NAD_SPAN_ASSERT(self);
+    assert(fprint);
+
     nad_span_fprint(self, stdout, fprint);
 }
 
 void nad_span_mut_print(nad_SpanMut self, nad_FPrint fprint) {
+    NAD_SPAN_ASSERT(self);
+    assert(fprint);
+
     nad_span_fprint(nad_span_from_mut(self), stdout, fprint);
 }

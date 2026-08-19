@@ -1,5 +1,6 @@
 #pragma once
 
+#include "nad/algo/fn.h"
 #include "nad/core/export.h"
 #include "nad/core/cmp.h"
 #include "nad/ds/span.h"
@@ -21,4 +22,10 @@ bool nad_span_next_permutation(nad_SpanMut s, nad_Cmp cmp);
 [[nodiscard]] NAD_API
 bool nad_span_prev_permutation(nad_SpanMut s, nad_Cmp cmp);
 
-// TODO: nad_span_shuffle, nad_span_partition
+[[nodiscard]] NAD_API
+size_t nad_span_partition(nad_SpanMut s, nad_Pred pred, void *ctx);
+
+[[nodiscard]] NAD_API
+bool nad_span_is_partitioned(nad_Span s, nad_Pred pred, void *ctx);
+
+// TODO: nad_span_shuffle
