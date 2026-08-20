@@ -28,6 +28,12 @@ typedef bool (*nad_Eq)(const void *, const void *);
  *
  * cstr operands are const char *; null is less than every non-null string, and two
  * nulls are equal. Being a pointer type, its operands are a pointer to the pointer.
+ *
+ * A type earns an entry only when no other entry is a portable substitute for it. Since
+ * operands arrive erased, what matters is width and signedness, not type identity: a span
+ * of long long is served by nad_cmp_i64, and one of bool by nad_cmp_u8. Three entries are
+ * not fixed-width for that reason — char, whose signedness is implementation-defined, and
+ * size and ptrdiff, whose width follows the target rather than the name.
  */
 
 /* ========== comparators ========== */
@@ -57,11 +63,19 @@ int nad_cmp_u16(const void *lhs, const void *rhs);
 [[nodiscard]] NAD_API
 int nad_cmp_u32(const void *lhs, const void *rhs);
 
+
 [[nodiscard]] NAD_API
 int nad_cmp_u64(const void *lhs, const void *rhs);
 
+/* ========== size ========== */
+
 [[nodiscard]] NAD_API
 int nad_cmp_size(const void *lhs, const void *rhs);
+
+/* ========== ptrdiff ========== */
+
+[[nodiscard]] NAD_API
+int nad_cmp_ptrdiff(const void *lhs, const void *rhs);
 
 /* ========== floating point ========== */
 
@@ -70,6 +84,12 @@ int nad_cmp_f32(const void *lhs, const void *rhs);
 
 [[nodiscard]] NAD_API
 int nad_cmp_f64(const void *lhs, const void *rhs);
+
+/* ========== char ========== */
+
+/// ordered by whatever signedness char has on the target
+[[nodiscard]] NAD_API
+int nad_cmp_char(const void *lhs, const void *rhs);
 
 /* ========== str ========== */
 
@@ -107,8 +127,15 @@ int nad_cmp_desc_u32(const void *lhs, const void *rhs);
 [[nodiscard]] NAD_API
 int nad_cmp_desc_u64(const void *lhs, const void *rhs);
 
+/* ========== size ========== */
+
 [[nodiscard]] NAD_API
 int nad_cmp_desc_size(const void *lhs, const void *rhs);
+
+/* ========== ptrdiff ========== */
+
+[[nodiscard]] NAD_API
+int nad_cmp_desc_ptrdiff(const void *lhs, const void *rhs);
 
 /* ========== floating point ========== */
 
@@ -117,6 +144,11 @@ int nad_cmp_desc_f32(const void *lhs, const void *rhs);
 
 [[nodiscard]] NAD_API
 int nad_cmp_desc_f64(const void *lhs, const void *rhs);
+
+/* ========== char ========== */
+
+[[nodiscard]] NAD_API
+int nad_cmp_desc_char(const void *lhs, const void *rhs);
 
 /* ========== str ========== */
 
@@ -153,8 +185,15 @@ bool nad_eq_u32(const void *lhs, const void *rhs);
 [[nodiscard]] NAD_API
 bool nad_eq_u64(const void *lhs, const void *rhs);
 
+/* ========== size ========== */
+
 [[nodiscard]] NAD_API
 bool nad_eq_size(const void *lhs, const void *rhs);
+
+/* ========== ptrdiff ========== */
+
+[[nodiscard]] NAD_API
+bool nad_eq_ptrdiff(const void *lhs, const void *rhs);
 
 /* ========== floating point ========== */
 
@@ -163,6 +202,11 @@ bool nad_eq_f32(const void *lhs, const void *rhs);
 
 [[nodiscard]] NAD_API
 bool nad_eq_f64(const void *lhs, const void *rhs);
+
+/* ========== char ========== */
+
+[[nodiscard]] NAD_API
+bool nad_eq_char(const void *lhs, const void *rhs);
 
 /* ========== str ========== */
 

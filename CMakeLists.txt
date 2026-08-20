@@ -31,6 +31,7 @@ set(NAD_ALLOC_SOURCES
 set(NAD_CORE_SOURCES
         src/core/cmp.c
         src/core/elem_ops.c
+        src/core/hash.c
         src/core/span.c
         src/core/status.c
 )

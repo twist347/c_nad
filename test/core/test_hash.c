@@ -1,0 +1,291 @@
+#include "nad/core/hash.h"
+#include "nad/core/cmp.h"
+
+#include "unity.h"
+
+#include <math.h>
+#include <stddef.h>
+#include <stdint.h>
+#include <string.h>
+
+void setUp() {
+}
+
+void tearDown() {
+}
+
+// a NaN with a chosen payload — every one of them is equal to every other under
+// nad_eq_f64, so every one of them has to hash the same
+static double nan_with_bits(uint64_t bits) {
+    double val;
+    memcpy(&val, &bits, sizeof(val));
+
+    return val;
+}
+
+static float nan_with_bits_f32(uint32_t bits) {
+    float val;
+    memcpy(&val, &bits, sizeof(val));
+
+    return val;
+}
+
+/* ========== the invariant ========== */
+
+// the contract of a hash: equal keys agree. "Equal" is nad_eq_<T>, not memcmp, which is
+// what makes the float cases below interesting rather than obvious.
+static void test_hash_agrees_with_equality() {
+    const int32_t a = 42;
+    const int32_t b = 42;
+    const int32_t c = 43;
+
+    TEST_ASSERT_TRUE(nad_eq_i32(&a, &b));
+    TEST_ASSERT_EQUAL_UINT64(nad_hash_i32(&a), nad_hash_i32(&b));
+    TEST_ASSERT_NOT_EQUAL_UINT64(nad_hash_i32(&a), nad_hash_i32(&c));
+
+    const uint64_t big = UINT64_MAX;
+    const uint64_t same = UINT64_MAX;
+    TEST_ASSERT_EQUAL_UINT64(nad_hash_u64(&big), nad_hash_u64(&same));
+
+    const size_t n = 7;
+    const ptrdiff_t d = -7;
+    TEST_ASSERT_NOT_EQUAL_UINT64(nad_hash_usize(&n), nad_hash_isize(&d));
+}
+
+// nad_eq_f64(-0.0, 0.0) is true while the bit patterns differ, so hashing the bits
+// straight through would break the contract
+static void test_hash_folds_the_two_zeroes_together() {
+    const double neg = -0.0;
+    const double pos = 0.0;
+    TEST_ASSERT_TRUE(nad_eq_f64(&neg, &pos));
+    TEST_ASSERT_EQUAL_UINT64(nad_hash_f64(&neg), nad_hash_f64(&pos));
+
+    const float negf = -0.0f;
+    const float posf = 0.0f;
+    TEST_ASSERT_EQUAL_UINT64(nad_hash_f32(&negf), nad_hash_f32(&posf));
+}
+
+// the other half of the same contract: this project orders NaN as equal to NaN, and a
+// NaN carries a payload, so two of them differ bit for bit while comparing equal
+static void test_hash_folds_every_nan_together() {
+    const double quiet = nan_with_bits(UINT64_C(0x7ff8000000000000));
+    const double payload = nan_with_bits(UINT64_C(0x7ff8000000000001));
+    const double negative = nan_with_bits(UINT64_C(0xfff8000000000000));
+
+    TEST_ASSERT_TRUE(nad_eq_f64(&quiet, &payload));
+    TEST_ASSERT_EQUAL_UINT64(nad_hash_f64(&quiet), nad_hash_f64(&payload));
+    TEST_ASSERT_EQUAL_UINT64(nad_hash_f64(&quiet), nad_hash_f64(&negative));
+
+    const float quietf = nan_with_bits_f32(UINT32_C(0x7fc00000));
+    const float payloadf = nan_with_bits_f32(UINT32_C(0x7fc00001));
+    TEST_ASSERT_EQUAL_UINT64(nad_hash_f32(&quietf), nad_hash_f32(&payloadf));
+
+    // folding them onto zero would satisfy the contract too, and hand every table a
+    // guaranteed collision between its two most ordinary keys
+    const double zero = 0.0;
+    TEST_ASSERT_NOT_EQUAL_UINT64(nad_hash_f64(&quiet), nad_hash_f64(&zero));
+}
+
+/* ========== quality ========== */
+
+// fmix64 leaves zero at zero, so without the seed in hash_mix_u64 every zero key lands
+// in bucket zero of every table
+static void test_hash_does_not_leave_zero_at_zero() {
+    const int32_t zero_i = 0;
+    const uint64_t zero_u = 0;
+    const double zero_f = 0.0;
+
+    TEST_ASSERT_NOT_EQUAL_UINT64(0, nad_hash_i32(&zero_i));
+    TEST_ASSERT_NOT_EQUAL_UINT64(0, nad_hash_u64(&zero_u));
+    TEST_ASSERT_NOT_EQUAL_UINT64(0, nad_hash_f64(&zero_f));
+}
+
+// keys that share their low bits are what an unmixed hash fails on: taken modulo eight,
+// every multiple of eight would land in the same bucket
+static void test_hash_spreads_keys_that_share_their_low_bits() {
+    size_t buckets[8] = {0};
+
+    for (int32_t i = 0; i < 256; ++i) {
+        const int32_t key = i * 8;
+        buckets[nad_hash_i32(&key) % 8]++;
+    }
+
+    for (size_t i = 0; i < 8; ++i) {
+        TEST_ASSERT_TRUE(buckets[i] > 0);
+    }
+}
+
+/* ========== char ========== */
+
+// the byte is read as unsigned char on purpose: reading it as char would sign-extend on
+// a target where char is signed, and the same letter would hash differently there
+static void test_hash_char_reads_the_byte_not_the_sign() {
+    const char high = (char) 200;
+    const unsigned char same_byte = 200;
+
+    TEST_ASSERT_EQUAL_UINT64(nad_hash_u8(&same_byte), nad_hash_char(&high));
+
+    const char a = 'a';
+    const char b = 'b';
+    TEST_ASSERT_NOT_EQUAL_UINT64(nad_hash_char(&a), nad_hash_char(&b));
+}
+
+/* ========== bytes ========== */
+
+static void test_hash_bytes_follows_the_content() {
+    const unsigned char a[3] = {1, 2, 3};
+    const unsigned char same[3] = {1, 2, 3};
+    const unsigned char other[3] = {1, 2, 4};
+
+    TEST_ASSERT_EQUAL_UINT64(nad_hash_bytes(a, 3), nad_hash_bytes(same, 3));
+    TEST_ASSERT_NOT_EQUAL_UINT64(nad_hash_bytes(a, 3), nad_hash_bytes(other, 3));
+
+    // the length is part of the value: a prefix is a different range, not the same one
+    TEST_ASSERT_NOT_EQUAL_UINT64(nad_hash_bytes(a, 2), nad_hash_bytes(a, 3));
+}
+
+// an empty range is legal and must not touch the pointer
+static void test_hash_bytes_takes_an_empty_range() {
+    const unsigned char a[1] = {7};
+
+    TEST_ASSERT_EQUAL_UINT64(nad_hash_bytes(nullptr, 0), nad_hash_bytes(a, 0));
+    TEST_ASSERT_NOT_EQUAL_UINT64(nad_hash_bytes(a, 0), nad_hash_bytes(a, 1));
+}
+
+// the string form is this one over strlen, which is also why "" and an empty range agree
+static void test_hash_cstr_is_bytes_over_the_length() {
+    const char *str = "hello";
+
+    TEST_ASSERT_EQUAL_UINT64(nad_hash_bytes(str, 5), nad_hash_cstr(&str));
+
+    const char *empty = "";
+    TEST_ASSERT_EQUAL_UINT64(nad_hash_bytes(nullptr, 0), nad_hash_cstr(&empty));
+}
+
+/* ========== cstr ========== */
+
+static void test_hash_cstr_follows_content_not_address() {
+    char first[] = "hello";
+    char second[] = "hello";
+    const char *a = first;
+    const char *b = second;
+    const char *c = "hellp";
+
+    TEST_ASSERT_NOT_EQUAL(a, b); // two distinct buffers holding the same text
+    TEST_ASSERT_TRUE(nad_eq_cstr(&a, &b));
+    TEST_ASSERT_EQUAL_UINT64(nad_hash_cstr(&a), nad_hash_cstr(&b));
+    TEST_ASSERT_NOT_EQUAL_UINT64(nad_hash_cstr(&a), nad_hash_cstr(&c));
+}
+
+// null is a value here, not a broken precondition: the operand is the pointer to it
+static void test_hash_cstr_keeps_null_apart_from_empty() {
+    const char *null_str = nullptr;
+    const char *empty = "";
+
+    TEST_ASSERT_FALSE(nad_eq_cstr(&null_str, &empty));
+    TEST_ASSERT_NOT_EQUAL_UINT64(nad_hash_cstr(&null_str), nad_hash_cstr(&empty));
+}
+
+// a one character difference must not survive to the result — FNV-1a mixes each byte in
+static void test_hash_cstr_separates_neighbours() {
+    const char *strs[4] = {"ab", "ba", "abc", "abd"};
+    nad_Hash hashes[4];
+
+    for (size_t i = 0; i < 4; ++i) {
+        hashes[i] = nad_hash_cstr(&strs[i]);
+    }
+
+    for (size_t i = 0; i < 4; ++i) {
+        for (size_t j = i + 1; j < 4; ++j) {
+            TEST_ASSERT_NOT_EQUAL_UINT64(hashes[i], hashes[j]);
+        }
+    }
+}
+
+/* ========== combine ========== */
+
+// the point of combining rather than xoring: a struct whose fields are swapped is a
+// different struct, and must be a different hash
+static void test_hash_combine_depends_on_order() {
+    TEST_ASSERT_NOT_EQUAL_UINT64(nad_hash_combine(1, 2), nad_hash_combine(2, 1));
+}
+
+// the same trap as in the mixer, one level up: two zero fields are an ordinary struct,
+// and folding them must not land on bucket zero
+static void test_hash_combine_does_not_leave_zero_at_zero() {
+    TEST_ASSERT_NOT_EQUAL_UINT64(0, nad_hash_combine(0, 0));
+}
+
+// what combine exists for, spelled out: the hash of a struct is its fields' hashes folded
+// together, exactly as its comparator delegates to its fields' comparators
+typedef struct {
+    int32_t id;
+    const char *name;
+} Rec;
+
+static nad_Hash hash_rec(const void *x) {
+    const Rec *rec = x;
+
+    return nad_hash_combine(nad_hash_i32(&rec->id), nad_hash_cstr(&rec->name));
+}
+
+static void test_hash_combine_builds_a_struct_hasher() {
+    const Rec a = {7, "alpha"};
+    const Rec same = {7, "alpha"};
+    const Rec other_id = {8, "alpha"};
+    const Rec other_name = {7, "beta"};
+
+    TEST_ASSERT_EQUAL_UINT64(hash_rec(&a), hash_rec(&same));
+    TEST_ASSERT_NOT_EQUAL_UINT64(hash_rec(&a), hash_rec(&other_id));
+    TEST_ASSERT_NOT_EQUAL_UINT64(hash_rec(&a), hash_rec(&other_name));
+
+    // and it is a nad_Hasher like any other
+    const nad_Hasher hasher = hash_rec;
+    TEST_ASSERT_EQUAL_UINT64(hash_rec(&a), hasher(&a));
+}
+
+/* ========== through the type ========== */
+
+// every one of these exists to be handed over as a nad_Hasher, which is also the check
+// that the signatures agree with the typedef
+static void test_hashers_travel_as_the_typedef() {
+    const nad_Hasher hashers[3] = {nad_hash_i32, nad_hash_f64, nad_hash_cstr};
+
+    const int32_t i = 5;
+    const double d = 5.0;
+    const char *s = "5";
+    const void *operands[3] = {&i, &d, &s};
+
+    for (size_t k = 0; k < 3; ++k) {
+        TEST_ASSERT_NOT_EQUAL_UINT64(0, hashers[k](operands[k]));
+    }
+}
+
+int main() {
+    UNITY_BEGIN();
+
+    RUN_TEST(test_hash_agrees_with_equality);
+    RUN_TEST(test_hash_folds_the_two_zeroes_together);
+    RUN_TEST(test_hash_folds_every_nan_together);
+
+    RUN_TEST(test_hash_does_not_leave_zero_at_zero);
+    RUN_TEST(test_hash_spreads_keys_that_share_their_low_bits);
+
+    RUN_TEST(test_hash_char_reads_the_byte_not_the_sign);
+
+    RUN_TEST(test_hash_bytes_follows_the_content);
+    RUN_TEST(test_hash_bytes_takes_an_empty_range);
+    RUN_TEST(test_hash_cstr_is_bytes_over_the_length);
+
+    RUN_TEST(test_hash_cstr_follows_content_not_address);
+    RUN_TEST(test_hash_cstr_keeps_null_apart_from_empty);
+    RUN_TEST(test_hash_cstr_separates_neighbours);
+
+    RUN_TEST(test_hash_combine_depends_on_order);
+    RUN_TEST(test_hash_combine_does_not_leave_zero_at_zero);
+    RUN_TEST(test_hash_combine_builds_a_struct_hasher);
+
+    RUN_TEST(test_hashers_travel_as_the_typedef);
+
+    return UNITY_END();
+}

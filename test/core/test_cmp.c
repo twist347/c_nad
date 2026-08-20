@@ -5,6 +5,7 @@
 #include "unity.h"
 
 #include <math.h>
+#include <stddef.h>
 #include <stdint.h>
 
 void setUp() {
@@ -36,6 +37,8 @@ DEFINE_CMP_FORM(u16, uint16_t)
 DEFINE_CMP_FORM(u32, uint32_t)
 DEFINE_CMP_FORM(u64, uint64_t)
 DEFINE_CMP_FORM(size, size_t)
+DEFINE_CMP_FORM(ptrdiff, ptrdiff_t)
+DEFINE_CMP_FORM(char, char)
 DEFINE_CMP_FORM(f32, float)
 DEFINE_CMP_FORM(f64, double)
 DEFINE_CMP_FORM(cstr, const char *)
@@ -43,6 +46,7 @@ DEFINE_CMP_FORM(cstr, const char *)
 DEFINE_EQ_FORM(i32, int32_t)
 DEFINE_EQ_FORM(u8, uint8_t)
 DEFINE_EQ_FORM(size, size_t)
+DEFINE_EQ_FORM(char, char)
 DEFINE_EQ_FORM(f64, double)
 DEFINE_EQ_FORM(cstr, const char *)
 
@@ -99,6 +103,49 @@ static void test_cmp_unsigned_survives_the_extremes() {
     expect_order(cmp_u8(0, UINT8_MAX), cmp_u8(0, 0), cmp_u8(UINT8_MAX, 0));
     expect_order(cmp_u64(0, UINT64_MAX), cmp_u64(0, 0), cmp_u64(UINT64_MAX, 0));
     expect_order(cmp_size(0, SIZE_MAX), cmp_size(0, 0), cmp_size(SIZE_MAX, 0));
+}
+
+/* ========== ptrdiff ========== */
+
+// size and ptrdiff are the two entries whose width follows the target, so neither can be
+// stood in for by a fixed-width one: on a 32-bit build nad_cmp_u64 would read past a
+// size_t, and nad_cmp_i64 past a ptrdiff_t
+static void test_cmp_ptrdiff_orders_and_survives_the_extremes() {
+    expect_order(cmp_ptrdiff(-1, 0), cmp_ptrdiff(7, 7), cmp_ptrdiff(0, -1));
+    expect_order(
+        cmp_ptrdiff(PTRDIFF_MIN, PTRDIFF_MAX),
+        cmp_ptrdiff(PTRDIFF_MIN, PTRDIFF_MIN),
+        cmp_ptrdiff(PTRDIFF_MAX, PTRDIFF_MIN)
+    );
+}
+
+/* ========== char ========== */
+
+// char is neither signed char nor unsigned char, and which of the two it behaves like is
+// the target's business. So the expectation cannot be a literal: it is that the
+// comparator answers what the platform's own operators answer for the same two chars.
+// (char) 200 is negative on x86 and 200 under -funsigned-char; substituting nad_cmp_i8
+// or nad_cmp_u8 is wrong on exactly one of the two, and this case says which.
+static void test_cmp_char_follows_the_signedness_of_the_target() {
+    const char high = (char) 200;
+    const char low = (char) 100;
+    const int want = (high > low) - (high < low);
+
+    TEST_ASSERT_EQUAL_INT(want, cmp_char(high, low));
+    TEST_ASSERT_EQUAL_INT(-want, cmp_char(low, high));
+    TEST_ASSERT_EQUAL_INT(0, cmp_char(high, high));
+
+    TEST_ASSERT_TRUE(eq_char('a', 'a'));
+    TEST_ASSERT_FALSE(eq_char('a', 'b'));
+}
+
+// the plain reason to have it: sorting the letters of a word
+static void test_cmp_char_sorts_letters() {
+    char buf[5] = {'d', 'a', 'e', 'b', 'c'};
+
+    nad_span_sort(NAD_SPAN_NEW_MUT(char, buf, 5), nad_cmp_char);
+
+    TEST_ASSERT_EQUAL_CHAR_ARRAY("abcde", buf, 5);
 }
 
 /* ========== floats ========== */
@@ -258,6 +305,11 @@ int main() {
 
     RUN_TEST(test_cmp_unsigned_orders_and_normalizes);
     RUN_TEST(test_cmp_unsigned_survives_the_extremes);
+
+    RUN_TEST(test_cmp_ptrdiff_orders_and_survives_the_extremes);
+
+    RUN_TEST(test_cmp_char_follows_the_signedness_of_the_target);
+    RUN_TEST(test_cmp_char_sorts_letters);
 
     RUN_TEST(test_cmp_float_orders_ordinary_values);
     RUN_TEST(test_cmp_float_treats_the_two_zeroes_as_one);

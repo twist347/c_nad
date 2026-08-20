@@ -83,6 +83,11 @@ DEFINE_INT_ALL(u32, uint32_t)
 DEFINE_INT_ALL(u64, uint64_t)
 
 DEFINE_INT_ALL(size, size_t)
+DEFINE_INT_ALL(ptrdiff, ptrdiff_t)
+
+// char is a third type, distinct from both signed and unsigned char, and its signedness
+// is the target's business: (a > b) - (a < b) resolves to whichever one that is
+DEFINE_INT_ALL(char, char)
 
 DEFINE_FLOAT_ALL(f32, float)
 DEFINE_FLOAT_ALL(f64, double)

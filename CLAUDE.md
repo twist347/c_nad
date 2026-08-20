@@ -42,6 +42,10 @@ interface they implement: `nad_cmp_i32`, `nad_cmp_desc_f64`, `nad_eq_cstr`. Ther
 deliberately no second, value-taking form to tell them apart from — to compare two
 values, call the comparator with their addresses.
 
+When the bare name is already taken by a result type, the typedef is named for the agent
+instead of the operation: `nad_Hash` is the hash value, so the function that produces one
+is `nad_Hasher`.
+
 Function pointers that only ever live inside one interface aggregate stay inline members
 with no typedef, as in `nad_Al` and `nad_ElemOps` — a typedef there would name a type that
 is never written a second time.
