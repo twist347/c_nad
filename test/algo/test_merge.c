@@ -17,7 +17,7 @@ typedef struct {
 } Tagged;
 
 static int cmp_tagged(const void *a, const void *b) {
-    return nad_cmp_i32(((const Tagged *) a)->key, ((const Tagged *) b)->key);
+    return nad_cmp_i32(&((const Tagged *) a)->key, &((const Tagged *) b)->key);
 }
 
 /* ========== merge ========== */
@@ -31,7 +31,7 @@ static void test_merge_interleaves_both_sides() {
         NAD_SPAN_NEW_MUT(int32_t, dst, 6),
         NAD_SPAN_NEW(int32_t, a, 3),
         NAD_SPAN_NEW(int32_t, b, 3),
-        nad_cmp_fn_i32
+        nad_cmp_i32
     );
 
     constexpr int32_t expected[6] = {1, 2, 3, 4, 5, 6};
@@ -48,7 +48,7 @@ static void test_merge_disjoint_ranges() {
         NAD_SPAN_NEW_MUT(int32_t, dst, 6),
         NAD_SPAN_NEW(int32_t, a, 3),
         NAD_SPAN_NEW(int32_t, b, 3),
-        nad_cmp_fn_i32
+        nad_cmp_i32
     );
 
     constexpr int32_t expected[6] = {1, 2, 3, 7, 8, 9};
@@ -64,7 +64,7 @@ static void test_merge_second_side_comes_first() {
         NAD_SPAN_NEW_MUT(int32_t, dst, 4),
         NAD_SPAN_NEW(int32_t, a, 2),
         NAD_SPAN_NEW(int32_t, b, 2),
-        nad_cmp_fn_i32
+        nad_cmp_i32
     );
 
     constexpr int32_t expected[4] = {1, 2, 7, 8};
@@ -80,7 +80,7 @@ static void test_merge_uneven_lengths() {
         NAD_SPAN_NEW_MUT(int32_t, dst, 6),
         NAD_SPAN_NEW(int32_t, a, 1),
         NAD_SPAN_NEW(int32_t, b, 5),
-        nad_cmp_fn_i32
+        nad_cmp_i32
     );
 
     constexpr int32_t expected[6] = {1, 2, 3, 4, 5, 6};
@@ -95,7 +95,7 @@ static void test_merge_with_an_empty_side() {
         NAD_SPAN_NEW_MUT(int32_t, dst, 3),
         NAD_SPAN_NEW(int32_t, a, 3),
         NAD_SPAN_NEW(int32_t, a, 0),
-        nad_cmp_fn_i32
+        nad_cmp_i32
     );
     TEST_ASSERT_EQUAL_INT32_ARRAY(a, dst, 3);
 
@@ -105,7 +105,7 @@ static void test_merge_with_an_empty_side() {
         NAD_SPAN_NEW_MUT(int32_t, dst2, 3),
         NAD_SPAN_NEW(int32_t, a, 0),
         NAD_SPAN_NEW(int32_t, a, 3),
-        nad_cmp_fn_i32
+        nad_cmp_i32
     );
     TEST_ASSERT_EQUAL_INT32_ARRAY(a, dst2, 3);
 }
@@ -118,7 +118,7 @@ static void test_merge_both_sides_empty() {
         NAD_SPAN_NEW_MUT(int32_t, dst, 0),
         NAD_SPAN_NEW(int32_t, a, 0),
         NAD_SPAN_NEW(int32_t, a, 0),
-        nad_cmp_fn_i32
+        nad_cmp_i32
     );
 
     TEST_ASSERT_EQUAL_INT32(42, dst[0]);
@@ -133,7 +133,7 @@ static void test_merge_keeps_duplicates() {
         NAD_SPAN_NEW_MUT(int32_t, dst, 5),
         NAD_SPAN_NEW(int32_t, a, 3),
         NAD_SPAN_NEW(int32_t, b, 2),
-        nad_cmp_fn_i32
+        nad_cmp_i32
     );
 
     constexpr int32_t expected[5] = {1, 2, 2, 2, 3};
@@ -173,7 +173,7 @@ static void test_merge_writes_only_into_the_destination_view() {
         nad_span_sub_mut(s, 1, 2),
         NAD_SPAN_NEW(int32_t, a, 1),
         NAD_SPAN_NEW(int32_t, b, 1),
-        nad_cmp_fn_i32
+        nad_cmp_i32
     );
 
     constexpr int32_t expected[4] = {9, 1, 2, 9};

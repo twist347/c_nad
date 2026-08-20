@@ -21,10 +21,10 @@ if (NAD_STATUS_IS_ERR(NAD_VEC_OF(int32_t, arena, &v, 5, 3, 1, 4, 2))) {
     return 1;
 }
 
-nad_span_sort(nad_vec_to_span_mut(v), nad_cmp_fn_i32);
+nad_span_sort(nad_vec_to_span_mut(v), nad_cmp_i32);
 
 size_t idx;
-if (nad_span_bsearch(nad_vec_to_span(v), &(int32_t){4}, nad_cmp_fn_i32, &idx)) {
+if (nad_span_bsearch(nad_vec_to_span(v), &(int32_t){4}, nad_cmp_i32, &idx)) {
     printf("4 is at %zu\n", idx); // 4 is at 3
 }
 
@@ -35,10 +35,14 @@ nad_al_arena_drop(arena); // the vec went with it
 
 | | |
 |---|---|
-| `core` | `nad_Status`, comparators for the built-in types, `nad_ElemOps` |
+| `core` | `nad_Status`, `nad_Span` (non-owning view), comparators for the built-in types, `nad_ElemOps` |
 | `alloc` | the `nad_Al` interface + default, arena, pool and logging allocators |
-| `ds` | `nad_Span` (non-owning view), `nad_Arr` (fixed), `nad_Vec` (growable), `nad_List` (doubly linked) |
-| `algo` | 45 operations over spans: sort, search, compare, copy, fill, merge, modify, permute — customized only through `nad_Cmp`, `nad_Eq` and `nad_Pred` |
+| `ds` | `nad_Arr` (fixed), `nad_Vec` (growable), `nad_List` (doubly linked) |
+| `algo` | 52 operations over spans: sort, search, compare, copy, fill, fold, merge, modify, permute, transform — customized only through function pointers: `nad_Cmp`, `nad_Eq`, `nad_Pred` and the fold, generate and transform forms in `algo/fn.h` |
+
+Dependencies run one way — `core` <- `alloc` <- `algo` <- `ds`. A span carries no
+allocator and owns nothing, so it sits in `core` next to the other vocabulary types;
+that is what lets a container reach for an algorithm without the layers looping back.
 
 ## Build
 

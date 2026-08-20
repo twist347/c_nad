@@ -2,9 +2,6 @@
 
 #include "nad/core/export.h"
 
-#include <stddef.h>
-#include <stdint.h>
-
 /// comparator: <0 if a<b, 0 if a==b, >0 if a>b. qsort compatible
 typedef int (*nad_Cmp)(const void *, const void *);
 
@@ -12,12 +9,15 @@ typedef int (*nad_Cmp)(const void *, const void *);
 typedef bool (*nad_Eq)(const void *, const void *);
 
 /*
- * Comparison and equality for the built-in types. Three forms per type:
+ * Comparison and equality for the built-in types. Two forms per type:
  *
- *   value:      nad_cmp_<T>(a, b) -> int (-1/0/+1),  nad_eq_<T>(a, b) -> bool
- *   callback:   nad_cmp_fn_<T> / nad_eq_fn_<T> — a nad_CmpFn / nad_EqFn, so also
- *               qsort compatible; operands arrive as const void *
- *   descending: nad_cmp_fn_desc_<T> — the callback with its operands swapped
+ *   ascending:  nad_cmp_<T> -> nad_Cmp,  nad_eq_<T> -> nad_Eq
+ *   descending: nad_cmp_desc_<T> — the comparator with its operands swapped
+ *
+ * Operands always arrive as const void *, so these are what the algorithms take and
+ * what qsort takes. There is no value-taking form: to compare two values, call the
+ * comparator with their addresses — nad_cmp_i32(&a, &b) — which is also how a
+ * comparator for a struct delegates to one for its field.
  *
  * f32 and f64 are float and double. That they are IEEE binary32/binary64 follows from
  * __STDC_IEC_559__, not from the standard itself.
@@ -27,273 +27,145 @@ typedef bool (*nad_Eq)(const void *, const void *);
  * this a span holding a NaN has no strict weak ordering and sorting it is undefined.
  *
  * cstr operands are const char *; null is less than every non-null string, and two
- * nulls are equal. The callback forms take a pointer to the pointer.
+ * nulls are equal. Being a pointer type, its operands are a pointer to the pointer.
  */
 
-/* ========== value comparators ========== */
+/* ========== comparators ========== */
 
 /* ========== int ========== */
 
 [[nodiscard]] NAD_API
-int nad_cmp_i8(int8_t a, int8_t b);
+int nad_cmp_i8(const void *lhs, const void *rhs);
 
 [[nodiscard]] NAD_API
-int nad_cmp_i16(int16_t a, int16_t b);
+int nad_cmp_i16(const void *lhs, const void *rhs);
 
 [[nodiscard]] NAD_API
-int nad_cmp_i32(int32_t a, int32_t b);
+int nad_cmp_i32(const void *lhs, const void *rhs);
 
 [[nodiscard]] NAD_API
-int nad_cmp_i64(int64_t a, int64_t b);
+int nad_cmp_i64(const void *lhs, const void *rhs);
 
 /* ========== uint ========== */
 
 [[nodiscard]] NAD_API
-int nad_cmp_u8(uint8_t a, uint8_t b);
+int nad_cmp_u8(const void *lhs, const void *rhs);
 
 [[nodiscard]] NAD_API
-int nad_cmp_u16(uint16_t a, uint16_t b);
+int nad_cmp_u16(const void *lhs, const void *rhs);
 
 [[nodiscard]] NAD_API
-int nad_cmp_u32(uint32_t a, uint32_t b);
+int nad_cmp_u32(const void *lhs, const void *rhs);
 
 [[nodiscard]] NAD_API
-int nad_cmp_u64(uint64_t a, uint64_t b);
+int nad_cmp_u64(const void *lhs, const void *rhs);
 
 [[nodiscard]] NAD_API
-int nad_cmp_size(size_t a, size_t b);
+int nad_cmp_size(const void *lhs, const void *rhs);
 
 /* ========== floating point ========== */
 
 [[nodiscard]] NAD_API
-int nad_cmp_f32(float a, float b);
+int nad_cmp_f32(const void *lhs, const void *rhs);
 
 [[nodiscard]] NAD_API
-int nad_cmp_f64(double a, double b);
-
-/* ========== str ========== */
-
-[[nodiscard]] NAD_API
-int nad_cmp_cstr(const char *a, const char *b);
-
-/* ========== ascending callbacks ========== */
-
-/* ========== int ========== */
-
-[[nodiscard]] NAD_API
-int nad_cmp_fn_i8(const void *lhs, const void *rhs);
-
-[[nodiscard]] NAD_API
-int nad_cmp_fn_i16(const void *lhs, const void *rhs);
-
-[[nodiscard]] NAD_API
-int nad_cmp_fn_i32(const void *lhs, const void *rhs);
-
-[[nodiscard]] NAD_API
-int nad_cmp_fn_i64(const void *lhs, const void *rhs);
-
-/* ========== uint ========== */
-
-[[nodiscard]] NAD_API
-int nad_cmp_fn_u8(const void *lhs, const void *rhs);
-
-[[nodiscard]] NAD_API
-int nad_cmp_fn_u16(const void *lhs, const void *rhs);
-
-[[nodiscard]] NAD_API
-int nad_cmp_fn_u32(const void *lhs, const void *rhs);
-
-[[nodiscard]] NAD_API
-int nad_cmp_fn_u64(const void *lhs, const void *rhs);
-
-[[nodiscard]] NAD_API
-int nad_cmp_fn_size(const void *lhs, const void *rhs);
-
-/* ========== floating point ========== */
-
-[[nodiscard]] NAD_API
-int nad_cmp_fn_f32(const void *lhs, const void *rhs);
-
-[[nodiscard]] NAD_API
-int nad_cmp_fn_f64(const void *lhs, const void *rhs);
+int nad_cmp_f64(const void *lhs, const void *rhs);
 
 /* ========== str ========== */
 
 /// operands point to const char *
-[[nodiscard]] NAD_API int nad_cmp_fn_cstr(const void *lhs, const void *rhs);
+[[nodiscard]] NAD_API
+int nad_cmp_cstr(const void *lhs, const void *rhs);
 
-/* ========== descending callbacks ========== */
+/* ========== descending comparators ========== */
 
 /* ========== int ========== */
 
 [[nodiscard]] NAD_API
-int nad_cmp_fn_desc_i8(const void *lhs, const void *rhs);
+int nad_cmp_desc_i8(const void *lhs, const void *rhs);
 
 [[nodiscard]] NAD_API
-int nad_cmp_fn_desc_i16(const void *lhs, const void *rhs);
+int nad_cmp_desc_i16(const void *lhs, const void *rhs);
 
 [[nodiscard]] NAD_API
-int nad_cmp_fn_desc_i32(const void *lhs, const void *rhs);
+int nad_cmp_desc_i32(const void *lhs, const void *rhs);
 
 [[nodiscard]] NAD_API
-int nad_cmp_fn_desc_i64(const void *lhs, const void *rhs);
+int nad_cmp_desc_i64(const void *lhs, const void *rhs);
 
 /* ========== uint ========== */
 
 [[nodiscard]] NAD_API
-int nad_cmp_fn_desc_u8(const void *lhs, const void *rhs);
+int nad_cmp_desc_u8(const void *lhs, const void *rhs);
 
 [[nodiscard]] NAD_API
-int nad_cmp_fn_desc_u16(const void *lhs, const void *rhs);
+int nad_cmp_desc_u16(const void *lhs, const void *rhs);
 
 [[nodiscard]] NAD_API
-int nad_cmp_fn_desc_u32(const void *lhs, const void *rhs);
+int nad_cmp_desc_u32(const void *lhs, const void *rhs);
 
 [[nodiscard]] NAD_API
-int nad_cmp_fn_desc_u64(const void *lhs, const void *rhs);
+int nad_cmp_desc_u64(const void *lhs, const void *rhs);
 
 [[nodiscard]] NAD_API
-int nad_cmp_fn_desc_size(const void *lhs, const void *rhs);
+int nad_cmp_desc_size(const void *lhs, const void *rhs);
 
 /* ========== floating point ========== */
 
 [[nodiscard]] NAD_API
-int nad_cmp_fn_desc_f32(const void *lhs, const void *rhs);
+int nad_cmp_desc_f32(const void *lhs, const void *rhs);
 
 [[nodiscard]] NAD_API
-int nad_cmp_fn_desc_f64(const void *lhs, const void *rhs);
+int nad_cmp_desc_f64(const void *lhs, const void *rhs);
 
 /* ========== str ========== */
 
 [[nodiscard]] NAD_API
-int nad_cmp_fn_desc_cstr(const void *lhs, const void *rhs);
+int nad_cmp_desc_cstr(const void *lhs, const void *rhs);
 
-/* ========== value equality ========== */
+/* ========== equality ========== */
 
 /* ========== int ========== */
 
 [[nodiscard]] NAD_API
-bool nad_eq_i8(int8_t a, int8_t b);
+bool nad_eq_i8(const void *lhs, const void *rhs);
 
 [[nodiscard]] NAD_API
-bool nad_eq_i16(int16_t a, int16_t b);
+bool nad_eq_i16(const void *lhs, const void *rhs);
 
 [[nodiscard]] NAD_API
-bool nad_eq_i32(int32_t a, int32_t b);
+bool nad_eq_i32(const void *lhs, const void *rhs);
 
 [[nodiscard]] NAD_API
-bool nad_eq_i64(int64_t a, int64_t b);
+bool nad_eq_i64(const void *lhs, const void *rhs);
 
 /* ========== uint ========== */
 
 [[nodiscard]] NAD_API
-bool nad_eq_u8(uint8_t a, uint8_t b);
+bool nad_eq_u8(const void *lhs, const void *rhs);
 
 [[nodiscard]] NAD_API
-bool nad_eq_u16(uint16_t a, uint16_t b);
+bool nad_eq_u16(const void *lhs, const void *rhs);
 
 [[nodiscard]] NAD_API
-bool nad_eq_u32(uint32_t a, uint32_t b);
+bool nad_eq_u32(const void *lhs, const void *rhs);
 
 [[nodiscard]] NAD_API
-bool nad_eq_u64(uint64_t a, uint64_t b);
+bool nad_eq_u64(const void *lhs, const void *rhs);
 
 [[nodiscard]] NAD_API
-bool nad_eq_size(size_t a, size_t b);
+bool nad_eq_size(const void *lhs, const void *rhs);
 
 /* ========== floating point ========== */
 
 [[nodiscard]] NAD_API
-bool nad_eq_f32(float a, float b);
+bool nad_eq_f32(const void *lhs, const void *rhs);
 
 [[nodiscard]] NAD_API
-bool nad_eq_f64(double a, double b);
+bool nad_eq_f64(const void *lhs, const void *rhs);
 
 /* ========== str ========== */
-
-[[nodiscard]] NAD_API
-bool nad_eq_cstr(const char *a, const char *b);
-
-/* ========== equality callbacks ========== */
-
-/* ========== int ========== */
-
-[[nodiscard]] NAD_API
-bool nad_eq_fn_i8(const void *lhs, const void *rhs);
-
-[[nodiscard]] NAD_API
-bool nad_eq_fn_i16(const void *lhs, const void *rhs);
-
-[[nodiscard]] NAD_API
-bool nad_eq_fn_i32(const void *lhs, const void *rhs);
-
-[[nodiscard]] NAD_API
-bool nad_eq_fn_i64(const void *lhs, const void *rhs);
-
-/* ========== uint ========== */
-
-[[nodiscard]] NAD_API
-bool nad_eq_fn_u8(const void *lhs, const void *rhs);
-
-[[nodiscard]] NAD_API
-bool nad_eq_fn_u16(const void *lhs, const void *rhs);
-
-[[nodiscard]] NAD_API
-bool nad_eq_fn_u32(const void *lhs, const void *rhs);
-
-[[nodiscard]] NAD_API
-bool nad_eq_fn_u64(const void *lhs, const void *rhs);
-
-[[nodiscard]] NAD_API
-bool nad_eq_fn_size(const void *lhs, const void *rhs);
-
-/* ========== floating point ========== */
-
-[[nodiscard]] NAD_API
-bool nad_eq_fn_f32(const void *lhs, const void *rhs);
-
-[[nodiscard]] NAD_API
-bool nad_eq_fn_f64(const void *lhs, const void *rhs);
 
 /// operands point to const char *
 [[nodiscard]] NAD_API
-bool nad_eq_fn_cstr(const void *lhs, const void *rhs);
-
-/* ========== macros ========== */
-
-/*
- * size and cstr are absent on purpose. size_t is always the same type as whichever
- * fixed-width integer matches its width — uint64_t here, uint32_t on a 32-bit target —
- * and two compatible associations make _Generic a compile error, on every platform.
- * cstr is a pointer, and a string literal decays to char *, which would need its own
- * association. Call nad_cmp_size / nad_cmp_cstr by name.
- *
- * There is deliberately no default: an unmatched type should fail with the compiler
- * naming it. Watch for long long, which is not int64_t here even though both are 64 bits.
- */
-
-#define NAD_CMP(a, b) _Generic((a), \
-    int8_t:   nad_cmp_i8,           \
-    int16_t:  nad_cmp_i16,          \
-    int32_t:  nad_cmp_i32,          \
-    int64_t:  nad_cmp_i64,          \
-    uint8_t:  nad_cmp_u8,           \
-    uint16_t: nad_cmp_u16,          \
-    uint32_t: nad_cmp_u32,          \
-    uint64_t: nad_cmp_u64,          \
-    float:    nad_cmp_f32,          \
-    double:   nad_cmp_f64           \
-)((a), (b))
-
-#define NAD_EQ(a, b) _Generic((a), \
-    int8_t:   nad_eq_i8,           \
-    int16_t:  nad_eq_i16,          \
-    int32_t:  nad_eq_i32,          \
-    int64_t:  nad_eq_i64,          \
-    uint8_t:  nad_eq_u8,           \
-    uint16_t: nad_eq_u16,          \
-    uint32_t: nad_eq_u32,          \
-    uint64_t: nad_eq_u64,          \
-    float:    nad_eq_f32,          \
-    double:   nad_eq_f64           \
-)((a), (b))
+bool nad_eq_cstr(const void *lhs, const void *rhs);

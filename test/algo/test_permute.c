@@ -252,7 +252,7 @@ static void test_next_permutation_walks_the_whole_order() {
     for (size_t i = 0; i < 6; ++i) {
         TEST_ASSERT_EQUAL_INT32_ARRAY(ALL_3[i], buf, 3);
 
-        const bool more = nad_span_next_permutation(s, nad_cmp_fn_i32);
+        const bool more = nad_span_next_permutation(s, nad_cmp_i32);
         if (i < 5) {
             TEST_ASSERT_TRUE(more);
         } else {
@@ -270,7 +270,7 @@ static void test_next_permutation_skips_duplicate_arrangements() {
     const nad_SpanMut s = NAD_SPAN_NEW_MUT(int32_t, buf, 3);
 
     size_t seen = 1;
-    while (nad_span_next_permutation(s, nad_cmp_fn_i32)) {
+    while (nad_span_next_permutation(s, nad_cmp_i32)) {
         ++seen;
     }
 
@@ -280,8 +280,8 @@ static void test_next_permutation_skips_duplicate_arrangements() {
 static void test_next_permutation_empty_and_single_report_false() {
     int32_t buf[1] = {42};
 
-    TEST_ASSERT_FALSE(nad_span_next_permutation(NAD_SPAN_NEW_MUT(int32_t, buf, 0), nad_cmp_fn_i32));
-    TEST_ASSERT_FALSE(nad_span_next_permutation(NAD_SPAN_NEW_MUT(int32_t, buf, 1), nad_cmp_fn_i32));
+    TEST_ASSERT_FALSE(nad_span_next_permutation(NAD_SPAN_NEW_MUT(int32_t, buf, 0), nad_cmp_i32));
+    TEST_ASSERT_FALSE(nad_span_next_permutation(NAD_SPAN_NEW_MUT(int32_t, buf, 1), nad_cmp_i32));
     TEST_ASSERT_EQUAL_INT32(42, buf[0]);
 }
 
@@ -290,7 +290,7 @@ static void test_next_permutation_follows_the_comparator() {
     int32_t buf[3] = {3, 2, 1};
     const nad_SpanMut s = NAD_SPAN_NEW_MUT(int32_t, buf, 3);
 
-    TEST_ASSERT_TRUE(nad_span_next_permutation(s, nad_cmp_fn_desc_i32));
+    TEST_ASSERT_TRUE(nad_span_next_permutation(s, nad_cmp_desc_i32));
 
     constexpr int32_t want[3] = {3, 1, 2};
     TEST_ASSERT_EQUAL_INT32_ARRAY(want, buf, 3);
@@ -300,7 +300,7 @@ static void test_next_permutation_stays_within_the_subspan() {
     int32_t buf[5] = {9, 1, 2, 3, 9};
     const nad_SpanMut s = NAD_SPAN_NEW_MUT(int32_t, buf, 5);
 
-    TEST_ASSERT_TRUE(nad_span_next_permutation(nad_span_sub_mut(s, 1, 3), nad_cmp_fn_i32));
+    TEST_ASSERT_TRUE(nad_span_next_permutation(nad_span_sub_mut(s, 1, 3), nad_cmp_i32));
 
     constexpr int32_t want[5] = {9, 1, 3, 2, 9};
     TEST_ASSERT_EQUAL_INT32_ARRAY(want, buf, 5);
@@ -315,7 +315,7 @@ static void test_prev_permutation_walks_the_order_backwards() {
     for (size_t i = 6; i > 0; --i) {
         TEST_ASSERT_EQUAL_INT32_ARRAY(ALL_3[i - 1], buf, 3);
 
-        const bool more = nad_span_prev_permutation(s, nad_cmp_fn_i32);
+        const bool more = nad_span_prev_permutation(s, nad_cmp_i32);
         if (i > 1) {
             TEST_ASSERT_TRUE(more);
         } else {
@@ -334,8 +334,8 @@ static void test_prev_permutation_undoes_next_permutation() {
         memcpy(buf, ALL_3[i], sizeof buf);
         const nad_SpanMut s = NAD_SPAN_NEW_MUT(int32_t, buf, 3);
 
-        TEST_ASSERT_TRUE(nad_span_next_permutation(s, nad_cmp_fn_i32));
-        TEST_ASSERT_TRUE(nad_span_prev_permutation(s, nad_cmp_fn_i32));
+        TEST_ASSERT_TRUE(nad_span_next_permutation(s, nad_cmp_i32));
+        TEST_ASSERT_TRUE(nad_span_prev_permutation(s, nad_cmp_i32));
 
         TEST_ASSERT_EQUAL_INT32_ARRAY(ALL_3[i], buf, 3);
     }
@@ -344,17 +344,17 @@ static void test_prev_permutation_undoes_next_permutation() {
 static void test_prev_permutation_empty_and_single_report_false() {
     int32_t buf[1] = {42};
 
-    TEST_ASSERT_FALSE(nad_span_prev_permutation(NAD_SPAN_NEW_MUT(int32_t, buf, 0), nad_cmp_fn_i32));
-    TEST_ASSERT_FALSE(nad_span_prev_permutation(NAD_SPAN_NEW_MUT(int32_t, buf, 1), nad_cmp_fn_i32));
+    TEST_ASSERT_FALSE(nad_span_prev_permutation(NAD_SPAN_NEW_MUT(int32_t, buf, 0), nad_cmp_i32));
+    TEST_ASSERT_FALSE(nad_span_prev_permutation(NAD_SPAN_NEW_MUT(int32_t, buf, 1), nad_cmp_i32));
     TEST_ASSERT_EQUAL_INT32(42, buf[0]);
 }
 
 static void test_prev_permutation_moves_whole_elems() {
     Pair buf[2] = {{3, 30}, {1, 10}};
 
-    TEST_ASSERT_TRUE(nad_span_prev_permutation(NAD_SPAN_NEW_MUT(Pair, buf, 2), nad_cmp_fn_i32));
+    TEST_ASSERT_TRUE(nad_span_prev_permutation(NAD_SPAN_NEW_MUT(Pair, buf, 2), nad_cmp_i32));
 
-    // nad_cmp_fn_i32 reads the first int32 of each Pair, but the whole elem must travel
+    // nad_cmp_i32 reads the first int32 of each Pair, but the whole elem must travel
     TEST_ASSERT_EQUAL_INT64(1, buf[0].a);
     TEST_ASSERT_EQUAL_INT64(10, buf[0].b);
     TEST_ASSERT_EQUAL_INT64(3, buf[1].a);

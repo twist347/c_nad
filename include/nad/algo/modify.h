@@ -15,7 +15,7 @@
  * from the returned length to s.len is left in an unspecified state. The
  * caller shortens its own container:
  *
- *     const size_t n = nad_span_unique(nad_vec_to_span_mut(v), nad_eq_fn_i32);
+ *     const size_t n = nad_span_unique(nad_vec_to_span_mut(v), nad_eq_i32);
  *     nad_Status st = nad_vec_resize(v, n);
  *
  * [[nodiscard]] is what keeps this honest — dropping the new length on the
