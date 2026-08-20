@@ -49,7 +49,7 @@ static void test_hash_agrees_with_equality() {
 
     const size_t n = 7;
     const ptrdiff_t d = -7;
-    TEST_ASSERT_NOT_EQUAL_UINT64(nad_hash_usize(&n), nad_hash_isize(&d));
+    TEST_ASSERT_NOT_EQUAL_UINT64(nad_hash_size(&n), nad_hash_ptrdiff(&d));
 }
 
 // nad_eq_f64(-0.0, 0.0) is true while the bit patterns differ, so hashing the bits

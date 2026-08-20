@@ -52,8 +52,11 @@ DEFINE_HASH_INT(u64, uint64_t)
 
 /* ========== size ========== */
 
-DEFINE_HASH_INT(usize, size_t)
-DEFINE_HASH_INT(isize, ptrdiff_t)
+DEFINE_HASH_INT(size, size_t)
+
+/* ========== ptrdiff ========== */
+
+DEFINE_HASH_INT(ptrdiff, ptrdiff_t)
 
 /* ========== floating point ========== */
 

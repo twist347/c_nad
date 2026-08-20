@@ -42,12 +42,12 @@ nad_Hash nad_hash_u64(const void *x);
 /* ========== size ========== */
 
 [[nodiscard]] NAD_API
-nad_Hash nad_hash_usize(const void *x);
+nad_Hash nad_hash_size(const void *x);
 
 /* ========== ptrdiff ========== */
 
 [[nodiscard]] NAD_API
-nad_Hash nad_hash_isize(const void *x);
+nad_Hash nad_hash_ptrdiff(const void *x);
 
 /* ========== floating point ========== */
 
