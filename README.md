@@ -35,7 +35,7 @@ nad_al_arena_drop(arena); // the vec went with it
 
 | | |
 |---|---|
-| `core` | `nad_Status`, `nad_Span` (non-owning view), comparators for the built-in types, `nad_ElemOps` |
+| `core` | `nad_Status`, `nad_Span` (non-owning view), comparators and hashers for the built-in types, `nad_ElemOps` |
 | `alloc` | the `nad_Al` interface + default, arena, pool and logging allocators |
 | `ds` | `nad_Arr` (fixed), `nad_Vec` (growable), `nad_List` (doubly linked) |
 | `algo` | 52 operations over spans: sort, search, compare, copy, fill, fold, merge, modify, permute, transform — customized only through function pointers: `nad_Cmp`, `nad_Eq`, `nad_Pred` and the fold, generate and transform forms in `algo/fn.h` |
