@@ -77,7 +77,7 @@ size_t nad_span_partition(nad_SpanMut s, nad_Pred pred, void *ctx) {
     NAD_SPAN_ASSERT(s);
     assert(pred);
 
-    const nad_Span view = nad_span_from_mut(s);
+    const nad_Span view = nad_span_mut_to_span(s);
     size_t boundary = 0;
 
     for (size_t i = 0; i < s.len; ++i) {
@@ -114,7 +114,7 @@ bool permute_step(nad_SpanMut s, nad_Cmp cmp, bool asc) {
         return false;
     }
 
-    const nad_Span v = nad_span_from_mut(s);
+    const nad_Span v = nad_span_mut_to_span(s);
 
     size_t pivot = s.len - 1;
     while (pivot > 0) {

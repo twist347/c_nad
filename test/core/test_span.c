@@ -36,20 +36,20 @@ static void test_new_empty_over_null() {
     TEST_ASSERT_EQUAL_size_t(sizeof(int32_t), s.elem_size);
 }
 
-static void test_from_mut_preserves_view() {
+static void test_mut_to_span_preserves_view() {
     const nad_SpanMut m = NAD_SPAN_OF_MUT(int32_t, 1, 2);
-    const nad_Span s = nad_span_from_mut(m);
+    const nad_Span s = nad_span_mut_to_span(m);
 
     TEST_ASSERT_EQUAL_PTR(m.data, s.data);
     TEST_ASSERT_EQUAL_size_t(m.len, s.len);
     TEST_ASSERT_EQUAL_size_t(m.elem_size, s.elem_size);
 }
 
-// from_mut must hand back a view of the same memory, not a copy
-static void test_from_mut_shares_the_memory() {
+// mut_to_span must hand back a view of the same memory, not a copy
+static void test_mut_to_span_shares_the_memory() {
     int32_t buf[3] = {1, 2, 3};
     const nad_SpanMut m = NAD_SPAN_NEW_MUT(int32_t, buf, 3);
-    const nad_Span s = nad_span_from_mut(m);
+    const nad_Span s = nad_span_mut_to_span(m);
 
     NAD_SPAN_SET(int32_t, m, 1, 99);
 
@@ -95,7 +95,7 @@ static void test_of_mut_is_writable() {
     *NAD_SPAN_GET_MUT_AS(int32_t, s, 2) = 77;
     nad_span_swap_elems(s, 0, 2);
 
-    const nad_Span v = nad_span_from_mut(s);
+    const nad_Span v = nad_span_mut_to_span(s);
     TEST_ASSERT_EQUAL_INT32(77, *NAD_SPAN_GET_AS(int32_t, v, 0));
     TEST_ASSERT_EQUAL_INT32(20, *NAD_SPAN_GET_AS(int32_t, v, 1));
     TEST_ASSERT_EQUAL_INT32(99, *NAD_SPAN_GET_AS(int32_t, v, 2));
@@ -276,8 +276,8 @@ int main() {
 
     RUN_TEST(test_new_keeps_fields);
     RUN_TEST(test_new_empty_over_null);
-    RUN_TEST(test_from_mut_preserves_view);
-    RUN_TEST(test_from_mut_shares_the_memory);
+    RUN_TEST(test_mut_to_span_preserves_view);
+    RUN_TEST(test_mut_to_span_shares_the_memory);
 
     RUN_TEST(test_of_views_the_literal);
     RUN_TEST(test_of_derives_len_from_the_list);

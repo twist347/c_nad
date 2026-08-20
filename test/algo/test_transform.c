@@ -73,7 +73,7 @@ static void test_transform_works_in_place() {
     int32_t buf[4] = {1, 2, 3, 4};
     const nad_SpanMut s = NAD_SPAN_NEW_MUT(int32_t, buf, 4);
 
-    nad_span_transform(s, nad_span_from_mut(s), double_i32, nullptr);
+    nad_span_transform(s, nad_span_mut_to_span(s), double_i32, nullptr);
 
     constexpr int32_t want[4] = {2, 4, 6, 8};
     TEST_ASSERT_EQUAL_INT32_ARRAY(want, buf, 4);
@@ -164,7 +164,7 @@ static void test_zip_can_write_into_one_of_its_sources() {
     constexpr int32_t b[3] = {10, 20, 30};
     const nad_SpanMut dst = NAD_SPAN_NEW_MUT(int32_t, a, 3);
 
-    nad_span_zip(dst, nad_span_from_mut(dst), NAD_SPAN_NEW(int32_t, b, 3), add_i32, nullptr);
+    nad_span_zip(dst, nad_span_mut_to_span(dst), NAD_SPAN_NEW(int32_t, b, 3), add_i32, nullptr);
 
     constexpr int32_t want[3] = {11, 22, 33};
     TEST_ASSERT_EQUAL_INT32_ARRAY(want, a, 3);

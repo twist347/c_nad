@@ -1,6 +1,6 @@
 #include "nad/core/cmp.h"
-#include "nad/algo/sort.h"
 #include "nad/algo/search.h"
+#include "nad/algo/sort.h"
 
 #include "unity.h"
 
@@ -191,7 +191,7 @@ static void test_cmp_float_gives_sort_a_usable_order() {
 
     nad_span_sort(s, nad_cmp_f64);
 
-    TEST_ASSERT_TRUE(nad_span_is_sorted(nad_span_from_mut(s), nad_cmp_f64));
+    TEST_ASSERT_TRUE(nad_span_is_sorted(nad_span_mut_to_span(s), nad_cmp_f64));
     TEST_ASSERT_EQUAL_DOUBLE(0.0, buf[0]);
     TEST_ASSERT_EQUAL_DOUBLE(1.0, buf[1]);
     TEST_ASSERT_EQUAL_DOUBLE(2.0, buf[2]);

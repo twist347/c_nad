@@ -64,7 +64,7 @@ static void test_copy_onto_itself_is_noop() {
     int32_t buf[3] = {1, 2, 3};
     const nad_SpanMut s = NAD_SPAN_NEW_MUT(int32_t, buf, 3);
 
-    nad_span_copy(s, nad_span_from_mut(s));
+    nad_span_copy(s, nad_span_mut_to_span(s));
 
     constexpr int32_t expected[3] = {1, 2, 3};
     TEST_ASSERT_EQUAL_INT32_ARRAY(expected, buf, 3);
@@ -110,7 +110,7 @@ static void test_copy_within_shifts_right() {
     // buf[2..4] <- buf[1..3]
     nad_span_copy_within(
         nad_span_sub_mut(s, 2, 3),
-        nad_span_from_mut(nad_span_sub_mut(s, 1, 3))
+        nad_span_mut_to_span(nad_span_sub_mut(s, 1, 3))
     );
 
     constexpr int32_t expected[5] = {1, 2, 2, 3, 4};
@@ -124,7 +124,7 @@ static void test_copy_within_shifts_left() {
     // buf[0..2] <- buf[2..4]
     nad_span_copy_within(
         nad_span_sub_mut(s, 0, 3),
-        nad_span_from_mut(nad_span_sub_mut(s, 2, 3))
+        nad_span_mut_to_span(nad_span_sub_mut(s, 2, 3))
     );
 
     constexpr int32_t expected[5] = {3, 4, 5, 4, 5};
@@ -135,7 +135,7 @@ static void test_copy_within_onto_itself_is_noop() {
     int32_t buf[3] = {1, 2, 3};
     const nad_SpanMut s = NAD_SPAN_NEW_MUT(int32_t, buf, 3);
 
-    nad_span_copy_within(s, nad_span_from_mut(s));
+    nad_span_copy_within(s, nad_span_mut_to_span(s));
 
     constexpr int32_t expected[3] = {1, 2, 3};
     TEST_ASSERT_EQUAL_INT32_ARRAY(expected, buf, 3);
@@ -158,7 +158,7 @@ static void test_copy_within_empty_is_noop() {
     int32_t buf[2] = {1, 2};
     const nad_SpanMut s = NAD_SPAN_NEW_MUT(int32_t, buf, 0);
 
-    nad_span_copy_within(s, nad_span_from_mut(s));
+    nad_span_copy_within(s, nad_span_mut_to_span(s));
 
     constexpr int32_t expected[2] = {1, 2};
     TEST_ASSERT_EQUAL_INT32_ARRAY(expected, buf, 2);

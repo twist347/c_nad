@@ -1,5 +1,5 @@
-#include "nad/alloc/alloc_pool.h"
-#include "nad/alloc/alloc_default.h"
+#include "nad/alloc/pool.h"
+#include "nad/alloc/default.h"
 
 #include "unity.h"
 

@@ -33,8 +33,11 @@ nad_Span nad_span_new(const void *data, size_t len, size_t elem_size);
 [[nodiscard]] NAD_API
 nad_SpanMut nad_span_new_mut(void *data, size_t len, size_t elem_size);
 
+/* ========== to span ========== */
+
+/// the same memory, seen read only. There is no way back: a view cannot gain mutability
 [[nodiscard]] NAD_API
-nad_Span nad_span_from_mut(nad_SpanMut s);
+nad_Span nad_span_mut_to_span(nad_SpanMut s);
 
 /* ========== subspan ========== */
 

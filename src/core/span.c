@@ -29,7 +29,9 @@ nad_SpanMut nad_span_new_mut(void *data, size_t len, size_t elem_size) {
     };
 }
 
-nad_Span nad_span_from_mut(nad_SpanMut s) {
+/* ========== to span ========== */
+
+nad_Span nad_span_mut_to_span(nad_SpanMut s) {
     NAD_SPAN_ASSERT(s);
 
     return (nad_Span){
@@ -137,7 +139,7 @@ void nad_span_mut_fprint(nad_SpanMut self, FILE *stream, nad_FPrint fprint) {
     assert(stream);
     assert(fprint);
 
-    nad_span_fprint(nad_span_from_mut(self), stream, fprint);
+    nad_span_fprint(nad_span_mut_to_span(self), stream, fprint);
 }
 
 void nad_span_print(nad_Span self, nad_FPrint fprint) {
@@ -151,5 +153,5 @@ void nad_span_mut_print(nad_SpanMut self, nad_FPrint fprint) {
     NAD_SPAN_ASSERT(self);
     assert(fprint);
 
-    nad_span_fprint(nad_span_from_mut(self), stdout, fprint);
+    nad_span_fprint(nad_span_mut_to_span(self), stdout, fprint);
 }

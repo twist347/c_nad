@@ -1,6 +1,6 @@
 #include "nad/ds/vec.h"
-#include "nad/alloc/alloc_default.h"
-#include "nad/alloc/alloc_arena.h"
+#include "nad/alloc/arena.h"
+#include "nad/alloc/default.h"
 
 #include "support/arena.h"
 

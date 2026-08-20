@@ -1,4 +1,4 @@
-#include "nad/alloc/alloc_arena.h"
+#include "nad/alloc/arena.h"
 
 #include "nad/core/util.h"
 #include "internal/ptr.h"

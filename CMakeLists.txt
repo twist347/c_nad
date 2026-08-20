@@ -22,10 +22,10 @@ set(NAD_ALGO_SOURCES
 
 set(NAD_ALLOC_SOURCES
         src/alloc/alloc.c
-        src/alloc/alloc_arena.c
-        src/alloc/alloc_default.c
-        src/alloc/alloc_log.c
-        src/alloc/alloc_pool.c
+        src/alloc/arena.c
+        src/alloc/default.c
+        src/alloc/log.c
+        src/alloc/pool.c
 )
 
 set(NAD_CORE_SOURCES

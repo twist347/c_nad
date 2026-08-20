@@ -181,65 +181,65 @@ static void test_bounds_delimit_the_equal_run() {
     TEST_ASSERT_EQUAL_size_t(nad_span_count(s, &key, nad_eq_i32), hi - lo);
 }
 
-/* ========== bsearch ========== */
+/* ========== binary_search ========== */
 
-static void test_bsearch_finds_a_present_key() {
+static void test_binary_search_finds_a_present_key() {
     constexpr int32_t buf[5] = {1, 3, 5, 7, 9};
     constexpr int32_t key = 7;
 
     size_t idx = 0;
-    TEST_ASSERT_TRUE(nad_span_bsearch(NAD_SPAN_NEW(int32_t, buf, 5), &key, nad_cmp_i32, &idx));
+    TEST_ASSERT_TRUE(nad_span_binary_search(NAD_SPAN_NEW(int32_t, buf, 5), &key, nad_cmp_i32, &idx));
     TEST_ASSERT_EQUAL_size_t(3, idx);
 }
 
 // among duplicates it must report the first one, matching lower_bound
-static void test_bsearch_reports_the_first_of_the_duplicates() {
+static void test_binary_search_reports_the_first_of_the_duplicates() {
     const Tagged buf[5] = {{1, 0}, {2, 10}, {2, 11}, {2, 12}, {3, 0}};
     const Tagged key = {2, -1};
 
     size_t idx = 0;
-    TEST_ASSERT_TRUE(nad_span_bsearch(NAD_SPAN_NEW(Tagged, buf, 5), &key, cmp_tagged, &idx));
+    TEST_ASSERT_TRUE(nad_span_binary_search(NAD_SPAN_NEW(Tagged, buf, 5), &key, cmp_tagged, &idx));
     TEST_ASSERT_EQUAL_size_t(1, idx);
     TEST_ASSERT_EQUAL_INT32(10, buf[idx].tag);
 }
 
-static void test_bsearch_miss_leaves_the_out_param_alone() {
+static void test_binary_search_miss_leaves_the_out_param_alone() {
     constexpr int32_t buf[4] = {1, 3, 5, 7};
     constexpr int32_t key = 4;
 
     size_t idx = 333;
-    TEST_ASSERT_FALSE(nad_span_bsearch(NAD_SPAN_NEW(int32_t, buf, 4), &key, nad_cmp_i32, &idx));
+    TEST_ASSERT_FALSE(nad_span_binary_search(NAD_SPAN_NEW(int32_t, buf, 4), &key, nad_cmp_i32, &idx));
     TEST_ASSERT_EQUAL_size_t(333, idx);
 }
 
 // a key past the end drives lower_bound to len — that must not read out of range
-static void test_bsearch_key_past_the_end_misses() {
+static void test_binary_search_key_past_the_end_misses() {
     constexpr int32_t buf[3] = {1, 2, 3};
     constexpr int32_t key = 9;
 
     size_t idx = 111;
-    TEST_ASSERT_FALSE(nad_span_bsearch(NAD_SPAN_NEW(int32_t, buf, 3), &key, nad_cmp_i32, &idx));
+    TEST_ASSERT_FALSE(nad_span_binary_search(NAD_SPAN_NEW(int32_t, buf, 3), &key, nad_cmp_i32, &idx));
     TEST_ASSERT_EQUAL_size_t(111, idx);
 }
 
-static void test_bsearch_on_an_empty_span_misses() {
+static void test_binary_search_on_an_empty_span_misses() {
     constexpr int32_t buf[2] = {1, 2};
     constexpr int32_t key = 1;
 
     size_t idx = 222;
-    TEST_ASSERT_FALSE(nad_span_bsearch(NAD_SPAN_NEW(int32_t, buf, 0), &key, nad_cmp_i32, &idx));
+    TEST_ASSERT_FALSE(nad_span_binary_search(NAD_SPAN_NEW(int32_t, buf, 0), &key, nad_cmp_i32, &idx));
     TEST_ASSERT_EQUAL_size_t(222, idx);
 }
 
 // every element of a sorted span must be findable, including both edges
-static void test_bsearch_finds_every_element() {
+static void test_binary_search_finds_every_element() {
     constexpr int32_t buf[6] = {2, 4, 6, 8, 10, 12};
     const nad_Span s = NAD_SPAN_NEW(int32_t, buf, 6);
 
     for (size_t i = 0; i < 6; ++i) {
         const int32_t key = buf[i];
         size_t idx = 999;
-        TEST_ASSERT_TRUE(nad_span_bsearch(s, &key, nad_cmp_i32, &idx));
+        TEST_ASSERT_TRUE(nad_span_binary_search(s, &key, nad_cmp_i32, &idx));
         TEST_ASSERT_EQUAL_size_t(i, idx);
     }
 }
@@ -347,7 +347,7 @@ static void test_partition_point_agrees_with_partition() {
 
     const size_t boundary = nad_span_partition(m, is_even, nullptr);
 
-    TEST_ASSERT_EQUAL_size_t(boundary, nad_span_partition_point(nad_span_from_mut(m), is_even, nullptr));
+    TEST_ASSERT_EQUAL_size_t(boundary, nad_span_partition_point(nad_span_mut_to_span(m), is_even, nullptr));
 }
 
 /* ========== all_of / any_of / none_of ========== */
@@ -571,12 +571,12 @@ int main() {
     RUN_TEST(test_bounds_on_an_empty_span);
     RUN_TEST(test_bounds_delimit_the_equal_run);
 
-    RUN_TEST(test_bsearch_finds_a_present_key);
-    RUN_TEST(test_bsearch_reports_the_first_of_the_duplicates);
-    RUN_TEST(test_bsearch_miss_leaves_the_out_param_alone);
-    RUN_TEST(test_bsearch_key_past_the_end_misses);
-    RUN_TEST(test_bsearch_on_an_empty_span_misses);
-    RUN_TEST(test_bsearch_finds_every_element);
+    RUN_TEST(test_binary_search_finds_a_present_key);
+    RUN_TEST(test_binary_search_reports_the_first_of_the_duplicates);
+    RUN_TEST(test_binary_search_miss_leaves_the_out_param_alone);
+    RUN_TEST(test_binary_search_key_past_the_end_misses);
+    RUN_TEST(test_binary_search_on_an_empty_span_misses);
+    RUN_TEST(test_binary_search_finds_every_element);
 
     RUN_TEST(test_min_and_max_elem);
     RUN_TEST(test_extremes_pick_the_first_of_equals);

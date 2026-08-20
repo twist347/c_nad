@@ -111,7 +111,7 @@ size_t nad_span_upper_bound(nad_Span s, const void *key, nad_Cmp cmp) {
     return lo;
 }
 
-bool nad_span_bsearch(nad_Span s, const void *key, nad_Cmp cmp, size_t *out_idx) {
+bool nad_span_binary_search(nad_Span s, const void *key, nad_Cmp cmp, size_t *out_idx) {
     NAD_SPAN_ASSERT(s);
     assert(key);
     assert(cmp);

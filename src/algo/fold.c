@@ -40,7 +40,7 @@ void nad_span_partial_sum(nad_SpanMut dst, nad_Span src, nad_BinOp op, void *ctx
 
     memcpy(nad_span_get_mut(dst, 0), nad_span_get(src, 0), dst.elem_size);
 
-    const nad_Span prev = nad_span_from_mut(dst);
+    const nad_Span prev = nad_span_mut_to_span(dst);
 
     for (size_t i = 1; i < src.len; ++i) {
         op(nad_span_get_mut(dst, i), nad_span_get(prev, i - 1), nad_span_get(src, i), ctx);

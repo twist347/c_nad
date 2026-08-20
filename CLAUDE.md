@@ -50,6 +50,26 @@ Function pointers that only ever live inside one interface aggregate stay inline
 with no typedef, as in `nad_Al` and `nad_ElemOps` — a typedef there would name a type that
 is never written a second time.
 
+**The `mut` marker.** There is no `const` in any public name: a name either carries `mut`
+or it does not, and the unmarked form is the read-only one. Where the marker goes says
+what it describes:
+
+- **suffix `_mut`** — the *result* is the mutable one: `nad_arr_get_mut` returns
+  `void *` where `nad_arr_get` returns `const void *`, `nad_vec_to_span_mut` returns
+  `nad_SpanMut`.
+- **after the type slug** — the *argument* is the mutable type while the result is not:
+  `nad_span_mut_fprint(nad_SpanMut, ...)`, `nad_span_mut_to_span(nad_SpanMut) ->
+  nad_Span`. This only ever comes up for `nad_Span`/`nad_SpanMut`, the one pair that are
+  two distinct types; for containers mutability rides on the constness of the receiver
+  pointer, so there is nothing to spell.
+- **no marker** — there is only one version of the operation, so nothing has to be told
+  apart. Every `algo` function taking a `nad_SpanMut` is like this: a constant sort does
+  not exist. Those are also not methods on the span — they are free functions over it,
+  which is why they carry no receiver marker either.
+
+Rule of thumb: **the marker exists to separate two versions of one operation. Differ by
+result → suffix; differ only by argument → after the slug; only one version → nothing.**
+
 **Macros** are `NAD_UPPER`. Type-generic wrappers over functions:
 `NAD_ARR_NEW(T, ...)`, `NAD_ALLOC(T, ...)`.
 

@@ -29,7 +29,7 @@ size_t nad_span_unique(nad_SpanMut s, nad_Eq eq) {
         return s.len;
     }
 
-    const nad_Span view = nad_span_from_mut(s);
+    const nad_Span view = nad_span_mut_to_span(s);
     size_t write = 1;
 
     for (size_t read = 1; read < s.len; ++read) {
@@ -65,7 +65,7 @@ size_t nad_span_remove_if(nad_SpanMut s, nad_Pred pred, void *ctx) {
     NAD_SPAN_ASSERT(s);
     assert(pred);
 
-    const nad_Span view = nad_span_from_mut(s);
+    const nad_Span view = nad_span_mut_to_span(s);
     size_t write = 0;
 
     for (size_t read = 0; read < s.len; ++read) {
@@ -100,7 +100,7 @@ void nad_span_replace_if(nad_SpanMut s, nad_Pred pred, void *ctx, const void *va
     assert(pred);
     assert(val);
 
-    const nad_Span view = nad_span_from_mut(s);
+    const nad_Span view = nad_span_mut_to_span(s);
 
     for (size_t i = 0; i < s.len; ++i) {
         if (pred(nad_span_get(view, i), ctx)) {

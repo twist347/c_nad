@@ -1,6 +1,6 @@
 #include "nad/algo/sort.h"
-#include "nad/alloc/alloc_arena.h"
-#include "nad/alloc/alloc_default.h"
+#include "nad/alloc/arena.h"
+#include "nad/alloc/default.h"
 
 #include "unity.h"
 
@@ -196,11 +196,11 @@ static void test_sort_orders_a_long_span() {
     }
 
     const nad_SpanMut s = NAD_SPAN_NEW_MUT(int32_t, buf, 64);
-    TEST_ASSERT_FALSE(nad_span_is_sorted(nad_span_from_mut(s), nad_cmp_i32));
+    TEST_ASSERT_FALSE(nad_span_is_sorted(nad_span_mut_to_span(s), nad_cmp_i32));
 
     nad_span_sort(s, nad_cmp_i32);
 
-    TEST_ASSERT_TRUE(nad_span_is_sorted(nad_span_from_mut(s), nad_cmp_i32));
+    TEST_ASSERT_TRUE(nad_span_is_sorted(nad_span_mut_to_span(s), nad_cmp_i32));
     for (size_t i = 0; i < 64; ++i) {
         TEST_ASSERT_EQUAL_INT32((int32_t) i, buf[i]);
     }
@@ -582,9 +582,9 @@ static void test_is_sorted_agrees_with_sort() {
     int32_t buf[6] = {4, 1, 6, 2, 5, 3};
     const nad_SpanMut s = NAD_SPAN_NEW_MUT(int32_t, buf, 6);
 
-    TEST_ASSERT_FALSE(nad_span_is_sorted(nad_span_from_mut(s), nad_cmp_i32));
+    TEST_ASSERT_FALSE(nad_span_is_sorted(nad_span_mut_to_span(s), nad_cmp_i32));
     nad_span_insertion_sort(s, nad_cmp_i32);
-    TEST_ASSERT_TRUE(nad_span_is_sorted(nad_span_from_mut(s), nad_cmp_i32));
+    TEST_ASSERT_TRUE(nad_span_is_sorted(nad_span_mut_to_span(s), nad_cmp_i32));
 }
 
 /* ========== is_sorted_until ========== */

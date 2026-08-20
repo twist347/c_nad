@@ -41,7 +41,7 @@ void nad_span_insertion_sort(nad_SpanMut s, nad_Cmp cmp) {
     NAD_SPAN_ASSERT(s);
     assert(cmp);
 
-    const nad_Span cs = nad_span_from_mut(s);
+    const nad_Span cs = nad_span_mut_to_span(s);
     for (size_t i = 1; i < s.len; ++i) {
         for (size_t j = i; j > 0; --j) {
             const void *prev = nad_span_get(cs, j - 1);
@@ -91,7 +91,7 @@ nad_Status nad_span_sort_stable(nad_SpanMut s, nad_Cmp cmp, nad_Al *al) {
             const size_t mid = i + width < s.len ? i + width : s.len;
             const size_t end = i + 2 * width < s.len ? i + 2 * width : s.len;
 
-            const nad_Span run = nad_span_from_mut(src);
+            const nad_Span run = nad_span_mut_to_span(src);
             nad_span_merge(
                 nad_span_sub_mut(dst, i, end - i),
                 nad_span_sub(run, i, mid - i),
@@ -104,7 +104,7 @@ nad_Status nad_span_sort_stable(nad_SpanMut s, nad_Cmp cmp, nad_Al *al) {
 
     // if result ended up in buf, copy back to original
     if (src.data != s.data) {
-        nad_span_copy(s, nad_span_from_mut(src));
+        nad_span_copy(s, nad_span_mut_to_span(src));
     }
 
     nad_dealloc(al, buf, bytes);
@@ -147,7 +147,7 @@ void nad_span_nth_elem(nad_SpanMut s, size_t nth, nad_Cmp cmp) {
     // left <= nth <= right holds every round, which is what keeps lt - 1 and gt + 1
     // inside the range below
     while (left < right) {
-        const size_t pivot_idx = ninther(nad_span_from_mut(s), left, right, cmp);
+        const size_t pivot_idx = ninther(nad_span_mut_to_span(s), left, right, cmp);
 
         const Split p = partition3(s, left, right, pivot_idx, cmp);
         const size_t lt = p.lt;
@@ -226,7 +226,7 @@ Split partition3(nad_SpanMut s, size_t left, size_t right, size_t pivot_idx, nad
 
     nad_span_swap_elems(s, left, pivot_idx);
 
-    const nad_Span v = nad_span_from_mut(s);
+    const nad_Span v = nad_span_mut_to_span(s);
 
     size_t lo = left;
     size_t i = left + 1;
@@ -265,7 +265,7 @@ void quicksort(nad_SpanMut s, size_t left, size_t right, nad_Cmp cmp) {
         // sampled across the range, not just at its two ends and middle: partitioning
         // leaves the smallest elem of the left side sitting at that side's last
         // position, and median-of-3 would then keep picking a near-minimum pivot
-        const size_t pivot_idx = ninther(nad_span_from_mut(s), left, right, cmp);
+        const size_t pivot_idx = ninther(nad_span_mut_to_span(s), left, right, cmp);
 
         // three-way, so a run of equal keys is settled in one pass. A two-way split
         // peels those off one elem at a time, which is quadratic on repeated keys.

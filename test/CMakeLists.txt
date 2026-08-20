@@ -18,6 +18,6 @@ function(nad_add_test target_name source_file)
 endfunction()
 
 add_subdirectory(algo)
+add_subdirectory(alloc)
 add_subdirectory(core)
 add_subdirectory(ds)
-add_subdirectory(mem)
