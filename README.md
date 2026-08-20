@@ -58,3 +58,11 @@ cmake --build build-asan && ctest --test-dir build-asan
 ```
 
 Requires a C23 toolchain
+
+## License
+
+MIT — see [LICENSE](LICENSE).
+
+`thirdparty/Unity-2.7.0` is Unity, the test framework, vendored as is. It is third-party
+code under its own MIT license; its copyright notice lives in
+`thirdparty/Unity-2.7.0/LICENSE.txt` and is not covered by the notice above.
