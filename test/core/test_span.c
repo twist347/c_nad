@@ -1,4 +1,4 @@
-#include "nad/ds/span.h"
+#include "nad/core/span.h"
 
 #include "unity.h"
 

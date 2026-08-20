@@ -5,6 +5,7 @@
 #include "unity.h"
 
 #include <stdint.h>
+#include <stdlib.h>
 #include <string.h>
 
 void setUp() {
@@ -23,10 +24,10 @@ static int cmp_tagged(const void *a, const void *b) {
     return nad_cmp_i32(((const Tagged *) a)->key, ((const Tagged *) b)->key);
 }
 
-// sorts a copy with the insertion sort covered above — an oracle for the other sorts
+// sorts a copy with the libc qsort — an oracle that shares no code with what is tested
 static void sorted_copy(int32_t *dst, const int32_t *src, size_t n) {
     memcpy(dst, src, n * sizeof(int32_t));
-    nad_span_insertion_sort(NAD_SPAN_NEW_MUT(int32_t, dst, n), nad_cmp_fn_i32);
+    qsort(dst, n, sizeof(int32_t), nad_cmp_fn_i32);
 }
 
 // true when both hold the same elems, order aside — a reordering algorithm must never

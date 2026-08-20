@@ -31,13 +31,13 @@ set(NAD_ALLOC_SOURCES
 set(NAD_CORE_SOURCES
         src/core/cmp.c
         src/core/elem_ops.c
+        src/core/span.c
         src/core/status.c
 )
 
 set(NAD_DS_SOURCES
         src/ds/arr.c
         src/ds/list.c
-        src/ds/span.c
         src/ds/vec.c
 )
 

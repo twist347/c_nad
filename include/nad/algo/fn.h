@@ -16,4 +16,3 @@ typedef void (*nad_UnOp)(void *dst, const void *src, void *ctx);
 
 /// combines two elems into 'dst'. 'dst' is written, 'a' and 'b' are read
 typedef void (*nad_BinOp)(void *dst, const void *a, const void *b, void *ctx);
-

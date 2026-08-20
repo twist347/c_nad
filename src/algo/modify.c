@@ -56,7 +56,7 @@ size_t nad_span_remove(nad_SpanMut s, const void *key, nad_Eq eq) {
     assert(key);
     assert(eq);
 
-    KeyMatch match = { .key = key, .eq = eq };
+    KeyMatch match = {.key = key, .eq = eq};
 
     return nad_span_remove_if(s, key_matches, &match);
 }
@@ -90,7 +90,7 @@ void nad_span_replace(nad_SpanMut s, const void *key, const void *val, nad_Eq eq
     assert(val);
     assert(eq);
 
-    KeyMatch match = { .key = key, .eq = eq };
+    KeyMatch match = {.key = key, .eq = eq};
 
     nad_span_replace_if(s, key_matches, &match, val);
 }

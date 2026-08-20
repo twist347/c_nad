@@ -4,8 +4,8 @@
 #include "nad/core/cmp.h"
 #include "nad/core/export.h"
 #include "nad/core/print.h"
+#include "nad/core/span.h"
 #include "nad/core/status.h"
-#include "nad/ds/span.h"
 
 #include <stddef.h>
 

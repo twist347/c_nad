@@ -3,7 +3,7 @@
 #include "nad/algo/fn.h"
 #include "nad/core/export.h"
 #include "nad/core/cmp.h"
-#include "nad/ds/span.h"
+#include "nad/core/span.h"
 
 #include <stddef.h>
 

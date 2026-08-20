@@ -89,4 +89,3 @@ int nad_span_cmp(nad_Span a, nad_Span b, nad_Cmp cmp) {
     }
     return (a.len > b.len) - (a.len < b.len);
 }
-

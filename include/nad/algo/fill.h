@@ -2,7 +2,7 @@
 
 #include "nad/algo/fn.h"
 #include "nad/core/export.h"
-#include "nad/ds/span.h"
+#include "nad/core/span.h"
 
 NAD_API
 void nad_span_fill(nad_SpanMut s, const void *val);

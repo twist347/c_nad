@@ -2,7 +2,7 @@
 
 #include "nad/core/cmp.h"
 #include "nad/core/export.h"
-#include "nad/ds/span.h"
+#include "nad/core/span.h"
 
 /* ========== equality ========== */
 
