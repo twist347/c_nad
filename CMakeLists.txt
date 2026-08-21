@@ -17,6 +17,7 @@ set(NAD_ALGO_SOURCES
         src/algo/modify.c
         src/algo/permute.c
         src/algo/search.c
+        src/algo/set.c
         src/algo/sort.c
         src/algo/transform.c
 )

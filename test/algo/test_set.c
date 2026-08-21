@@ -1,0 +1,399 @@
+#include "nad/algo/set.h"
+#include "nad/algo/sort.h"
+#include "nad/core/cmp.h"
+
+#include "support/pair.h"
+
+#include "unity.h"
+
+#include <stdint.h>
+#include <string.h>
+
+void setUp() {
+}
+
+void tearDown() {
+}
+
+/* ========== helpers ========== */
+
+// order over Pair by its first field, so two elems can be equal by 'cmp' and still be
+// told apart by the payload — that is what makes "taken from 'a'" observable
+static int cmp_pair_a(const void *lhs, const void *rhs) {
+    return nad_cmp_i64(&((const Pair *) lhs)->a, &((const Pair *) rhs)->a);
+}
+
+// a value that cannot come out of any operation, so anything left over in dst is visible
+static constexpr int32_t UNTOUCHED = 0x7f7f7f7f;
+
+static nad_Span span_of(const int32_t *v, size_t n) {
+    return nad_span_new(v, n, sizeof(int32_t));
+}
+
+// runs 'op' into a dst prefilled with UNTOUCHED and checks three things at once: the
+// elems, the returned count, and that nothing was written past that count
+static void assert_writes(
+    size_t (*op)(nad_SpanMut, nad_Span, nad_Span, nad_Cmp),
+    const int32_t *a, size_t an,
+    const int32_t *b, size_t bn,
+    const int32_t *want, size_t wn,
+    size_t cap
+) {
+    int32_t dst[32];
+    TEST_ASSERT_TRUE(cap <= 32);
+
+    for (size_t i = 0; i < 32; ++i) {
+        dst[i] = UNTOUCHED;
+    }
+
+    const size_t got = op(nad_span_new_mut(dst, cap, sizeof(int32_t)), span_of(a, an), span_of(b, bn), nad_cmp_i32);
+
+    TEST_ASSERT_EQUAL_size_t(wn, got);
+
+    // Unity refuses to compare arrays of length zero, and an empty result is a case
+    // these ops hit often — the count above is the whole assertion then
+    if (wn > 0) {
+        TEST_ASSERT_EQUAL_INT32_ARRAY(want, dst, wn);
+    }
+
+    for (size_t i = got; i < 32; ++i) {
+        TEST_ASSERT_EQUAL_INT32_MESSAGE(UNTOUCHED, dst[i], "wrote past the count it reported");
+    }
+
+    // the result is sorted, which is what lets these compose without a sort in between
+    TEST_ASSERT_TRUE(nad_span_is_sorted(span_of(dst, got), nad_cmp_i32));
+}
+
+/* ========== union ========== */
+
+static void test_union_keeps_the_greater_count_of_equal_elems() {
+    const int32_t a[] = {1, 2, 2, 2, 5};
+    const int32_t b[] = {2, 2, 3};
+    const int32_t want[] = {1, 2, 2, 2, 3, 5};
+
+    assert_writes(nad_span_set_union, a, 5, b, 3, want, 6, 8);
+}
+
+static void test_union_of_disjoint_spans_is_everything() {
+    const int32_t a[] = {1, 3, 5};
+    const int32_t b[] = {2, 4, 6};
+    const int32_t want[] = {1, 2, 3, 4, 5, 6};
+
+    assert_writes(nad_span_set_union, a, 3, b, 3, want, 6, 6);
+}
+
+static void test_union_with_an_empty_span_is_the_other_one() {
+    const int32_t a[] = {1, 2, 3};
+    const int32_t want[] = {1, 2, 3};
+
+    assert_writes(nad_span_set_union, a, 3, nullptr, 0, want, 3, 3);
+    assert_writes(nad_span_set_union, nullptr, 0, a, 3, want, 3, 3);
+}
+
+static void test_union_of_two_empty_spans_writes_nothing() {
+    assert_writes(nad_span_set_union, nullptr, 0, nullptr, 0, nullptr, 0, 0);
+}
+
+/* ========== intersection ========== */
+
+static void test_intersection_takes_the_lesser_count() {
+    const int32_t a[] = {1, 2, 2, 2, 5};
+    const int32_t b[] = {2, 2, 3};
+    const int32_t want[] = {2, 2};
+
+    assert_writes(nad_span_set_intersection, a, 5, b, 3, want, 2, 3);
+}
+
+static void test_intersection_of_disjoint_spans_is_empty() {
+    const int32_t a[] = {1, 3, 5};
+    const int32_t b[] = {2, 4, 6};
+
+    assert_writes(nad_span_set_intersection, a, 3, b, 3, nullptr, 0, 3);
+}
+
+static void test_intersection_with_an_empty_span_is_empty() {
+    const int32_t a[] = {1, 2, 3};
+
+    assert_writes(nad_span_set_intersection, a, 3, nullptr, 0, nullptr, 0, 0);
+    assert_writes(nad_span_set_intersection, nullptr, 0, a, 3, nullptr, 0, 0);
+}
+
+// Equal by 'cmp' is not identical, so WHICH side an elem comes from is observable and is
+// a decision, not an accident. On plain int32_t both choices look the same — the payload
+// is the witness, the same way it is for equal keys in a heap
+static void test_intersection_takes_its_elems_from_the_first_span() {
+    const Pair a[] = {{.a = 1, .b = 10}, {.a = 2, .b = 20}};
+    const Pair b[] = {{.a = 1, .b = 99}, {.a = 2, .b = 98}};
+    Pair dst[2] = {};
+
+    const size_t got = nad_span_set_intersection(
+        nad_span_new_mut(dst, 2, sizeof(Pair)),
+        nad_span_new(a, 2, sizeof(Pair)),
+        nad_span_new(b, 2, sizeof(Pair)),
+        cmp_pair_a
+    );
+
+    TEST_ASSERT_EQUAL_size_t(2, got);
+    TEST_ASSERT_EQUAL_INT64(10, dst[0].b);
+    TEST_ASSERT_EQUAL_INT64(20, dst[1].b);
+}
+
+/* ========== difference ========== */
+
+static void test_difference_spends_one_copy_per_copy() {
+    const int32_t a[] = {1, 2, 2, 2, 5};
+    const int32_t b[] = {2, 2, 3};
+    const int32_t want[] = {1, 2, 5};
+
+    assert_writes(nad_span_set_difference, a, 5, b, 3, want, 3, 5);
+}
+
+// elems that only 'b' has cancel nothing — the result is never longer than 'a', but what
+// is left over in 'b' must not shorten it either
+static void test_difference_ignores_what_only_the_second_span_has() {
+    const int32_t a[] = {1, 2};
+    const int32_t b[] = {3, 4, 5, 6};
+    const int32_t want[] = {1, 2};
+
+    assert_writes(nad_span_set_difference, a, 2, b, 4, want, 2, 2);
+}
+
+static void test_difference_from_an_equal_span_is_empty() {
+    const int32_t a[] = {1, 2, 3};
+
+    assert_writes(nad_span_set_difference, a, 3, a, 3, nullptr, 0, 3);
+}
+
+static void test_difference_with_an_empty_second_span_is_the_first() {
+    const int32_t a[] = {1, 2, 3};
+    const int32_t want[] = {1, 2, 3};
+
+    assert_writes(nad_span_set_difference, a, 3, nullptr, 0, want, 3, 3);
+}
+
+/* ========== symmetric difference ========== */
+
+static void test_symmetric_difference_keeps_the_surplus() {
+    const int32_t a[] = {1, 2, 2, 2, 5};
+    const int32_t b[] = {2, 2, 3};
+    const int32_t want[] = {1, 2, 3, 5};
+
+    assert_writes(nad_span_set_symmetric_difference, a, 5, b, 3, want, 4, 8);
+}
+
+// the surplus is taken from whichever side has more, so it is not always 'a'
+static void test_symmetric_difference_takes_the_surplus_from_either_side() {
+    const int32_t a[] = {7};
+    const int32_t b[] = {7, 7, 7};
+    const int32_t want[] = {7, 7};
+
+    assert_writes(nad_span_set_symmetric_difference, a, 1, b, 3, want, 2, 4);
+}
+
+static void test_symmetric_difference_of_equal_spans_is_empty() {
+    const int32_t a[] = {1, 2, 3};
+
+    assert_writes(nad_span_set_symmetric_difference, a, 3, a, 3, nullptr, 0, 6);
+}
+
+static void test_symmetric_difference_of_disjoint_spans_is_everything() {
+    const int32_t a[] = {1, 3};
+    const int32_t b[] = {2, 4};
+    const int32_t want[] = {1, 2, 3, 4};
+
+    assert_writes(nad_span_set_symmetric_difference, a, 2, b, 2, want, 4, 4);
+}
+
+/* ========== includes ========== */
+
+static void test_includes_accepts_a_subset() {
+    const int32_t sup[] = {1, 2, 3, 4, 5};
+    const int32_t sub[] = {2, 4};
+
+    TEST_ASSERT_TRUE(nad_span_includes(span_of(sup, 5), span_of(sub, 2), nad_cmp_i32));
+}
+
+static void test_includes_rejects_a_missing_elem() {
+    const int32_t sup[] = {1, 2, 3};
+    const int32_t sub[] = {2, 9};
+
+    TEST_ASSERT_FALSE(nad_span_includes(span_of(sup, 3), span_of(sub, 2), nad_cmp_i32));
+}
+
+// a duplicate needs a duplicate: two copies are not accounted for by one
+static void test_includes_counts_duplicates() {
+    const int32_t sup[] = {1, 2, 2, 3};
+    const int32_t two[] = {2, 2};
+    const int32_t three[] = {2, 2, 2};
+
+    TEST_ASSERT_TRUE(nad_span_includes(span_of(sup, 4), span_of(two, 2), nad_cmp_i32));
+    TEST_ASSERT_FALSE(nad_span_includes(span_of(sup, 4), span_of(three, 3), nad_cmp_i32));
+}
+
+static void test_includes_of_an_empty_sub_is_true() {
+    const int32_t sup[] = {1, 2, 3};
+
+    TEST_ASSERT_TRUE(nad_span_includes(span_of(sup, 3), span_of(nullptr, 0), nad_cmp_i32));
+    TEST_ASSERT_TRUE(nad_span_includes(span_of(nullptr, 0), span_of(nullptr, 0), nad_cmp_i32));
+}
+
+static void test_includes_rejects_anything_from_an_empty_sup() {
+    const int32_t sub[] = {1};
+
+    TEST_ASSERT_FALSE(nad_span_includes(span_of(nullptr, 0), span_of(sub, 1), nad_cmp_i32));
+}
+
+// the last elem of 'sub' has to be reached without walking off 'sup'
+static void test_includes_rejects_a_sub_that_runs_past_the_end() {
+    const int32_t sup[] = {1, 2};
+    const int32_t sub[] = {1, 2, 3};
+
+    TEST_ASSERT_FALSE(nad_span_includes(span_of(sup, 2), span_of(sub, 3), nad_cmp_i32));
+}
+
+/* ========== exhaustive ========== */
+
+/*
+ * Every one of the five against a reference that shares no code with them: multisets are
+ * counted per value, and the answer is built from the counts by the rule in set.h. The
+ * sweep visits every pair of sorted multisets over a four-symbol alphabet up to length
+ * four, both sides — 24500 checks in all.
+ *
+ * Small on purpose: a two-pointer walk has nothing to say about long inputs that it does
+ * not already say about short ones, and every arrangement of a short one is reachable.
+ */
+
+#define ALPHA 4
+#define MAXLEN 4
+
+static void count_values(const int32_t *v, size_t n, int *out) {
+    memset(out, 0, ALPHA * sizeof(int));
+    for (size_t i = 0; i < n; ++i) {
+        ++out[v[i]];
+    }
+}
+
+static size_t expand_counts(const int *c, int32_t *out) {
+    size_t n = 0;
+    for (int32_t v = 0; v < ALPHA; ++v) {
+        for (int k = 0; k < c[v]; ++k) {
+            out[n++] = v;
+        }
+    }
+    return n;
+}
+
+static void check_pair(const int32_t *a, size_t an, const int32_t *b, size_t bn) {
+    int ca[ALPHA];
+    int cb[ALPHA];
+    int want_counts[ALPHA];
+    int32_t want[2 * MAXLEN];
+
+    count_values(a, an, ca);
+    count_values(b, bn, cb);
+
+    static size_t (*const ops[4])(nad_SpanMut, nad_Span, nad_Span, nad_Cmp) = {
+        nad_span_set_union,
+        nad_span_set_intersection,
+        nad_span_set_difference,
+        nad_span_set_symmetric_difference,
+    };
+
+    for (size_t k = 0; k < 4; ++k) {
+        for (int v = 0; v < ALPHA; ++v) {
+            const int m = ca[v];
+            const int n = cb[v];
+            switch (k) {
+                case 0: want_counts[v] = m > n ? m : n;
+                    break;
+                case 1: want_counts[v] = m < n ? m : n;
+                    break;
+                case 2: want_counts[v] = m > n ? m - n : 0;
+                    break;
+                default: want_counts[v] = m > n ? m - n : n - m;
+                    break;
+            }
+        }
+
+        const size_t wn = expand_counts(want_counts, want);
+        const size_t cap = k == 1 ? (an < bn ? an : bn) : (k == 2 ? an : an + bn);
+
+        assert_writes(ops[k], a, an, b, bn, want, wn, cap);
+    }
+
+    bool want_includes = true;
+    for (int v = 0; v < ALPHA; ++v) {
+        if (cb[v] > ca[v]) {
+            want_includes = false;
+        }
+    }
+    TEST_ASSERT_EQUAL_INT(want_includes, nad_span_includes(span_of(a, an), span_of(b, bn), nad_cmp_i32));
+}
+
+static int32_t sweep_a[MAXLEN];
+static int32_t sweep_b[MAXLEN];
+
+static void sweep_b_of_len(size_t n, size_t i, int32_t lo, size_t an) {
+    if (i == n) {
+        check_pair(sweep_a, an, sweep_b, n);
+        return;
+    }
+    for (int32_t v = lo; v < ALPHA; ++v) {
+        sweep_b[i] = v;
+        sweep_b_of_len(n, i + 1, v, an);
+    }
+}
+
+static void sweep_a_of_len(size_t n, size_t i, int32_t lo) {
+    if (i == n) {
+        for (size_t bn = 0; bn <= MAXLEN; ++bn) {
+            sweep_b_of_len(bn, 0, 0, n);
+        }
+        return;
+    }
+    for (int32_t v = lo; v < ALPHA; ++v) {
+        sweep_a[i] = v;
+        sweep_a_of_len(n, i + 1, v);
+    }
+}
+
+static void test_every_op_agrees_with_a_counting_reference() {
+    for (size_t an = 0; an <= MAXLEN; ++an) {
+        sweep_a_of_len(an, 0, 0);
+    }
+}
+
+int main() {
+    UNITY_BEGIN();
+
+    RUN_TEST(test_union_keeps_the_greater_count_of_equal_elems);
+    RUN_TEST(test_union_of_disjoint_spans_is_everything);
+    RUN_TEST(test_union_with_an_empty_span_is_the_other_one);
+    RUN_TEST(test_union_of_two_empty_spans_writes_nothing);
+
+    RUN_TEST(test_intersection_takes_the_lesser_count);
+    RUN_TEST(test_intersection_of_disjoint_spans_is_empty);
+    RUN_TEST(test_intersection_with_an_empty_span_is_empty);
+    RUN_TEST(test_intersection_takes_its_elems_from_the_first_span);
+
+    RUN_TEST(test_difference_spends_one_copy_per_copy);
+    RUN_TEST(test_difference_ignores_what_only_the_second_span_has);
+    RUN_TEST(test_difference_from_an_equal_span_is_empty);
+    RUN_TEST(test_difference_with_an_empty_second_span_is_the_first);
+
+    RUN_TEST(test_symmetric_difference_keeps_the_surplus);
+    RUN_TEST(test_symmetric_difference_takes_the_surplus_from_either_side);
+    RUN_TEST(test_symmetric_difference_of_equal_spans_is_empty);
+    RUN_TEST(test_symmetric_difference_of_disjoint_spans_is_everything);
+
+    RUN_TEST(test_includes_accepts_a_subset);
+    RUN_TEST(test_includes_rejects_a_missing_elem);
+    RUN_TEST(test_includes_counts_duplicates);
+    RUN_TEST(test_includes_of_an_empty_sub_is_true);
+    RUN_TEST(test_includes_rejects_anything_from_an_empty_sup);
+    RUN_TEST(test_includes_rejects_a_sub_that_runs_past_the_end);
+
+    RUN_TEST(test_every_op_agrees_with_a_counting_reference);
+
+    return UNITY_END();
+}
