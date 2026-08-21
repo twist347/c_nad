@@ -550,6 +550,349 @@ static void test_minmax_elem_of_a_single_elem() {
     TEST_ASSERT_EQUAL_size_t(0, mm.max);
 }
 
+/* ========== find_sub / find_sub_last ========== */
+
+static void test_find_sub_reports_the_first_occurrence() {
+    constexpr int32_t buf[8] = {5, 1, 2, 3, 1, 2, 3, 9};
+    constexpr int32_t pat[3] = {1, 2, 3};
+
+    size_t idx = 999;
+    TEST_ASSERT_TRUE(nad_span_find_sub(NAD_SPAN_NEW(int32_t, buf, 8),
+        NAD_SPAN_NEW(int32_t, pat, 3), nad_eq_i32, &idx));
+    TEST_ASSERT_EQUAL_size_t(1, idx);
+}
+
+static void test_find_sub_last_reports_the_last_occurrence() {
+    constexpr int32_t buf[8] = {5, 1, 2, 3, 1, 2, 3, 9};
+    constexpr int32_t pat[3] = {1, 2, 3};
+
+    size_t idx = 999;
+    TEST_ASSERT_TRUE(nad_span_find_sub_last(NAD_SPAN_NEW(int32_t, buf, 8),
+        NAD_SPAN_NEW(int32_t, pat, 3), nad_eq_i32, &idx));
+    TEST_ASSERT_EQUAL_size_t(4, idx);
+}
+
+// a single occurrence is both the first and the last one
+static void test_the_two_sub_finders_agree_on_a_unique_occurrence() {
+    constexpr int32_t buf[6] = {8, 8, 1, 2, 8, 8};
+    constexpr int32_t pat[2] = {1, 2};
+    const nad_Span s = NAD_SPAN_NEW(int32_t, buf, 6);
+    const nad_Span sub = NAD_SPAN_NEW(int32_t, pat, 2);
+
+    size_t first = 0, last = 0;
+    TEST_ASSERT_TRUE(nad_span_find_sub(s, sub, nad_eq_i32, &first));
+    TEST_ASSERT_TRUE(nad_span_find_sub_last(s, sub, nad_eq_i32, &last));
+    TEST_ASSERT_EQUAL_size_t(2, first);
+    TEST_ASSERT_EQUAL_size_t(first, last);
+}
+
+// overlapping occurrences are occurrences: aa sits at 0, 1 and 2 in aaaa
+static void test_the_sub_finders_see_overlapping_occurrences() {
+    constexpr int32_t buf[4] = {7, 7, 7, 7};
+    constexpr int32_t pat[2] = {7, 7};
+    const nad_Span s = NAD_SPAN_NEW(int32_t, buf, 4);
+    const nad_Span sub = NAD_SPAN_NEW(int32_t, pat, 2);
+
+    size_t first = 0, last = 0;
+    TEST_ASSERT_TRUE(nad_span_find_sub(s, sub, nad_eq_i32, &first));
+    TEST_ASSERT_TRUE(nad_span_find_sub_last(s, sub, nad_eq_i32, &last));
+    TEST_ASSERT_EQUAL_size_t(0, first);
+    TEST_ASSERT_EQUAL_size_t(2, last);
+}
+
+// a partial prefix must not be reported: the match has to run to the end of sub
+static void test_find_sub_does_not_settle_for_a_prefix() {
+    constexpr int32_t buf[5] = {1, 2, 9, 1, 2};
+    constexpr int32_t pat[3] = {1, 2, 3};
+    const nad_Span s = NAD_SPAN_NEW(int32_t, buf, 5);
+    const nad_Span sub = NAD_SPAN_NEW(int32_t, pat, 3);
+
+    size_t idx = 111;
+    TEST_ASSERT_FALSE(nad_span_find_sub(s, sub, nad_eq_i32, &idx));
+    TEST_ASSERT_FALSE(nad_span_find_sub_last(s, sub, nad_eq_i32, &idx));
+    TEST_ASSERT_EQUAL_size_t(111, idx);
+}
+
+// a sub that runs to the very end still fits — the loop must not stop one short
+static void test_the_sub_finders_match_at_the_end() {
+    constexpr int32_t buf[4] = {1, 2, 3, 4};
+    constexpr int32_t pat[2] = {3, 4};
+    const nad_Span s = NAD_SPAN_NEW(int32_t, buf, 4);
+    const nad_Span sub = NAD_SPAN_NEW(int32_t, pat, 2);
+
+    size_t first = 0, last = 0;
+    TEST_ASSERT_TRUE(nad_span_find_sub(s, sub, nad_eq_i32, &first));
+    TEST_ASSERT_TRUE(nad_span_find_sub_last(s, sub, nad_eq_i32, &last));
+    TEST_ASSERT_EQUAL_size_t(2, first);
+    TEST_ASSERT_EQUAL_size_t(2, last);
+}
+
+// the whole span is one of its own subspans
+static void test_the_sub_finders_match_the_whole_span() {
+    constexpr int32_t buf[3] = {1, 2, 3};
+    const nad_Span s = NAD_SPAN_NEW(int32_t, buf, 3);
+
+    size_t first = 9, last = 9;
+    TEST_ASSERT_TRUE(nad_span_find_sub(s, s, nad_eq_i32, &first));
+    TEST_ASSERT_TRUE(nad_span_find_sub_last(s, s, nad_eq_i32, &last));
+    TEST_ASSERT_EQUAL_size_t(0, first);
+    TEST_ASSERT_EQUAL_size_t(0, last);
+}
+
+// an empty sub occurs everywhere, so the two finders answer at opposite ends
+static void test_an_empty_sub_is_found_at_both_ends() {
+    constexpr int32_t buf[3] = {1, 2, 3};
+    const nad_Span s = NAD_SPAN_NEW(int32_t, buf, 3);
+    const nad_Span empty = NAD_SPAN_NEW(int32_t, buf, 0);
+
+    size_t first = 9, last = 9;
+    TEST_ASSERT_TRUE(nad_span_find_sub(s, empty, nad_eq_i32, &first));
+    TEST_ASSERT_TRUE(nad_span_find_sub_last(s, empty, nad_eq_i32, &last));
+    TEST_ASSERT_EQUAL_size_t(0, first);
+    TEST_ASSERT_EQUAL_size_t(3, last);
+}
+
+// a sub longer than the span cannot fit — and the length check must come before
+// any indexing, hence the empty span too
+static void test_the_sub_finders_miss_when_sub_does_not_fit() {
+    constexpr int32_t buf[2] = {1, 2};
+    constexpr int32_t pat[3] = {1, 2, 3};
+    const nad_Span s = NAD_SPAN_NEW(int32_t, buf, 2);
+    const nad_Span sub = NAD_SPAN_NEW(int32_t, pat, 3);
+    const nad_Span empty = NAD_SPAN_NEW(int32_t, buf, 0);
+
+    size_t idx = 222;
+    TEST_ASSERT_FALSE(nad_span_find_sub(s, sub, nad_eq_i32, &idx));
+    TEST_ASSERT_FALSE(nad_span_find_sub_last(s, sub, nad_eq_i32, &idx));
+    TEST_ASSERT_FALSE(nad_span_find_sub(empty, sub, nad_eq_i32, &idx));
+    TEST_ASSERT_FALSE(nad_span_find_sub_last(empty, sub, nad_eq_i32, &idx));
+    TEST_ASSERT_EQUAL_size_t(222, idx);
+}
+
+// a one elem sub is the same question nad_span_find answers
+static void test_find_sub_of_one_elem_agrees_with_find() {
+    constexpr int32_t buf[6] = {4, 5, 6, 5, 4, 5};
+    const nad_Span s = NAD_SPAN_NEW(int32_t, buf, 6);
+
+    for (int32_t key = 3; key <= 7; ++key) {
+        const nad_Span sub = NAD_SPAN_NEW(int32_t, &key, 1);
+
+        size_t by_find = 99, by_sub = 88;
+        const bool hit = nad_span_find(s, &key, nad_eq_i32, &by_find);
+
+        TEST_ASSERT_EQUAL(hit, nad_span_find_sub(s, sub, nad_eq_i32, &by_sub));
+        if (hit) {
+            TEST_ASSERT_EQUAL_size_t(by_find, by_sub);
+        }
+    }
+}
+
+/* ========== find_run ========== */
+
+static void test_find_run_reports_the_start_of_the_first_long_enough_run() {
+    constexpr int32_t buf[9] = {1, 0, 1, 1, 0, 1, 1, 1, 0};
+    constexpr int32_t key = 1;
+    const nad_Span s = NAD_SPAN_NEW(int32_t, buf, 9);
+
+    size_t idx = 999;
+    TEST_ASSERT_TRUE(nad_span_find_run(s, &key, 3, nad_eq_i32, &idx));
+    TEST_ASSERT_EQUAL_size_t(5, idx);
+}
+
+// a shorter demand is met earlier — the run of two comes before the run of three
+static void test_find_run_of_two_stops_at_the_earlier_run() {
+    constexpr int32_t buf[9] = {1, 0, 1, 1, 0, 1, 1, 1, 0};
+    constexpr int32_t key = 1;
+    const nad_Span s = NAD_SPAN_NEW(int32_t, buf, 9);
+
+    size_t idx = 999;
+    TEST_ASSERT_TRUE(nad_span_find_run(s, &key, 2, nad_eq_i32, &idx));
+    TEST_ASSERT_EQUAL_size_t(2, idx);
+}
+
+// the run has to be consecutive: three scattered matches are not a run of three
+static void test_find_run_does_not_add_up_scattered_matches() {
+    constexpr int32_t buf[6] = {1, 0, 1, 0, 1, 0};
+    constexpr int32_t key = 1;
+
+    size_t idx = 333;
+    TEST_ASSERT_FALSE(nad_span_find_run(NAD_SPAN_NEW(int32_t, buf, 6), &key, 2, nad_eq_i32, &idx));
+    TEST_ASSERT_EQUAL_size_t(333, idx);
+}
+
+// a run of one is a single match, so it must agree with find
+static void test_find_run_of_one_agrees_with_find() {
+    constexpr int32_t buf[5] = {4, 5, 6, 5, 4};
+    constexpr int32_t key = 5;
+    const nad_Span s = NAD_SPAN_NEW(int32_t, buf, 5);
+
+    size_t by_find = 0, by_run = 0;
+    TEST_ASSERT_TRUE(nad_span_find(s, &key, nad_eq_i32, &by_find));
+    TEST_ASSERT_TRUE(nad_span_find_run(s, &key, 1, nad_eq_i32, &by_run));
+    TEST_ASSERT_EQUAL_size_t(by_find, by_run);
+}
+
+// a run of zero is demanded of nothing, so it is found at once — even on an empty span
+static void test_find_run_of_zero_is_found_at_the_front() {
+    constexpr int32_t buf[3] = {1, 2, 3};
+    constexpr int32_t key = 9;
+
+    size_t idx = 999;
+    TEST_ASSERT_TRUE(nad_span_find_run(NAD_SPAN_NEW(int32_t, buf, 3), &key, 0, nad_eq_i32, &idx));
+    TEST_ASSERT_EQUAL_size_t(0, idx);
+
+    idx = 999;
+    TEST_ASSERT_TRUE(nad_span_find_run(NAD_SPAN_NEW(int32_t, buf, 0), &key, 0, nad_eq_i32, &idx));
+    TEST_ASSERT_EQUAL_size_t(0, idx);
+}
+
+// a run reaching the last elem is still a run, and one longer than the span never is
+static void test_find_run_at_the_end_and_longer_than_the_span() {
+    constexpr int32_t buf[4] = {0, 1, 1, 1};
+    constexpr int32_t key = 1;
+    const nad_Span s = NAD_SPAN_NEW(int32_t, buf, 4);
+
+    size_t idx = 444;
+    TEST_ASSERT_TRUE(nad_span_find_run(s, &key, 3, nad_eq_i32, &idx));
+    TEST_ASSERT_EQUAL_size_t(1, idx);
+
+    idx = 444;
+    TEST_ASSERT_FALSE(nad_span_find_run(s, &key, 5, nad_eq_i32, &idx));
+    TEST_ASSERT_EQUAL_size_t(444, idx);
+}
+
+// a run of n implies a run of every shorter length, at an index no later
+static void test_find_run_is_monotonic_in_n() {
+    constexpr int32_t buf[10] = {2, 1, 1, 2, 1, 1, 1, 1, 2, 1};
+    constexpr int32_t key = 1;
+    const nad_Span s = NAD_SPAN_NEW(int32_t, buf, 10);
+
+    size_t prev = 0;
+    TEST_ASSERT_TRUE(nad_span_find_run(s, &key, 1, nad_eq_i32, &prev));
+
+    for (size_t n = 2; n <= 4; ++n) {
+        size_t idx = 0;
+        TEST_ASSERT_TRUE(nad_span_find_run(s, &key, n, nad_eq_i32, &idx));
+        TEST_ASSERT_TRUE(idx >= prev);
+        prev = idx;
+    }
+
+    size_t idx = 555;
+    TEST_ASSERT_FALSE(nad_span_find_run(s, &key, 5, nad_eq_i32, &idx));
+}
+
+/* ========== find_any_of ========== */
+
+static void test_find_any_of_reports_the_first_elem_from_the_set() {
+    constexpr int32_t buf[6] = {7, 8, 3, 9, 2, 3};
+    constexpr int32_t set[3] = {2, 3, 4};
+
+    size_t idx = 999;
+    TEST_ASSERT_TRUE(nad_span_find_any_of(NAD_SPAN_NEW(int32_t, buf, 6),
+        NAD_SPAN_NEW(int32_t, set, 3), nad_eq_i32, &idx));
+    TEST_ASSERT_EQUAL_size_t(2, idx);
+}
+
+// position in the set says nothing: the earliest elem of the SPAN wins
+static void test_find_any_of_scans_the_span_not_the_set() {
+    constexpr int32_t buf[4] = {5, 6, 7, 8};
+    constexpr int32_t set[3] = {8, 7, 6};
+
+    size_t idx = 999;
+    TEST_ASSERT_TRUE(nad_span_find_any_of(NAD_SPAN_NEW(int32_t, buf, 4),
+        NAD_SPAN_NEW(int32_t, set, 3), nad_eq_i32, &idx));
+    TEST_ASSERT_EQUAL_size_t(1, idx);
+}
+
+static void test_find_any_of_misses_when_nothing_is_shared() {
+    constexpr int32_t buf[3] = {1, 2, 3};
+    constexpr int32_t set[2] = {4, 5};
+
+    size_t idx = 666;
+    TEST_ASSERT_FALSE(nad_span_find_any_of(NAD_SPAN_NEW(int32_t, buf, 3),
+        NAD_SPAN_NEW(int32_t, set, 2), nad_eq_i32, &idx));
+    TEST_ASSERT_EQUAL_size_t(666, idx);
+}
+
+// nothing is shared with an empty set, and an empty span shares nothing
+static void test_find_any_of_on_empty_sides() {
+    constexpr int32_t buf[3] = {1, 2, 3};
+    constexpr int32_t set[2] = {1, 2};
+
+    size_t idx = 777;
+    TEST_ASSERT_FALSE(nad_span_find_any_of(NAD_SPAN_NEW(int32_t, buf, 3),
+        NAD_SPAN_NEW(int32_t, set, 0), nad_eq_i32, &idx));
+    TEST_ASSERT_FALSE(nad_span_find_any_of(NAD_SPAN_NEW(int32_t, buf, 0),
+        NAD_SPAN_NEW(int32_t, set, 2), nad_eq_i32, &idx));
+    TEST_ASSERT_EQUAL_size_t(777, idx);
+}
+
+// a one elem set is the same question find answers
+static void test_find_any_of_a_single_elem_agrees_with_find() {
+    constexpr int32_t buf[5] = {9, 8, 7, 8, 9};
+    constexpr int32_t set[1] = {8};
+    const nad_Span s = NAD_SPAN_NEW(int32_t, buf, 5);
+
+    size_t by_find = 0, by_any = 0;
+    TEST_ASSERT_TRUE(nad_span_find(s, &set[0], nad_eq_i32, &by_find));
+    TEST_ASSERT_TRUE(nad_span_find_any_of(s, NAD_SPAN_NEW(int32_t, set, 1), nad_eq_i32, &by_any));
+    TEST_ASSERT_EQUAL_size_t(by_find, by_any);
+}
+
+/* ========== find_adjacent ========== */
+
+static void test_find_adjacent_reports_the_first_equal_pair() {
+    constexpr int32_t buf[7] = {1, 2, 3, 3, 4, 5, 5};
+
+    size_t idx = 999;
+    TEST_ASSERT_TRUE(nad_span_find_adjacent(NAD_SPAN_NEW(int32_t, buf, 7), nad_eq_i32, &idx));
+    TEST_ASSERT_EQUAL_size_t(2, idx);
+}
+
+// equal but not neighbours is not a pair
+static void test_find_adjacent_misses_when_no_two_neighbours_are_equal() {
+    constexpr int32_t buf[5] = {1, 2, 1, 2, 1};
+
+    size_t idx = 888;
+    TEST_ASSERT_FALSE(nad_span_find_adjacent(NAD_SPAN_NEW(int32_t, buf, 5), nad_eq_i32, &idx));
+    TEST_ASSERT_EQUAL_size_t(888, idx);
+}
+
+// a pair needs two elems, so nothing shorter can hold one
+static void test_find_adjacent_on_the_short_spans() {
+    constexpr int32_t buf[2] = {4, 4};
+
+    size_t idx = 999;
+    TEST_ASSERT_FALSE(nad_span_find_adjacent(NAD_SPAN_NEW(int32_t, buf, 0), nad_eq_i32, &idx));
+    TEST_ASSERT_FALSE(nad_span_find_adjacent(NAD_SPAN_NEW(int32_t, buf, 1), nad_eq_i32, &idx));
+    TEST_ASSERT_EQUAL_size_t(999, idx);
+
+    TEST_ASSERT_TRUE(nad_span_find_adjacent(NAD_SPAN_NEW(int32_t, buf, 2), nad_eq_i32, &idx));
+    TEST_ASSERT_EQUAL_size_t(0, idx);
+}
+
+// a pair at the very end must be seen — the scan must not stop one short
+static void test_find_adjacent_sees_a_pair_at_the_end() {
+    constexpr int32_t buf[4] = {1, 2, 3, 3};
+
+    size_t idx = 0;
+    TEST_ASSERT_TRUE(nad_span_find_adjacent(NAD_SPAN_NEW(int32_t, buf, 4), nad_eq_i32, &idx));
+    TEST_ASSERT_EQUAL_size_t(2, idx);
+}
+
+// the same question as a run of two, so the two must answer alike
+static void test_find_adjacent_agrees_with_a_run_of_two() {
+    constexpr int32_t buf[8] = {5, 1, 2, 2, 2, 7, 7, 0};
+    const nad_Span s = NAD_SPAN_NEW(int32_t, buf, 8);
+    constexpr int32_t key = 2;
+
+    size_t by_adj = 0, by_run = 0;
+    TEST_ASSERT_TRUE(nad_span_find_adjacent(s, nad_eq_i32, &by_adj));
+    TEST_ASSERT_TRUE(nad_span_find_run(s, &key, 2, nad_eq_i32, &by_run));
+    TEST_ASSERT_EQUAL_size_t(2, by_adj);
+    TEST_ASSERT_EQUAL_size_t(by_adj, by_run);
+}
+
 int main() {
     UNITY_BEGIN();
 
@@ -558,6 +901,37 @@ int main() {
     RUN_TEST(test_find_in_an_empty_span_misses);
     RUN_TEST(test_find_matches_the_last_elem);
     RUN_TEST(test_find_index_is_relative_to_the_span);
+
+    RUN_TEST(test_find_sub_reports_the_first_occurrence);
+    RUN_TEST(test_find_sub_last_reports_the_last_occurrence);
+    RUN_TEST(test_the_two_sub_finders_agree_on_a_unique_occurrence);
+    RUN_TEST(test_the_sub_finders_see_overlapping_occurrences);
+    RUN_TEST(test_find_sub_does_not_settle_for_a_prefix);
+    RUN_TEST(test_the_sub_finders_match_at_the_end);
+    RUN_TEST(test_the_sub_finders_match_the_whole_span);
+    RUN_TEST(test_an_empty_sub_is_found_at_both_ends);
+    RUN_TEST(test_the_sub_finders_miss_when_sub_does_not_fit);
+    RUN_TEST(test_find_sub_of_one_elem_agrees_with_find);
+
+    RUN_TEST(test_find_run_reports_the_start_of_the_first_long_enough_run);
+    RUN_TEST(test_find_run_of_two_stops_at_the_earlier_run);
+    RUN_TEST(test_find_run_does_not_add_up_scattered_matches);
+    RUN_TEST(test_find_run_of_one_agrees_with_find);
+    RUN_TEST(test_find_run_of_zero_is_found_at_the_front);
+    RUN_TEST(test_find_run_at_the_end_and_longer_than_the_span);
+    RUN_TEST(test_find_run_is_monotonic_in_n);
+
+    RUN_TEST(test_find_any_of_reports_the_first_elem_from_the_set);
+    RUN_TEST(test_find_any_of_scans_the_span_not_the_set);
+    RUN_TEST(test_find_any_of_misses_when_nothing_is_shared);
+    RUN_TEST(test_find_any_of_on_empty_sides);
+    RUN_TEST(test_find_any_of_a_single_elem_agrees_with_find);
+
+    RUN_TEST(test_find_adjacent_reports_the_first_equal_pair);
+    RUN_TEST(test_find_adjacent_misses_when_no_two_neighbours_are_equal);
+    RUN_TEST(test_find_adjacent_on_the_short_spans);
+    RUN_TEST(test_find_adjacent_sees_a_pair_at_the_end);
+    RUN_TEST(test_find_adjacent_agrees_with_a_run_of_two);
 
     RUN_TEST(test_contains);
     RUN_TEST(test_count_tallies_every_match);

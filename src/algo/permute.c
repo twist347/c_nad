@@ -1,5 +1,7 @@
 #include "nad/algo/permute.h"
 
+#include "nad/algo/copy.h"
+
 #include "internal/ptr.h"
 
 #include <assert.h>
@@ -89,6 +91,69 @@ size_t nad_span_partition(nad_SpanMut s, nad_Pred pred, void *ctx) {
         }
     }
     return boundary;
+}
+
+nad_Status nad_span_partition_stable(
+    nad_SpanMut s,
+    nad_Pred pred,
+    void *ctx,
+    nad_Al *al,
+    size_t *out_boundary
+) {
+    NAD_SPAN_ASSERT(s);
+    assert(pred);
+    assert(al);
+    assert(out_boundary);
+
+    // nothing to move and nothing to ask, so nothing to allocate either: an
+    // allocator with no room left must still be able to partition an empty span
+    if (s.len == 0) {
+        *out_boundary = 0;
+        return NAD_STATUS_OK;
+    }
+
+    const size_t bytes = s.len * s.elem_size;
+
+    // room for the whole span, though only the rejected elems are ever put there:
+    // how many those are is not known before pred has seen them all, and asking it
+    // twice to find out would be a second, differently timed set of answers
+    void *buf = nad_alloc(al, bytes);
+    if (!buf) {
+        return NAD_STATUS_OUT_OF_MEMORY;
+    }
+
+    const nad_Span view = nad_span_mut_to_span(s);
+    const nad_SpanMut rejected = nad_span_new_mut(buf, s.len, s.elem_size);
+
+    size_t kept = 0, dropped = 0;
+
+    for (size_t i = 0; i < s.len; ++i) {
+        const void *elem = nad_span_get(view, i);
+
+        if (pred(elem, ctx)) {
+            // kept never runs ahead of i, so this only ever overwrites an elem
+            // that has already been read
+            if (kept != i) {
+                nad_span_set(s, kept, elem);
+            }
+            ++kept;
+        } else {
+            nad_span_set(rejected, dropped, elem);
+            ++dropped;
+        }
+    }
+
+    // the front holds the kept ones in order, the rest of the span is free for the
+    // rejected ones — also in order, since they were appended as they were met
+    nad_span_copy(
+        nad_span_sub_mut(s, kept, dropped),
+        nad_span_sub(nad_span_mut_to_span(rejected), 0, dropped)
+    );
+
+    nad_dealloc(al, buf, bytes);
+
+    *out_boundary = kept;
+    return NAD_STATUS_OK;
 }
 
 bool nad_span_is_partitioned(nad_Span s, nad_Pred pred, void *ctx) {

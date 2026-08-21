@@ -1,7 +1,11 @@
 #include "nad/algo/permute.h"
+#include "nad/algo/search.h"
+#include "nad/alloc/default.h"
 #include "nad/core/util.h"
 
 #include "support/pair.h"
+#include "support/probe.h"
+#include "support/status.h"
 
 #include "unity.h"
 
@@ -22,6 +26,14 @@ static bool is_even(const void *elem, void *ctx) {
 
 static bool greater_than(const void *elem, void *ctx) {
     return *(const int32_t *) elem > *(const int32_t *) ctx;
+}
+
+// the same question as is_even, but it keeps a tally in ctx: how many times a
+// partition asks about an elem is part of its contract
+static bool is_even_counting(const void *elem, void *ctx) {
+    ++*(size_t *) ctx;
+
+    return *(const int32_t *) elem % 2 == 0;
 }
 
 // the multiset must survive a permutation, whatever the order
@@ -414,6 +426,189 @@ static void test_partition_moves_whole_elems() {
     }
 }
 
+/* ========== partition_stable ========== */
+
+static void test_partition_stable_keeps_the_order_on_both_sides() {
+    int32_t buf[6] = {1, 2, 3, 4, 5, 6};
+
+    size_t boundary = 999;
+    NAD_TEST_OK(nad_span_partition_stable(NAD_SPAN_NEW_MUT(int32_t, buf, 6), is_even, nullptr,
+                                          nad_al_default(), &boundary));
+
+    constexpr int32_t want[6] = {2, 4, 6, 1, 3, 5};
+    TEST_ASSERT_EQUAL_size_t(3, boundary);
+    TEST_ASSERT_EQUAL_INT32_ARRAY(want, buf, 6);
+}
+
+// the two partitions disagree about the order inside each side, never about where
+// the sides meet — same span, same pred, same boundary
+static void test_partition_stable_agrees_with_partition_on_the_boundary() {
+    int32_t stable_buf[7] = {4, 1, 6, 3, 8, 5, 2};
+    int32_t plain_buf[7] = {4, 1, 6, 3, 8, 5, 2};
+
+    size_t stable = 999;
+    NAD_TEST_OK(nad_span_partition_stable(NAD_SPAN_NEW_MUT(int32_t, stable_buf, 7), is_even,
+                                          nullptr, nad_al_default(), &stable));
+
+    const size_t plain = nad_span_partition(NAD_SPAN_NEW_MUT(int32_t, plain_buf, 7), is_even, nullptr);
+
+    TEST_ASSERT_EQUAL_size_t(plain, stable);
+    assert_same_elems(stable_buf, plain_buf, 7);
+}
+
+// the whole point: elems the pred cannot tell apart come out in the order they went in.
+// The tag in b witnesses it — nothing else here can
+static void test_partition_stable_keeps_equal_elems_in_order() {
+    Pair buf[6] = {{1, 0}, {-1, 1}, {1, 2}, {-1, 3}, {-1, 4}, {1, 5}};
+
+    size_t boundary = 999;
+    NAD_TEST_OK(nad_span_partition_stable(NAD_SPAN_NEW_MUT(Pair, buf, 6),
+                                          nad_test_pair_a_is_positive, nullptr,
+                                          nad_al_default(), &boundary));
+
+    TEST_ASSERT_EQUAL_size_t(3, boundary);
+    constexpr int64_t want_tags[6] = {0, 2, 5, 1, 3, 4};
+    for (size_t i = 0; i < 6; ++i) {
+        TEST_ASSERT_EQUAL_INT64(want_tags[i], buf[i].b);
+    }
+}
+
+// a span already split by the pred is its own stable partition, byte for byte
+static void test_partition_stable_leaves_a_partitioned_span_alone() {
+    int32_t buf[5] = {2, 4, 1, 3, 5};
+
+    size_t boundary = 999;
+    NAD_TEST_OK(nad_span_partition_stable(NAD_SPAN_NEW_MUT(int32_t, buf, 5), is_even, nullptr,
+                                          nad_al_default(), &boundary));
+
+    constexpr int32_t want[5] = {2, 4, 1, 3, 5};
+    TEST_ASSERT_EQUAL_size_t(2, boundary);
+    TEST_ASSERT_EQUAL_INT32_ARRAY(want, buf, 5);
+}
+
+static void test_partition_stable_at_the_ends() {
+    int32_t all[3] = {2, 4, 6};
+    int32_t none[3] = {1, 3, 5};
+
+    size_t boundary = 999;
+    NAD_TEST_OK(nad_span_partition_stable(NAD_SPAN_NEW_MUT(int32_t, all, 3), is_even, nullptr,
+                                          nad_al_default(), &boundary));
+    TEST_ASSERT_EQUAL_size_t(3, boundary);
+    TEST_ASSERT_EQUAL_INT32_ARRAY(((int32_t[]){2, 4, 6}), all, 3);
+
+    NAD_TEST_OK(nad_span_partition_stable(NAD_SPAN_NEW_MUT(int32_t, none, 3), is_even, nullptr,
+                                          nad_al_default(), &boundary));
+    TEST_ASSERT_EQUAL_size_t(0, boundary);
+    TEST_ASSERT_EQUAL_INT32_ARRAY(((int32_t[]){1, 3, 5}), none, 3);
+}
+
+static void test_partition_stable_result_is_partitioned() {
+    int32_t buf[8] = {7, 2, 9, 4, 1, 6, 3, 8};
+    const nad_SpanMut s = NAD_SPAN_NEW_MUT(int32_t, buf, 8);
+
+    size_t boundary = 999;
+    NAD_TEST_OK(nad_span_partition_stable(s, is_even, nullptr, nad_al_default(), &boundary));
+
+    TEST_ASSERT_TRUE(nad_span_is_partitioned(nad_span_mut_to_span(s), is_even, nullptr));
+    TEST_ASSERT_EQUAL_size_t(nad_span_partition_point(nad_span_mut_to_span(s), is_even, nullptr),
+                             boundary);
+}
+
+static void test_partition_stable_passes_the_ctx_through() {
+    int32_t buf[5] = {1, 5, 2, 4, 3};
+    constexpr int32_t bound = 2;
+
+    size_t boundary = 999;
+    NAD_TEST_OK(nad_span_partition_stable(NAD_SPAN_NEW_MUT(int32_t, buf, 5), greater_than,
+                                          (void *) &bound, nad_al_default(), &boundary));
+
+    constexpr int32_t want[5] = {5, 4, 3, 1, 2};
+    TEST_ASSERT_EQUAL_size_t(3, boundary);
+    TEST_ASSERT_EQUAL_INT32_ARRAY(want, buf, 5);
+}
+
+// only a subspan is split, and the elems around it must not move
+static void test_partition_stable_of_a_subspan_leaves_the_neighbours_alone() {
+    int32_t buf[6] = {9, 1, 2, 3, 4, 9};
+    const nad_SpanMut s = NAD_SPAN_NEW_MUT(int32_t, buf, 6);
+
+    size_t boundary = 999;
+    NAD_TEST_OK(nad_span_partition_stable(nad_span_sub_mut(s, 1, 4), is_even, nullptr,
+                                          nad_al_default(), &boundary));
+
+    constexpr int32_t want[6] = {9, 2, 4, 1, 3, 9};
+    TEST_ASSERT_EQUAL_size_t(2, boundary);
+    TEST_ASSERT_EQUAL_INT32_ARRAY(want, buf, 6);
+}
+
+// asking twice would be a second, differently timed set of answers — the contract
+// says once per elem, so count them
+static void test_partition_stable_asks_the_pred_once_per_elem() {
+    int32_t buf[6] = {1, 2, 3, 4, 5, 6};
+
+    size_t asked = 0;
+    size_t boundary = 999;
+    NAD_TEST_OK(nad_span_partition_stable(NAD_SPAN_NEW_MUT(int32_t, buf, 6), is_even_counting,
+                                          &asked, nad_al_default(), &boundary));
+
+    TEST_ASSERT_EQUAL_size_t(6, asked);
+}
+
+// the scratch is borrowed for the call and returned by the end of it
+static void test_partition_stable_releases_its_scratch() {
+    nad_TestProbe probe;
+    nad_test_probe_reset(&probe);
+    nad_Al al = nad_test_probe_full(&probe);
+
+    int32_t buf[4] = {1, 2, 3, 4};
+
+    size_t boundary = 999;
+    NAD_TEST_OK(nad_span_partition_stable(NAD_SPAN_NEW_MUT(int32_t, buf, 4), is_even, nullptr,
+                                          &al, &boundary));
+
+    TEST_ASSERT_EQUAL_size_t(1, probe.alloc_calls);
+    TEST_ASSERT_EQUAL_size_t(1, probe.dealloc_calls);
+    TEST_ASSERT_EQUAL_size_t(0, probe.live);
+    TEST_ASSERT_EQUAL_size_t(4 * sizeof(int32_t), probe.last_alloc_size);
+    TEST_ASSERT_EQUAL_size_t(probe.last_alloc_size, probe.last_dealloc_size);
+}
+
+// no scratch, no split: the span keeps the order it had and the boundary is not written
+static void test_partition_stable_reports_a_refused_scratch() {
+    nad_TestProbe probe;
+    nad_test_probe_reset(&probe);
+    nad_Al al = nad_test_probe_full(&probe);
+    nad_test_probe_fail_after_next(&probe, 0);
+
+    int32_t buf[4] = {1, 2, 3, 4};
+
+    size_t boundary = 777;
+    NAD_TEST_STATUS(
+        NAD_STATUS_OUT_OF_MEMORY,
+        nad_span_partition_stable(NAD_SPAN_NEW_MUT(int32_t, buf, 4), is_even, nullptr, &al, &boundary)
+    );
+
+    constexpr int32_t want[4] = {1, 2, 3, 4};
+    TEST_ASSERT_EQUAL_INT32_ARRAY(want, buf, 4);
+    TEST_ASSERT_EQUAL_size_t(777, boundary);
+    TEST_ASSERT_EQUAL_size_t(0, probe.live);
+}
+
+// an empty span has nothing to move, so it must not need memory it cannot get
+static void test_partition_stable_of_an_empty_span_asks_for_nothing() {
+    nad_TestProbe probe;
+    nad_test_probe_reset(&probe);
+    nad_Al al = nad_test_probe_full(&probe);
+    nad_test_probe_fail_after_next(&probe, 0);
+
+    size_t boundary = 999;
+    NAD_TEST_OK(nad_span_partition_stable(NAD_SPAN_NEW_MUT(int32_t, nullptr, 0), is_even,
+                                          nullptr, &al, &boundary));
+
+    TEST_ASSERT_EQUAL_size_t(0, boundary);
+    TEST_ASSERT_EQUAL_size_t(0, nad_test_probe_requests(&probe));
+}
+
 /* ========== is_partitioned ========== */
 
 static void test_is_partitioned_accepts_a_split_span() {
@@ -471,6 +666,19 @@ int main() {
     RUN_TEST(test_partition_of_an_empty_span_is_zero);
     RUN_TEST(test_partition_passes_the_ctx_through);
     RUN_TEST(test_partition_moves_whole_elems);
+
+    RUN_TEST(test_partition_stable_keeps_the_order_on_both_sides);
+    RUN_TEST(test_partition_stable_agrees_with_partition_on_the_boundary);
+    RUN_TEST(test_partition_stable_keeps_equal_elems_in_order);
+    RUN_TEST(test_partition_stable_leaves_a_partitioned_span_alone);
+    RUN_TEST(test_partition_stable_at_the_ends);
+    RUN_TEST(test_partition_stable_result_is_partitioned);
+    RUN_TEST(test_partition_stable_passes_the_ctx_through);
+    RUN_TEST(test_partition_stable_of_a_subspan_leaves_the_neighbours_alone);
+    RUN_TEST(test_partition_stable_asks_the_pred_once_per_elem);
+    RUN_TEST(test_partition_stable_releases_its_scratch);
+    RUN_TEST(test_partition_stable_reports_a_refused_scratch);
+    RUN_TEST(test_partition_stable_of_an_empty_span_asks_for_nothing);
 
     RUN_TEST(test_is_partitioned_accepts_a_split_span);
     RUN_TEST(test_is_partitioned_on_uniform_and_empty_spans);

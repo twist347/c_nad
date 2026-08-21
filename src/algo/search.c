@@ -2,7 +2,12 @@
 
 #include <assert.h>
 
-/* ========== search ========== */
+/* ========== private decls ========== */
+
+/// whether 'sub' sits in 's' starting at 'at'. The caller guarantees the room
+static bool matches_at(nad_Span s, nad_Span sub, size_t at, nad_Eq eq);
+
+/* ========== find ========== */
 
 bool nad_span_find(nad_Span s, const void *key, nad_Eq eq, size_t *out_idx) {
     NAD_SPAN_ASSERT(s);
@@ -33,6 +38,117 @@ bool nad_span_find_if(nad_Span s, nad_Pred pred, void *ctx, size_t *out_idx) {
     return false;
 }
 
+bool nad_span_find_sub(nad_Span s, nad_Span sub, nad_Eq eq, size_t *out_idx) {
+    NAD_SPAN_ASSERT(s);
+    NAD_SPAN_ASSERT(sub);
+    assert(s.elem_size == sub.elem_size);
+    assert(eq);
+    assert(out_idx);
+
+    if (sub.len == 0) {
+        *out_idx = 0;
+        return true;
+    }
+    if (sub.len > s.len) {
+        return false;
+    }
+
+    // s.len - sub.len is the last start that still leaves room for the whole sub,
+    // and cannot wrap: the case sub.len > s.len is already out
+    for (size_t i = 0; i + sub.len <= s.len; ++i) {
+        if (matches_at(s, sub, i, eq)) {
+            *out_idx = i;
+            return true;
+        }
+    }
+    return false;
+}
+
+bool nad_span_find_sub_last(nad_Span s, nad_Span sub, nad_Eq eq, size_t *out_idx) {
+    NAD_SPAN_ASSERT(s);
+    NAD_SPAN_ASSERT(sub);
+    assert(s.elem_size == sub.elem_size);
+    assert(eq);
+    assert(out_idx);
+
+    if (sub.len == 0) {
+        *out_idx = s.len;
+        return true;
+    }
+    if (sub.len > s.len) {
+        return false;
+    }
+
+    // counts down through 0, so the loop var is the start plus one — a size_t
+    // running below zero wraps instead of ending the loop
+    for (size_t start = s.len - sub.len + 1; start > 0; --start) {
+        if (matches_at(s, sub, start - 1, eq)) {
+            *out_idx = start - 1;
+            return true;
+        }
+    }
+    return false;
+}
+
+bool nad_span_find_run(nad_Span s, const void *key, size_t n, nad_Eq eq, size_t *out_idx) {
+    NAD_SPAN_ASSERT(s);
+    assert(key);
+    assert(eq);
+    assert(out_idx);
+
+    if (n == 0) {
+        *out_idx = 0;
+        return true;
+    }
+
+    size_t run = 0;
+    for (size_t i = 0; i < s.len; ++i) {
+        run = eq(nad_span_get(s, i), key) ? run + 1 : 0;
+
+        if (run == n) {
+            *out_idx = i + 1 - n;
+            return true;
+        }
+    }
+    return false;
+}
+
+bool nad_span_find_any_of(nad_Span s, nad_Span set, nad_Eq eq, size_t *out_idx) {
+    NAD_SPAN_ASSERT(s);
+    NAD_SPAN_ASSERT(set);
+    assert(s.elem_size == set.elem_size);
+    assert(eq);
+    assert(out_idx);
+
+    for (size_t i = 0; i < s.len; ++i) {
+        const void *elem = nad_span_get(s, i);
+
+        for (size_t j = 0; j < set.len; ++j) {
+            if (eq(elem, nad_span_get(set, j))) {
+                *out_idx = i;
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
+bool nad_span_find_adjacent(nad_Span s, nad_Eq eq, size_t *out_idx) {
+    NAD_SPAN_ASSERT(s);
+    assert(eq);
+    assert(out_idx);
+
+    // starts at 1 so that an empty span has nothing to compare rather than
+    // s.len - 1 wrapping around
+    for (size_t i = 1; i < s.len; ++i) {
+        if (eq(nad_span_get(s, i - 1), nad_span_get(s, i))) {
+            *out_idx = i - 1;
+            return true;
+        }
+    }
+    return false;
+}
+
 bool nad_span_contains(nad_Span s, const void *key, nad_Eq eq) {
     NAD_SPAN_ASSERT(s);
     assert(key);
@@ -41,6 +157,8 @@ bool nad_span_contains(nad_Span s, const void *key, nad_Eq eq) {
     size_t idx;
     return nad_span_find(s, key, eq, &idx);
 }
+
+/* ========== count ========== */
 
 size_t nad_span_count(nad_Span s, const void *key, nad_Eq eq) {
     NAD_SPAN_ASSERT(s);
@@ -68,6 +186,8 @@ size_t nad_span_count_if(nad_Span s, nad_Pred pred, void *ctx) {
     }
     return count;
 }
+
+/* ========== binary search ========== */
 
 size_t nad_span_lower_bound(nad_Span s, const void *key, nad_Cmp cmp) {
     NAD_SPAN_ASSERT(s);
@@ -256,4 +376,17 @@ nad_MinMax nad_span_minmax_elem(nad_Span s, nad_Cmp cmp) {
     }
 
     return out;
+}
+
+/* ========== private defs ========== */
+
+static bool matches_at(nad_Span s, nad_Span sub, size_t at, nad_Eq eq) {
+    assert(at + sub.len <= s.len);
+
+    for (size_t j = 0; j < sub.len; ++j) {
+        if (!eq(nad_span_get(s, at + j), nad_span_get(sub, j))) {
+            return false;
+        }
+    }
+    return true;
 }
