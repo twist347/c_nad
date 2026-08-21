@@ -4,6 +4,7 @@
 #include "nad/core/util.h"
 
 #include "support/arena.h"
+#include "support/pair.h"
 
 #include "unity.h"
 
@@ -14,12 +15,6 @@ void setUp() {
 
 void tearDown() {
 }
-
-// an elem wider than a word, to keep elem_size honest
-typedef struct {
-    int64_t a;
-    int64_t b;
-} Pair;
 
 // int32_t array holding 0, 1, ... len-1
 static nad_Arr *make_arr(size_t len) {

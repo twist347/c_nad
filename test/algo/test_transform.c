@@ -1,6 +1,8 @@
 #include "nad/algo/transform.h"
 #include "nad/core/util.h"
 
+#include "support/pair.h"
+
 #include "unity.h"
 
 #include <stdint.h>
@@ -10,11 +12,6 @@ void setUp() {
 
 void tearDown() {
 }
-
-typedef struct {
-    int64_t a;
-    int64_t b;
-} Pair;
 
 static void double_i32(void *dst, const void *src, void *ctx) {
     NAD_UNUSED(ctx);

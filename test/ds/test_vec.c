@@ -3,6 +3,7 @@
 #include "nad/alloc/default.h"
 
 #include "support/arena.h"
+#include "support/pair.h"
 
 #include "unity.h"
 
@@ -14,12 +15,6 @@ void setUp() {
 
 void tearDown() {
 }
-
-// an elem wider than a word, to keep elem_size honest
-typedef struct {
-    int64_t a;
-    int64_t b;
-} Pair;
 
 // the arena hands out nothing finer than this, so a request is charged rounded up
 static constexpr size_t ARENA_STEP = alignof(max_align_t);

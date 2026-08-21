@@ -23,20 +23,19 @@ struct nad_Arr {
     nad_Al *al;
 };
 
-[[nodiscard]] static
-nad_Status new_impl(bool zeroed, size_t len, size_t elem_size, nad_Al *al, nad_Arr **out);
+[[nodiscard]]
+static nad_Status new_impl(bool zeroed, size_t len, size_t elem_size, nad_Al *al, nad_Arr **out);
 
-static
-void set_fields(nad_Arr *arr, void *data, size_t len, size_t elem_size, nad_Al *al);
+static void set_fields(nad_Arr *arr, void *data, size_t len, size_t elem_size, nad_Al *al);
 
-[[nodiscard]] static
-size_t len_bytes(const nad_Arr *self);
+[[nodiscard]]
+static size_t len_bytes(const nad_Arr *self);
 
-[[nodiscard]] static
-const unsigned char *arr_offset(const nad_Arr *self, size_t idx);
+[[nodiscard]]
+static const unsigned char *arr_offset(const nad_Arr *self, size_t idx);
 
-[[nodiscard]] static
-unsigned char *arr_offset_mut(nad_Arr *self, size_t idx);
+[[nodiscard]]
+static unsigned char *arr_offset_mut(nad_Arr *self, size_t idx);
 
 /* ========== lifetime ========== */
 
@@ -313,8 +312,7 @@ void nad_arr_print(const nad_Arr *self, nad_FPrint fprint) {
 
 /* ========== internals ========== */
 
-static
-nad_Status new_impl(bool zeroed, size_t len, size_t elem_size, nad_Al *al, nad_Arr **out) {
+static nad_Status new_impl(bool zeroed, size_t len, size_t elem_size, nad_Al *al, nad_Arr **out) {
     assert(elem_size > 0);
     assert(al);
     assert(out);
@@ -349,25 +347,21 @@ fail:
     return NAD_STATUS_OUT_OF_MEMORY;
 }
 
-static
-void set_fields(nad_Arr *arr, void *data, size_t len, size_t elem_size, nad_Al *alloc) {
+static void set_fields(nad_Arr *arr, void *data, size_t len, size_t elem_size, nad_Al *alloc) {
     arr->data = data;
     arr->len = len;
     arr->elem_size = elem_size;
     arr->al = alloc;
 }
 
-static
-size_t len_bytes(const nad_Arr *self) {
+static size_t len_bytes(const nad_Arr *self) {
     return self->len * self->elem_size;
 }
 
-static
-const unsigned char *arr_offset(const nad_Arr *self, size_t idx) {
+static const unsigned char *arr_offset(const nad_Arr *self, size_t idx) {
     return nad_byte_offset(self->data, self->elem_size, idx);
 }
 
-static
-unsigned char *arr_offset_mut(nad_Arr *self, size_t idx) {
+static unsigned char *arr_offset_mut(nad_Arr *self, size_t idx) {
     return nad_byte_offset_mut(self->data, self->elem_size, idx);
 }

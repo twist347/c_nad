@@ -3,6 +3,7 @@
 #include "nad/alloc/default.h"
 
 #include "support/arena.h"
+#include "support/pair.h"
 #include "support/probe.h"
 #include "support/status.h"
 
@@ -16,12 +17,6 @@ void setUp() {
 
 void tearDown() {
 }
-
-// an elem wider than a word, to keep elem_size honest
-typedef struct {
-    int64_t a;
-    int64_t b;
-} Pair;
 
 static void push_int(nad_List *l, int32_t val) {
     NAD_TEST_OK(nad_list_push_back(l, &val));

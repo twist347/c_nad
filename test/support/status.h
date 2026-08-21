@@ -26,8 +26,8 @@
         }                                                                           \
     } while (0)
 
-[[nodiscard]] static inline
-const char *nad_test_status_msg_(const char *text, nad_Status want, nad_Status got) {
+[[nodiscard]]
+static inline const char *nad_test_status_msg_(const char *text, nad_Status want, nad_Status got) {
     static char buf[256];
     snprintf(
         buf, sizeof buf, "%s: expected %s, got %s",

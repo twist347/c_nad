@@ -1,6 +1,8 @@
 #include "nad/algo/fold.h"
 #include "nad/core/util.h"
 
+#include "support/pair.h"
+
 #include "unity.h"
 
 #include <stdint.h>
@@ -11,11 +13,6 @@ void setUp() {
 
 void tearDown() {
 }
-
-typedef struct {
-    int64_t a;
-    int64_t b;
-} Pair;
 
 // the accumulator is wider than the elems — the reason it belongs to the caller
 static void sum_i32_into_i64(void *acc, const void *elem, void *ctx) {

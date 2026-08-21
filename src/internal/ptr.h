@@ -8,32 +8,32 @@
 
 /* ========== byte-level pointer arithmetic ========== */
 
-[[nodiscard]] static inline
-const unsigned char *nad_byte_offset(const void *base, size_t stride, size_t n) {
+[[nodiscard]]
+static inline const unsigned char *nad_byte_offset(const void *base, size_t stride, size_t n) {
     assert(base || n == 0);
     assert(stride > 0);
 
     return (const unsigned char *) base + stride * n;
 }
 
-[[nodiscard]] static inline
-unsigned char *nad_byte_offset_mut(void *base, size_t stride, size_t n) {
+[[nodiscard]]
+static inline unsigned char *nad_byte_offset_mut(void *base, size_t stride, size_t n) {
     assert(base || n == 0);
     assert(stride > 0);
 
     return (unsigned char *) base + stride * n;
 }
 
-[[nodiscard]] static inline
-ptrdiff_t nad_byte_diff(const void *a, const void *b) {
+[[nodiscard]]
+static inline ptrdiff_t nad_byte_diff(const void *a, const void *b) {
     assert(a);
     assert(b);
 
     return (const unsigned char *) a - (const unsigned char *) b;
 }
 
-[[nodiscard]] static inline
-size_t nad_ptr_distance(const void *a, const void *b, size_t stride) {
+[[nodiscard]]
+static inline size_t nad_ptr_distance(const void *a, const void *b, size_t stride) {
     assert(a);
     assert(b);
     assert(stride > 0);
@@ -47,8 +47,8 @@ size_t nad_ptr_distance(const void *a, const void *b, size_t stride) {
 
 /* ========== alignment ========== */
 
-[[nodiscard]] static inline
-size_t nad_align_up(size_t val, size_t alignment) {
+[[nodiscard]]
+static inline size_t nad_align_up(size_t val, size_t alignment) {
     assert(alignment > 0);
     assert((alignment & (alignment - 1)) == 0);
     assert(val <= SIZE_MAX - (alignment - 1));
@@ -56,16 +56,16 @@ size_t nad_align_up(size_t val, size_t alignment) {
     return (val + (alignment - 1)) & ~(alignment - 1);
 }
 
-[[nodiscard]] static inline
-size_t nad_align_down(size_t val, size_t alignment) {
+[[nodiscard]]
+static inline size_t nad_align_down(size_t val, size_t alignment) {
     assert(alignment > 0);
     assert((alignment & (alignment - 1)) == 0);
 
     return val & ~(alignment - 1);
 }
 
-[[nodiscard]] static inline
-bool nad_ptr_is_aligned(const void *ptr, size_t alignment) {
+[[nodiscard]]
+static inline bool nad_ptr_is_aligned(const void *ptr, size_t alignment) {
     assert(ptr);
     assert(alignment > 0);
     assert((alignment & (alignment - 1)) == 0);
@@ -73,8 +73,7 @@ bool nad_ptr_is_aligned(const void *ptr, size_t alignment) {
     return ((uintptr_t) ptr & (alignment - 1)) == 0;
 }
 
-static inline
-void nad_bytes_swap(void *a, void *b, size_t n) {
+static inline void nad_bytes_swap(void *a, void *b, size_t n) {
     assert(a);
     assert(b);
 

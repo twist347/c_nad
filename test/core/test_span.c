@@ -1,5 +1,7 @@
 #include "nad/core/span.h"
 
+#include "support/pair.h"
+
 #include "unity.h"
 
 #include <stdint.h>
@@ -9,12 +11,6 @@ void setUp() {
 
 void tearDown() {
 }
-
-// an elem wider than a word, to keep elem_size honest
-typedef struct {
-    int64_t a;
-    int64_t b;
-} Pair;
 
 /* ========== construction ========== */
 

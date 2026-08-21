@@ -12,6 +12,7 @@ set(NAD_ALGO_SOURCES
         src/algo/copy.c
         src/algo/fill.c
         src/algo/fold.c
+        src/algo/heap.c
         src/algo/merge.c
         src/algo/modify.c
         src/algo/permute.c

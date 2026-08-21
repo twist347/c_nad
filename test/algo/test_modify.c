@@ -2,6 +2,8 @@
 #include "nad/algo/sort.h"
 #include "nad/core/util.h"
 
+#include "support/pair.h"
+
 #include "unity.h"
 
 #include <stdint.h>
@@ -12,12 +14,6 @@ void setUp() {
 void tearDown() {
 }
 
-// an elem wider than a word, to keep elem_size honest
-typedef struct {
-    int64_t a;
-    int64_t b;
-} Pair;
-
 static bool is_even(const void *elem, void *ctx) {
     NAD_UNUSED(ctx);
 
@@ -26,12 +22,6 @@ static bool is_even(const void *elem, void *ctx) {
 
 static bool greater_than(const void *elem, void *ctx) {
     return *(const int32_t *) elem > *(const int32_t *) ctx;
-}
-
-static bool pair_a_is_negative(const void *elem, void *ctx) {
-    NAD_UNUSED(ctx);
-
-    return ((const Pair *) elem)->a < 0;
 }
 
 // equality that deliberately disagrees with memcmp, to prove the callback is used
@@ -217,7 +207,7 @@ static void test_remove_if_keeps_the_order_of_survivors() {
 static void test_remove_if_moves_whole_elems() {
     Pair buf[4] = {{-1, 10}, {1, 20}, {-2, 30}, {2, 40}};
 
-    const size_t n = nad_span_remove_if(NAD_SPAN_NEW_MUT(Pair, buf, 4), pair_a_is_negative, nullptr);
+    const size_t n = nad_span_remove_if(NAD_SPAN_NEW_MUT(Pair, buf, 4), nad_test_pair_a_is_negative, nullptr);
 
     TEST_ASSERT_EQUAL_size_t(2, n);
     TEST_ASSERT_EQUAL_INT64(1, buf[0].a);
@@ -275,7 +265,7 @@ static void test_replace_writes_whole_elems() {
     Pair buf[3] = {{1, 10}, {-1, 20}, {2, 30}};
     const Pair val = {7, 70};
 
-    nad_span_replace_if(NAD_SPAN_NEW_MUT(Pair, buf, 3), pair_a_is_negative, nullptr, &val);
+    nad_span_replace_if(NAD_SPAN_NEW_MUT(Pair, buf, 3), nad_test_pair_a_is_negative, nullptr, &val);
 
     TEST_ASSERT_EQUAL_INT64(7, buf[1].a);
     TEST_ASSERT_EQUAL_INT64(70, buf[1].b);

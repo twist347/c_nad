@@ -1,5 +1,7 @@
 #include "nad/algo/compare.h"
 
+#include "support/pair.h"
+
 #include "unity.h"
 
 #include <stdint.h>
@@ -91,11 +93,6 @@ static void test_eq_same_buffer_is_equal() {
 }
 
 static void test_eq_compares_whole_elements() {
-    typedef struct {
-        int64_t a;
-        int64_t b;
-    } Pair;
-
     const Pair x[2] = {{1, 2}, {3, 4}};
     const Pair y[2] = {{1, 2}, {3, 5}};
 

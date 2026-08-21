@@ -1,6 +1,8 @@
 #include "nad/algo/fill.h"
 #include "nad/core/util.h"
 
+#include "support/pair.h"
+
 #include "unity.h"
 
 #include <stdint.h>
@@ -10,11 +12,6 @@ void setUp() {
 
 void tearDown() {
 }
-
-typedef struct {
-    int64_t a;
-    int64_t b;
-} Pair;
 
 // iota: the index alone is enough
 static void gen_index(void *dst, size_t idx, void *ctx) {

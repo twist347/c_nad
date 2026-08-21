@@ -6,8 +6,8 @@
 
 /* ========== internals ========== */
 
-[[nodiscard]] static
-bool permute_step(nad_SpanMut s, nad_Cmp cmp, bool asc);
+[[nodiscard]]
+static bool permute_step(nad_SpanMut s, nad_Cmp cmp, bool asc);
 
 /* ========== permute ========== */
 
@@ -108,8 +108,7 @@ bool nad_span_is_partitioned(nad_Span s, nad_Pred pred, void *ctx) {
 
 /* ========== internals ========== */
 
-static
-bool permute_step(nad_SpanMut s, nad_Cmp cmp, bool asc) {
+static bool permute_step(nad_SpanMut s, nad_Cmp cmp, bool asc) {
     if (s.len < 2) {
         return false;
     }

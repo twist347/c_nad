@@ -1,6 +1,8 @@
 #include "nad/algo/copy.h"
 #include "nad/core/util.h"
 
+#include "support/pair.h"
+
 #include "unity.h"
 
 #include <stdint.h>
@@ -11,11 +13,6 @@ void setUp() {
 void tearDown() {
 }
 
-typedef struct {
-    int64_t a;
-    int64_t b;
-} Pair;
-
 static bool is_even(const void *elem, void *ctx) {
     NAD_UNUSED(ctx);
 
@@ -24,12 +21,6 @@ static bool is_even(const void *elem, void *ctx) {
 
 static bool greater_than(const void *elem, void *ctx) {
     return *(const int32_t *) elem > *(const int32_t *) ctx;
-}
-
-static bool pair_a_is_positive(const void *elem, void *ctx) {
-    NAD_UNUSED(ctx);
-
-    return ((const Pair *) elem)->a > 0;
 }
 
 /* ========== copy ========== */
@@ -253,7 +244,7 @@ static void test_copy_if_moves_whole_elems() {
     Pair dst[3] = {0};
 
     const size_t n = nad_span_copy_if(NAD_SPAN_NEW_MUT(Pair, dst, 3),
-                                      NAD_SPAN_NEW(Pair, src, 3), pair_a_is_positive, nullptr);
+                                      NAD_SPAN_NEW(Pair, src, 3), nad_test_pair_a_is_positive, nullptr);
 
     TEST_ASSERT_EQUAL_size_t(1, n);
     TEST_ASSERT_EQUAL_INT64(1, dst[0].a);

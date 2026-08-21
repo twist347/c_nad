@@ -12,12 +12,12 @@
 // is short enough that its quadratic cost does not show
 static constexpr size_t INSERTION_THRESHOLD = 16;
 
-[[nodiscard]] static
-size_t median3(nad_Span s, size_t a, size_t b, size_t c, nad_Cmp cmp);
+[[nodiscard]]
+static size_t median3(nad_Span s, size_t a, size_t b, size_t c, nad_Cmp cmp);
 
 /// median of three medians, sampled across the whole range
-[[nodiscard]] static
-size_t ninther(nad_Span s, size_t left, size_t right, nad_Cmp cmp);
+[[nodiscard]]
+static size_t ninther(nad_Span s, size_t left, size_t right, nad_Cmp cmp);
 
 // the block of elems equal to the pivot after a three-way split, as the
 // inclusive range [lt, gt]: everything below lt is smaller, above gt larger
@@ -28,12 +28,11 @@ typedef struct {
 
 /// splits [left, right] into < pivot | == pivot | > pivot and returns the
 /// bounds of the middle run
-[[nodiscard]] static
-Split partition3(nad_SpanMut s, size_t left, size_t right, size_t pivot_idx, nad_Cmp cmp);
+[[nodiscard]]
+static Split partition3(nad_SpanMut s, size_t left, size_t right, size_t pivot_idx, nad_Cmp cmp);
 
 /// sorts the inclusive range [left, right]
-static
-void quicksort(nad_SpanMut s, size_t left, size_t right, nad_Cmp cmp);
+static void quicksort(nad_SpanMut s, size_t left, size_t right, nad_Cmp cmp);
 
 /* ========== sort ========== */
 
@@ -185,8 +184,7 @@ size_t nad_span_is_sorted_until(nad_Span s, nad_Cmp cmp) {
 
 /* ========== internals ========== */
 
-static
-size_t median3(nad_Span s, size_t a, size_t b, size_t c, nad_Cmp cmp) {
+static size_t median3(nad_Span s, size_t a, size_t b, size_t c, nad_Cmp cmp) {
     const void *a_ptr = nad_span_get(s, a);
     const void *b_ptr = nad_span_get(s, b);
     const void *c_ptr = nad_span_get(s, c);
@@ -203,8 +201,7 @@ size_t median3(nad_Span s, size_t a, size_t b, size_t c, nad_Cmp cmp) {
     return c;
 }
 
-static
-size_t ninther(nad_Span s, size_t left, size_t right, nad_Cmp cmp) {
+static size_t ninther(nad_Span s, size_t left, size_t right, nad_Cmp cmp) {
     const size_t len = right - left + 1;
     const size_t mid = left + len / 2;
 
@@ -220,8 +217,7 @@ size_t ninther(nad_Span s, size_t left, size_t right, nad_Cmp cmp) {
     return median3(s, lo, md, hi, cmp);
 }
 
-static
-Split partition3(nad_SpanMut s, size_t left, size_t right, size_t pivot_idx, nad_Cmp cmp) {
+static Split partition3(nad_SpanMut s, size_t left, size_t right, size_t pivot_idx, nad_Cmp cmp) {
     assert(left <= pivot_idx && pivot_idx <= right);
 
     nad_span_swap_elems(s, left, pivot_idx);
@@ -254,8 +250,7 @@ Split partition3(nad_SpanMut s, size_t left, size_t right, size_t pivot_idx, nad
     return (Split){.lt = lo, .gt = hi};
 }
 
-static
-void quicksort(nad_SpanMut s, size_t left, size_t right, nad_Cmp cmp) {
+static void quicksort(nad_SpanMut s, size_t left, size_t right, nad_Cmp cmp) {
     while (left < right) {
         if (right - left + 1 <= INSERTION_THRESHOLD) {
             nad_span_insertion_sort(nad_span_sub_mut(s, left, right - left + 1), cmp);

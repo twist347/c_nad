@@ -10,8 +10,7 @@
 
 /// burns the arena down to exactly 'want' free bytes, so the next
 /// allocation over that size fails without a probe allocator
-static inline
-void nad_test_arena_leave(nad_Al *arena, size_t want) {
+static inline void nad_test_arena_leave(nad_Al *arena, size_t want) {
     const size_t available = nad_al_arena_stats(arena).available;
     TEST_ASSERT_TRUE(available >= want);
 

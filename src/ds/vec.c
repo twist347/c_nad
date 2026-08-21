@@ -27,29 +27,28 @@ struct nad_Vec {
     nad_Al *al;
 };
 
-[[nodiscard]] static
-nad_Status new_impl(bool zeroed, size_t len, size_t cap, size_t elem_size, nad_Al *al, nad_Vec **out);
+[[nodiscard]]
+static nad_Status new_impl(bool zeroed, size_t len, size_t cap, size_t elem_size, nad_Al *al, nad_Vec **out);
 
-static
-void set_fields(nad_Vec *self, void *data, size_t len, size_t cap, size_t elem_size, nad_Al *al);
+static void set_fields(nad_Vec *self, void *data, size_t len, size_t cap, size_t elem_size, nad_Al *al);
 
-[[nodiscard]] static
-size_t next_cap(const nad_Vec *self);
+[[nodiscard]]
+static size_t next_cap(const nad_Vec *self);
 
-[[nodiscard]] static
-nad_Status grow(nad_Vec *self);
+[[nodiscard]]
+static nad_Status grow(nad_Vec *self);
 
-[[nodiscard]] static
-size_t len_bytes(const nad_Vec *self);
+[[nodiscard]]
+static size_t len_bytes(const nad_Vec *self);
 
-[[nodiscard]] static
-size_t cap_bytes(const nad_Vec *self);
+[[nodiscard]]
+static size_t cap_bytes(const nad_Vec *self);
 
-[[nodiscard]] static
-const unsigned char *vec_offset(const nad_Vec *self, size_t idx);
+[[nodiscard]]
+static const unsigned char *vec_offset(const nad_Vec *self, size_t idx);
 
-[[nodiscard]] static
-unsigned char *vec_offset_mut(nad_Vec *self, size_t idx);
+[[nodiscard]]
+static unsigned char *vec_offset_mut(nad_Vec *self, size_t idx);
 
 /* ========== lifetime ========== */
 
@@ -490,8 +489,8 @@ void nad_vec_print(const nad_Vec *self, nad_FPrint fprint) {
 
 /* ========== internals ========== */
 
-[[nodiscard]] static
-nad_Status new_impl(bool zeroed, size_t len, size_t cap, size_t elem_size, nad_Al *al, nad_Vec **out) {
+[[nodiscard]]
+static nad_Status new_impl(bool zeroed, size_t len, size_t cap, size_t elem_size, nad_Al *al, nad_Vec **out) {
     assert(len <= cap);
     assert(elem_size > 0);
     assert(al);
@@ -530,8 +529,7 @@ fail:
     return NAD_STATUS_OUT_OF_MEMORY;
 }
 
-static
-void set_fields(nad_Vec *self, void *data, size_t len, size_t cap, size_t elem_size, nad_Al *al) {
+static void set_fields(nad_Vec *self, void *data, size_t len, size_t cap, size_t elem_size, nad_Al *al) {
     self->data = data;
     self->len = len;
     self->cap = cap;
@@ -539,8 +537,7 @@ void set_fields(nad_Vec *self, void *data, size_t len, size_t cap, size_t elem_s
     self->al = al;
 }
 
-static
-size_t next_cap(const nad_Vec *self) {
+static size_t next_cap(const nad_Vec *self) {
     if (self->cap == 0) {
         return VEC_GROWTH_BASE;
     }
@@ -553,8 +550,7 @@ size_t next_cap(const nad_Vec *self) {
     return grown;
 }
 
-static
-nad_Status grow(nad_Vec *self) {
+static nad_Status grow(nad_Vec *self) {
     assert(self->len == self->cap);
 
     if (self->cap == SIZE_MAX) {
@@ -571,22 +567,18 @@ nad_Status grow(nad_Vec *self) {
     return nad_vec_reserve(self, self->cap + 1);
 }
 
-static
-size_t len_bytes(const nad_Vec *self) {
+static size_t len_bytes(const nad_Vec *self) {
     return self->len * self->elem_size;
 }
 
-static
-size_t cap_bytes(const nad_Vec *self) {
+static size_t cap_bytes(const nad_Vec *self) {
     return self->cap * self->elem_size;
 }
 
-static
-const unsigned char *vec_offset(const nad_Vec *self, size_t idx) {
+static const unsigned char *vec_offset(const nad_Vec *self, size_t idx) {
     return nad_byte_offset(self->data, self->elem_size, idx);
 }
 
-static
-unsigned char *vec_offset_mut(nad_Vec *self, size_t idx) {
+static unsigned char *vec_offset_mut(nad_Vec *self, size_t idx) {
     return nad_byte_offset_mut(self->data, self->elem_size, idx);
 }

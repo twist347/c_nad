@@ -12,8 +12,8 @@ typedef struct {
     nad_Eq eq;
 } KeyMatch;
 
-[[nodiscard]] static
-bool key_matches(const void *elem, void *ctx) {
+[[nodiscard]]
+static bool key_matches(const void *elem, void *ctx) {
     const KeyMatch *self = ctx;
 
     return self->eq(elem, self->key);
