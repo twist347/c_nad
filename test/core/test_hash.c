@@ -35,33 +35,33 @@ static float nan_with_bits_f32(uint32_t bits) {
 // the contract of a hash: equal keys agree. "Equal" is nad_eq_<T>, not memcmp, which is
 // what makes the float cases below interesting rather than obvious.
 static void test_hash_agrees_with_equality() {
-    const int32_t a = 42;
-    const int32_t b = 42;
-    const int32_t c = 43;
+    constexpr int32_t a = 42;
+    constexpr int32_t b = 42;
+    constexpr int32_t c = 43;
 
     TEST_ASSERT_TRUE(nad_eq_i32(&a, &b));
     TEST_ASSERT_EQUAL_UINT64(nad_hash_i32(&a), nad_hash_i32(&b));
     TEST_ASSERT_NOT_EQUAL_UINT64(nad_hash_i32(&a), nad_hash_i32(&c));
 
-    const uint64_t big = UINT64_MAX;
-    const uint64_t same = UINT64_MAX;
+    constexpr uint64_t big = UINT64_MAX;
+    constexpr uint64_t same = UINT64_MAX;
     TEST_ASSERT_EQUAL_UINT64(nad_hash_u64(&big), nad_hash_u64(&same));
 
-    const size_t n = 7;
-    const ptrdiff_t d = -7;
+    constexpr size_t n = 7;
+    constexpr ptrdiff_t d = -7;
     TEST_ASSERT_NOT_EQUAL_UINT64(nad_hash_size(&n), nad_hash_ptrdiff(&d));
 }
 
 // nad_eq_f64(-0.0, 0.0) is true while the bit patterns differ, so hashing the bits
 // straight through would break the contract
 static void test_hash_folds_the_two_zeroes_together() {
-    const double neg = -0.0;
-    const double pos = 0.0;
+    constexpr double neg = -0.0;
+    constexpr double pos = 0.0;
     TEST_ASSERT_TRUE(nad_eq_f64(&neg, &pos));
     TEST_ASSERT_EQUAL_UINT64(nad_hash_f64(&neg), nad_hash_f64(&pos));
 
-    const float negf = -0.0f;
-    const float posf = 0.0f;
+    constexpr float negf = -0.0f;
+    constexpr float posf = 0.0f;
     TEST_ASSERT_EQUAL_UINT64(nad_hash_f32(&negf), nad_hash_f32(&posf));
 }
 
@@ -82,7 +82,7 @@ static void test_hash_folds_every_nan_together() {
 
     // folding them onto zero would satisfy the contract too, and hand every table a
     // guaranteed collision between its two most ordinary keys
-    const double zero = 0.0;
+    constexpr double zero = 0.0;
     TEST_ASSERT_NOT_EQUAL_UINT64(nad_hash_f64(&quiet), nad_hash_f64(&zero));
 }
 
@@ -91,9 +91,9 @@ static void test_hash_folds_every_nan_together() {
 // fmix64 leaves zero at zero, so without the seed in hash_mix_u64 every zero key lands
 // in bucket zero of every table
 static void test_hash_does_not_leave_zero_at_zero() {
-    const int32_t zero_i = 0;
-    const uint64_t zero_u = 0;
-    const double zero_f = 0.0;
+    constexpr int32_t zero_i = 0;
+    constexpr uint64_t zero_u = 0;
+    constexpr double zero_f = 0.0;
 
     TEST_ASSERT_NOT_EQUAL_UINT64(0, nad_hash_i32(&zero_i));
     TEST_ASSERT_NOT_EQUAL_UINT64(0, nad_hash_u64(&zero_u));
@@ -120,22 +120,22 @@ static void test_hash_spreads_keys_that_share_their_low_bits() {
 // the byte is read as unsigned char on purpose: reading it as char would sign-extend on
 // a target where char is signed, and the same letter would hash differently there
 static void test_hash_char_reads_the_byte_not_the_sign() {
-    const char high = (char) 200;
-    const unsigned char same_byte = 200;
+    constexpr char high = (char) 200;
+    constexpr unsigned char same_byte = 200;
 
     TEST_ASSERT_EQUAL_UINT64(nad_hash_u8(&same_byte), nad_hash_char(&high));
 
-    const char a = 'a';
-    const char b = 'b';
+    constexpr char a = 'a';
+    constexpr char b = 'b';
     TEST_ASSERT_NOT_EQUAL_UINT64(nad_hash_char(&a), nad_hash_char(&b));
 }
 
 /* ========== bytes ========== */
 
 static void test_hash_bytes_follows_the_content() {
-    const unsigned char a[3] = {1, 2, 3};
-    const unsigned char same[3] = {1, 2, 3};
-    const unsigned char other[3] = {1, 2, 4};
+    constexpr unsigned char a[3] = {1, 2, 3};
+    constexpr unsigned char same[3] = {1, 2, 3};
+    constexpr unsigned char other[3] = {1, 2, 4};
 
     TEST_ASSERT_EQUAL_UINT64(nad_hash_bytes(a, 3), nad_hash_bytes(same, 3));
     TEST_ASSERT_NOT_EQUAL_UINT64(nad_hash_bytes(a, 3), nad_hash_bytes(other, 3));
@@ -146,7 +146,7 @@ static void test_hash_bytes_follows_the_content() {
 
 // an empty range is legal and must not touch the pointer
 static void test_hash_bytes_takes_an_empty_range() {
-    const unsigned char a[1] = {7};
+    constexpr unsigned char a[1] = {7};
 
     TEST_ASSERT_EQUAL_UINT64(nad_hash_bytes(nullptr, 0), nad_hash_bytes(a, 0));
     TEST_ASSERT_NOT_EQUAL_UINT64(nad_hash_bytes(a, 0), nad_hash_bytes(a, 1));
@@ -179,7 +179,7 @@ static void test_hash_cstr_follows_content_not_address() {
 
 // null is a value here, not a broken precondition: the operand is the pointer to it
 static void test_hash_cstr_keeps_null_apart_from_empty() {
-    const char *null_str = nullptr;
+    constexpr char *null_str = nullptr;
     const char *empty = "";
 
     TEST_ASSERT_FALSE(nad_eq_cstr(&null_str, &empty));
@@ -251,8 +251,8 @@ static void test_hash_combine_builds_a_struct_hasher() {
 static void test_hashers_travel_as_the_typedef() {
     const nad_Hasher hashers[3] = {nad_hash_i32, nad_hash_f64, nad_hash_cstr};
 
-    const int32_t i = 5;
-    const double d = 5.0;
+    constexpr int32_t i = 5;
+    constexpr double d = 5.0;
     const char *s = "5";
     const void *operands[3] = {&i, &d, &s};
 

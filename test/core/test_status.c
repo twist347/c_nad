@@ -88,7 +88,7 @@ static void test_status_to_str_falls_back_outside_the_enum() {
 // fails, which is what sends you back to NAMED. -Wswitch does the same job for status.c,
 // nothing does it for the table above
 static void test_status_to_str_notices_a_status_added_to_the_end() {
-    const nad_Status past_the_end = (nad_Status) (NAD_STATUS_UNSUPPORTED + 1);
+    constexpr nad_Status past_the_end = (nad_Status) (NAD_STATUS_UNSUPPORTED + 1);
 
     TEST_ASSERT_EQUAL_STRING("UNKNOWN_NAD_STATUS", nad_status_to_str(past_the_end));
 }

@@ -150,7 +150,7 @@ static void test_set_and_get_mut_write_to_the_source() {
 /* ========== subspan ========== */
 
 static void test_sub_offsets_and_shortens() {
-    const int32_t buf[5] = {0, 1, 2, 3, 4};
+    constexpr int32_t buf[5] = {0, 1, 2, 3, 4};
     const nad_Span s = NAD_SPAN_NEW(int32_t, buf, 5);
 
     const nad_Span mid = nad_span_sub(s, 1, 3);

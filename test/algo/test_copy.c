@@ -77,7 +77,7 @@ static void test_copy_stays_within_the_subspan() {
 
 // elem_size drives the copy, so a type wider than a word must arrive whole
 static void test_copy_moves_whole_elements() {
-    const Pair src_buf[2] = {{1, 2}, {3, 4}};
+    constexpr Pair src_buf[2] = {{1, 2}, {3, 4}};
     Pair dst_buf[2] = {{0, 0}, {0, 0}};
 
     nad_span_copy(
@@ -240,7 +240,7 @@ static void test_copy_if_keeps_the_source_order() {
 }
 
 static void test_copy_if_moves_whole_elems() {
-    const Pair src[3] = {{-1, 10}, {1, 20}, {-2, 30}};
+    constexpr Pair src[3] = {{-1, 10}, {1, 20}, {-2, 30}};
     Pair dst[3] = {0};
 
     const size_t n = nad_span_copy_if(NAD_SPAN_NEW_MUT(Pair, dst, 3),

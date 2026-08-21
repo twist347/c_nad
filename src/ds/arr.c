@@ -70,6 +70,8 @@ nad_Status nad_arr_from_data(const void *data, size_t len, size_t elem_size, nad
 
 nad_Status nad_arr_from_span(nad_Span s, nad_Al *al, nad_Arr **out) {
     NAD_SPAN_ASSERT(s);
+    assert(al);
+    assert(out);
 
     return nad_arr_from_data(s.data, s.len, s.elem_size, al, out);
 }
@@ -347,11 +349,11 @@ fail:
     return NAD_STATUS_OUT_OF_MEMORY;
 }
 
-static void set_fields(nad_Arr *arr, void *data, size_t len, size_t elem_size, nad_Al *alloc) {
+static void set_fields(nad_Arr *arr, void *data, size_t len, size_t elem_size, nad_Al *al) {
     arr->data = data;
     arr->len = len;
     arr->elem_size = elem_size;
-    arr->al = alloc;
+    arr->al = al;
 }
 
 static size_t len_bytes(const nad_Arr *self) {

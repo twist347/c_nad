@@ -120,12 +120,12 @@ void nad_list_remove(nad_List *self, nad_ListNode *node);
 NAD_API
 void nad_list_clear(nad_List *self);
 
-/// moves every node of 'src' to the back of 'self', leaving 'src' empty;
+/// moves every node of 'src' to the front of 'self', leaving 'src' empty;
 /// O(1) if both share al, a copy of every elem otherwise
 [[nodiscard]] NAD_API
 nad_Status nad_list_splice_front(nad_List *self, nad_List *src);
 
-/// moves every node of 'src' to the front of 'self', leaving 'src' empty;
+/// moves every node of 'src' to the back of 'self', leaving 'src' empty;
 /// O(1) if both share al, a copy of every elem otherwise
 [[nodiscard]] NAD_API
 nad_Status nad_list_splice_back(nad_List *self, nad_List *src);

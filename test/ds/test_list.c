@@ -115,7 +115,7 @@ static void test_from_data_empty_is_empty() {
 
 // a wide elem must travel whole, not truncated to a word
 static void test_from_data_copies_whole_elems() {
-    const Pair src[] = {{1, 2}, {3, 4}};
+    constexpr Pair src[] = {{1, 2}, {3, 4}};
     nad_List *l = nullptr;
     NAD_TEST_OK(NAD_LIST_FROM_DATA(Pair, src, 2, nad_al_default(), &l));
 
@@ -131,7 +131,7 @@ static void test_from_data_copies_whole_elems() {
 }
 
 static void test_from_span_copies_the_view() {
-    const int32_t src[] = {5, 6, 7};
+    constexpr int32_t src[] = {5, 6, 7};
     nad_List *l = nullptr;
     NAD_TEST_OK(nad_list_from_span(NAD_SPAN_NEW(int32_t, src, 3), nad_al_default(), &l));
 
@@ -910,7 +910,7 @@ static void test_from_data_rolls_back_the_partial_list() {
     nad_test_probe_reset(&probe);
     nad_Al al = nad_test_probe_bare(&probe);
 
-    const int32_t src[] = {1, 2, 3, 4};
+    constexpr int32_t src[] = {1, 2, 3, 4};
     nad_List *l = nullptr;
     nad_test_probe_fail_after_next(&probe, 3); // struct + 2 nodes, then refuse
 

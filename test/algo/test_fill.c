@@ -77,7 +77,7 @@ static void test_fill_copies_whole_elements() {
     Pair buf[2] = {{0, 0}, {0, 0}};
     const nad_SpanMut s = NAD_SPAN_NEW_MUT(Pair, buf, 2);
 
-    const Pair val = {11, 22};
+    constexpr Pair val = {11, 22};
     nad_span_fill(s, &val);
 
     TEST_ASSERT_EQUAL_INT64(11, buf[0].a);

@@ -93,8 +93,8 @@ static void test_eq_same_buffer_is_equal() {
 }
 
 static void test_eq_compares_whole_elements() {
-    const Pair x[2] = {{1, 2}, {3, 4}};
-    const Pair y[2] = {{1, 2}, {3, 5}};
+    constexpr Pair x[2] = {{1, 2}, {3, 4}};
+    constexpr Pair y[2] = {{1, 2}, {3, 5}};
 
     TEST_ASSERT_FALSE(nad_span_eq(
         NAD_SPAN_NEW(Pair, x, 2),

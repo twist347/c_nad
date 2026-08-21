@@ -128,7 +128,7 @@ static void test_from_data_empty_has_no_buffer() {
 
 // elem_size drives the copy, so a type wider than a word must arrive whole
 static void test_from_data_copies_whole_elems() {
-    const Pair src[2] = {{1, 2}, {3, 4}};
+    constexpr Pair src[2] = {{1, 2}, {3, 4}};
 
     nad_Vec *v = nullptr;
     TEST_ASSERT_EQUAL_INT(NAD_STATUS_OK, NAD_VEC_FROM_DATA(Pair, src, 2, nad_al_default(), &v));
@@ -335,7 +335,7 @@ static void test_bytes_of_empty_is_zero() {
 
 // elem_size, not the elem count, drives the total
 static void test_bytes_tracks_elem_size() {
-    const Pair src[2] = {{1, 2}, {3, 4}};
+    constexpr Pair src[2] = {{1, 2}, {3, 4}};
 
     nad_Vec *v = nullptr;
     TEST_ASSERT_EQUAL_INT(NAD_STATUS_OK, NAD_VEC_FROM_DATA(Pair, src, 2, nad_al_default(), &v));
@@ -588,7 +588,7 @@ static void test_remove_of_the_last_elem_empties_the_vec() {
 
 // the tail shift is sized in bytes, so wide elems must travel whole
 static void test_insert_and_remove_move_whole_elems() {
-    const Pair src[2] = {{1, 2}, {3, 4}};
+    constexpr Pair src[2] = {{1, 2}, {3, 4}};
 
     nad_Vec *v = nullptr;
     TEST_ASSERT_EQUAL_INT(NAD_STATUS_OK, NAD_VEC_FROM_DATA(Pair, src, 2, nad_al_default(), &v));
@@ -1016,7 +1016,7 @@ static void test_swap_elems_same_index_is_noop() {
 
 // elem_size drives the swap, so a type wider than a word must move whole
 static void test_swap_elems_moves_wide_elems_whole() {
-    const Pair src[2] = {{1, 2}, {3, 4}};
+    constexpr Pair src[2] = {{1, 2}, {3, 4}};
 
     nad_Vec *v = nullptr;
     TEST_ASSERT_EQUAL_INT(NAD_STATUS_OK, NAD_VEC_FROM_DATA(Pair, src, 2, nad_al_default(), &v));

@@ -150,7 +150,7 @@ static void test_fold_passes_the_ctx_through() {
 }
 
 static void test_fold_sees_whole_elems() {
-    const Pair buf[3] = {{1, 100}, {2, 200}, {3, 300}};
+    constexpr Pair buf[3] = {{1, 100}, {2, 200}, {3, 300}};
     int64_t acc = 0;
 
     nad_span_fold(NAD_SPAN_NEW(Pair, buf, 3), &acc, sum_pair_a, nullptr);
@@ -256,7 +256,7 @@ static void test_partial_sum_feeds_on_its_own_output() {
 }
 
 static void test_partial_sum_combines_whole_elems() {
-    const Pair src[3] = {{1, 10}, {2, 20}, {3, 30}};
+    constexpr Pair src[3] = {{1, 10}, {2, 20}, {3, 30}};
     Pair dst[3] = {0};
 
     nad_span_partial_sum(NAD_SPAN_NEW_MUT(Pair, dst, 3), NAD_SPAN_NEW(Pair, src, 3),

@@ -99,7 +99,7 @@ static void test_make_heap_of_empty_or_single_is_a_heap() {
 
 // equal elems satisfy the property in either direction, so nothing may be lost to them
 static void test_make_heap_keeps_duplicates() {
-    const int32_t src[6] = {5, 5, 1, 5, 1, 5};
+    constexpr int32_t src[6] = {5, 5, 1, 5, 1, 5};
     int32_t buf[6];
     memcpy(buf, src, sizeof buf);
 
@@ -222,7 +222,7 @@ static void test_sort_heap_orders_every_permutation() {
 }
 
 static void test_sort_heap_orders_duplicates() {
-    const int32_t src[8] = {5, 1, 5, 5, 1, 9, 1, 5};
+    constexpr int32_t src[8] = {5, 1, 5, 5, 1, 9, 1, 5};
     int32_t buf[8];
     memcpy(buf, src, sizeof buf);
 
@@ -287,7 +287,7 @@ static void test_is_heap_accepts_empty_and_single() {
 
 // there is no min_heap family: a descending comparator is the whole mechanism
 static void test_descending_comparator_gives_a_min_heap() {
-    const int32_t src[7] = {3, 1, 4, 1, 5, 9, 2};
+    constexpr int32_t src[7] = {3, 1, 4, 1, 5, 9, 2};
     int32_t buf[7];
     memcpy(buf, src, sizeof buf);
 

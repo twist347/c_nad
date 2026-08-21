@@ -225,5 +225,5 @@ static bool pool_owns(const nad_AlPoolCtx *ctx, const void *ptr) {
 
     // must be aligned to block boundary
     const size_t offset = (size_t) (p - begin);
-    return (offset % ctx->block_size) == 0;
+    return offset % ctx->block_size == 0;
 }

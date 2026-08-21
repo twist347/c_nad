@@ -142,8 +142,8 @@ static void test_merge_keeps_duplicates() {
 
 // stability: on a tie the element from the first span must be emitted first
 static void test_merge_is_stable_on_ties() {
-    const Tagged a[2] = {{1, 100}, {2, 101}};
-    const Tagged b[2] = {{1, 200}, {2, 201}};
+    constexpr Tagged a[2] = {{1, 100}, {2, 101}};
+    constexpr Tagged b[2] = {{1, 200}, {2, 201}};
     Tagged dst[4] = {};
 
     nad_span_merge(

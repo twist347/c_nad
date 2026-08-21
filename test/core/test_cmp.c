@@ -127,9 +127,9 @@ static void test_cmp_ptrdiff_orders_and_survives_the_extremes() {
 // (char) 200 is negative on x86 and 200 under -funsigned-char; substituting nad_cmp_i8
 // or nad_cmp_u8 is wrong on exactly one of the two, and this case says which.
 static void test_cmp_char_follows_the_signedness_of_the_target() {
-    const char high = (char) 200;
-    const char low = (char) 100;
-    const int want = (high > low) - (high < low);
+    constexpr char high = (char) 200;
+    constexpr char low = 100;
+    constexpr int want = (high > low) - (high < low);
 
     TEST_ASSERT_EQUAL_INT(want, cmp_char(high, low));
     TEST_ASSERT_EQUAL_INT(-want, cmp_char(low, high));
@@ -165,7 +165,7 @@ static void test_cmp_float_treats_the_two_zeroes_as_one() {
 // the reason these are not (a > b) - (a < b): every comparison against NaN is false,
 // so the naive form calls NaN equal to everything and the order stops being an order
 static void test_cmp_float_sorts_nan_after_every_number() {
-    const double nan_val = NAN;
+    constexpr double nan_val = NAN;
 
     TEST_ASSERT_EQUAL_INT(1, cmp_f64(nan_val, 0.0));
     TEST_ASSERT_EQUAL_INT(1, cmp_f64(nan_val, INFINITY));
@@ -240,15 +240,15 @@ static void test_eq_answers_true_only_on_equal() {
 
 // the descending form is the ascending one with its operands the other way round
 static void test_descending_inverts_the_ascending_one() {
-    const int32_t a = 1;
-    const int32_t b = 2;
+    constexpr int32_t a = 1;
+    constexpr int32_t b = 2;
 
     TEST_ASSERT_EQUAL_INT(1, nad_cmp_desc_i32(&a, &b));
     TEST_ASSERT_EQUAL_INT(-1, nad_cmp_desc_i32(&b, &a));
     TEST_ASSERT_EQUAL_INT(0, nad_cmp_desc_i32(&a, &a));
 
-    const double x = 1.5;
-    const double y = 2.5;
+    constexpr double x = 1.5;
+    constexpr double y = 2.5;
     TEST_ASSERT_EQUAL_INT(1, nad_cmp_desc_f64(&x, &y));
     TEST_ASSERT_EQUAL_INT(-1, nad_cmp_desc_f64(&y, &x));
 

@@ -106,7 +106,7 @@ static void test_transform_passes_the_ctx_through() {
 
 // the elem type may change on the way, as long as the widths match
 static void test_transform_may_narrow_the_elem() {
-    const Pair src[3] = {{1, 10}, {2, 20}, {3, 30}};
+    constexpr Pair src[3] = {{1, 10}, {2, 20}, {3, 30}};
     int64_t dst[3] = {0};
 
     nad_span_transform(NAD_SPAN_NEW_MUT(int64_t, dst, 3), NAD_SPAN_NEW(Pair, src, 3),
@@ -117,7 +117,7 @@ static void test_transform_may_narrow_the_elem() {
 }
 
 static void test_transform_writes_whole_elems() {
-    const Pair src[2] = {{1, 2}, {3, 4}};
+    constexpr Pair src[2] = {{1, 2}, {3, 4}};
     Pair dst[2] = {0};
 
     nad_span_transform(NAD_SPAN_NEW_MUT(Pair, dst, 2), NAD_SPAN_NEW(Pair, src, 2),

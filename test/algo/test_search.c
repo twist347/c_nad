@@ -194,8 +194,8 @@ static void test_binary_search_finds_a_present_key() {
 
 // among duplicates it must report the first one, matching lower_bound
 static void test_binary_search_reports_the_first_of_the_duplicates() {
-    const Tagged buf[5] = {{1, 0}, {2, 10}, {2, 11}, {2, 12}, {3, 0}};
-    const Tagged key = {2, -1};
+    constexpr Tagged buf[5] = {{1, 0}, {2, 10}, {2, 11}, {2, 12}, {3, 0}};
+    constexpr Tagged key = {2, -1};
 
     size_t idx = 0;
     TEST_ASSERT_TRUE(nad_span_binary_search(NAD_SPAN_NEW(Tagged, buf, 5), &key, cmp_tagged, &idx));
@@ -484,7 +484,7 @@ static void test_min_and_max_elem() {
 
 // ties resolve to the earliest index, for both ends
 static void test_extremes_pick_the_first_of_equals() {
-    const Tagged buf[4] = {{1, 10}, {5, 20}, {1, 11}, {5, 21}};
+    constexpr Tagged buf[4] = {{1, 10}, {5, 20}, {1, 11}, {5, 21}};
     const nad_Span s = NAD_SPAN_NEW(Tagged, buf, 4);
 
     TEST_ASSERT_EQUAL_size_t(0, nad_span_min_elem(s, cmp_tagged));

@@ -263,7 +263,7 @@ static void test_replace_if_passes_the_ctx_through() {
 
 static void test_replace_writes_whole_elems() {
     Pair buf[3] = {{1, 10}, {-1, 20}, {2, 30}};
-    const Pair val = {7, 70};
+    constexpr Pair val = {7, 70};
 
     nad_span_replace_if(NAD_SPAN_NEW_MUT(Pair, buf, 3), nad_test_pair_a_is_negative, nullptr, &val);
 
