@@ -4,6 +4,8 @@
 
 #include "support/arena.h"
 #include "support/pair.h"
+#include "support/probe.h"
+#include "support/status.h"
 
 #include "unity.h"
 
@@ -26,7 +28,7 @@ static size_t arena_charge(size_t bytes) {
 // int32_t vec of len elems holding 0, 1, ... len-1; cap == len
 static nad_Vec *make_vec(size_t len) {
     nad_Vec *v = nullptr;
-    TEST_ASSERT_EQUAL_INT(NAD_STATUS_OK, NAD_VEC_NEW_LEN(int32_t, len, nad_al_default(), &v));
+    NAD_TEST_OK(NAD_VEC_NEW_LEN(int32_t, len, nad_al_default(), &v));
 
     for (size_t i = 0; i < len; ++i) {
         NAD_VEC_SET(int32_t, v, i, (int32_t) i);
@@ -37,20 +39,28 @@ static nad_Vec *make_vec(size_t len) {
 // empty int32_t vec with room for cap elems
 static nad_Vec *make_vec_cap(size_t cap) {
     nad_Vec *v = nullptr;
-    TEST_ASSERT_EQUAL_INT(NAD_STATUS_OK, NAD_VEC_NEW_CAP(int32_t, cap, nad_al_default(), &v));
+    NAD_TEST_OK(NAD_VEC_NEW_CAP(int32_t, cap, nad_al_default(), &v));
 
     return v;
 }
 
 static void push_int(nad_Vec *v, int32_t val) {
-    TEST_ASSERT_EQUAL_INT(NAD_STATUS_OK, nad_vec_push(v, &val));
+    NAD_TEST_OK(nad_vec_push(v, &val));
+}
+
+static void assert_elems(const nad_Vec *v, const int32_t *want, size_t n) {
+    TEST_ASSERT_EQUAL_size_t(n, nad_vec_len(v));
+
+    for (size_t i = 0; i < n; ++i) {
+        TEST_ASSERT_EQUAL_INT32(want[i], *NAD_VEC_GET_AS(int32_t, v, i));
+    }
 }
 
 /* ========== lifetime ========== */
 
 static void test_new_starts_empty_and_unallocated() {
     nad_Vec *v = nullptr;
-    TEST_ASSERT_EQUAL_INT(NAD_STATUS_OK, NAD_VEC_NEW(int32_t, nad_al_default(), &v));
+    NAD_TEST_OK(NAD_VEC_NEW(int32_t, nad_al_default(), &v));
 
     TEST_ASSERT_EQUAL_size_t(0, nad_vec_len(v));
     TEST_ASSERT_EQUAL_size_t(0, nad_vec_cap(v));
@@ -63,7 +73,7 @@ static void test_new_starts_empty_and_unallocated() {
 
 static void test_new_len_sets_len_cap_and_zeroes() {
     nad_Vec *v = nullptr;
-    TEST_ASSERT_EQUAL_INT(NAD_STATUS_OK, NAD_VEC_NEW_LEN(int32_t, 4, nad_al_default(), &v));
+    NAD_TEST_OK(NAD_VEC_NEW_LEN(int32_t, 4, nad_al_default(), &v));
 
     TEST_ASSERT_EQUAL_size_t(4, nad_vec_len(v));
     TEST_ASSERT_EQUAL_size_t(4, nad_vec_cap(v));
@@ -98,7 +108,7 @@ static void test_from_data_copies_and_detaches_the_source() {
     int32_t src[3] = {5, 6, 7};
 
     nad_Vec *v = nullptr;
-    TEST_ASSERT_EQUAL_INT(NAD_STATUS_OK, NAD_VEC_FROM_DATA(int32_t, src, 3, nad_al_default(), &v));
+    NAD_TEST_OK(NAD_VEC_FROM_DATA(int32_t, src, 3, nad_al_default(), &v));
 
     TEST_ASSERT_EQUAL_size_t(3, nad_vec_len(v));
     TEST_ASSERT_EQUAL_size_t(3, nad_vec_cap(v));
@@ -114,10 +124,7 @@ static void test_from_data_copies_and_detaches_the_source() {
 // null source is legal while len == 0 — same rule as nad_span_new
 static void test_from_data_empty_has_no_buffer() {
     nad_Vec *v = nullptr;
-    TEST_ASSERT_EQUAL_INT(
-        NAD_STATUS_OK,
-        nad_vec_from_data(nullptr, 0, sizeof(int32_t), nad_al_default(), &v)
-    );
+    NAD_TEST_OK(nad_vec_from_data(nullptr, 0, sizeof(int32_t), nad_al_default(), &v));
 
     TEST_ASSERT_EQUAL_size_t(0, nad_vec_len(v));
     TEST_ASSERT_EQUAL_size_t(0, nad_vec_cap(v));
@@ -131,7 +138,7 @@ static void test_from_data_copies_whole_elems() {
     constexpr Pair src[2] = {{1, 2}, {3, 4}};
 
     nad_Vec *v = nullptr;
-    TEST_ASSERT_EQUAL_INT(NAD_STATUS_OK, NAD_VEC_FROM_DATA(Pair, src, 2, nad_al_default(), &v));
+    NAD_TEST_OK(NAD_VEC_FROM_DATA(Pair, src, 2, nad_al_default(), &v));
 
     TEST_ASSERT_EQUAL_size_t(sizeof(Pair), nad_vec_elem_size(v));
     TEST_ASSERT_EQUAL_INT64(1, NAD_VEC_GET_AS(Pair, v, 0)->a);
@@ -146,10 +153,7 @@ static void test_from_span_copies_the_view() {
     constexpr int32_t src[3] = {7, 8, 9};
 
     nad_Vec *v = nullptr;
-    TEST_ASSERT_EQUAL_INT(
-        NAD_STATUS_OK,
-        nad_vec_from_span(NAD_SPAN_NEW(int32_t, src, 3), nad_al_default(), &v)
-    );
+    NAD_TEST_OK(nad_vec_from_span(NAD_SPAN_NEW(int32_t, src, 3), nad_al_default(), &v));
 
     TEST_ASSERT_EQUAL_size_t(3, nad_vec_len(v));
     TEST_ASSERT_EQUAL_size_t(sizeof(int32_t), nad_vec_elem_size(v));
@@ -169,7 +173,7 @@ static void test_copy_is_independent() {
     nad_Vec *src = make_vec(4);
 
     nad_Vec *dst = nullptr;
-    TEST_ASSERT_EQUAL_INT(NAD_STATUS_OK, nad_vec_copy(src, &dst));
+    NAD_TEST_OK(nad_vec_copy(src, &dst));
 
     TEST_ASSERT_EQUAL_size_t(4, nad_vec_len(dst));
     TEST_ASSERT_EQUAL_INT32_ARRAY(nad_vec_data(src), nad_vec_data(dst), 4);
@@ -189,7 +193,7 @@ static void test_copy_fits_the_len_not_the_source_capacity() {
     push_int(src, 2);
 
     nad_Vec *dst = nullptr;
-    TEST_ASSERT_EQUAL_INT(NAD_STATUS_OK, nad_vec_copy(src, &dst));
+    NAD_TEST_OK(nad_vec_copy(src, &dst));
 
     TEST_ASSERT_EQUAL_size_t(2, nad_vec_len(dst));
     TEST_ASSERT_EQUAL_size_t(2, nad_vec_cap(dst));
@@ -202,7 +206,7 @@ static void test_copy_of_empty_has_no_buffer() {
     nad_Vec *src = make_vec(0);
 
     nad_Vec *dst = nullptr;
-    TEST_ASSERT_EQUAL_INT(NAD_STATUS_OK, nad_vec_copy(src, &dst));
+    NAD_TEST_OK(nad_vec_copy(src, &dst));
 
     TEST_ASSERT_EQUAL_size_t(0, nad_vec_len(dst));
     TEST_ASSERT_EQUAL_size_t(sizeof(int32_t), nad_vec_elem_size(dst));
@@ -217,10 +221,10 @@ static void test_copy_inherits_the_source_allocator() {
     TEST_ASSERT_NOT_NULL(arena);
 
     nad_Vec *src = nullptr;
-    TEST_ASSERT_EQUAL_INT(NAD_STATUS_OK, NAD_VEC_OF(int32_t, arena, &src, 1, 2, 3));
+    NAD_TEST_OK(NAD_VEC_OF(int32_t, arena, &src, 1, 2, 3));
 
     nad_Vec *dst = nullptr;
-    TEST_ASSERT_EQUAL_INT(NAD_STATUS_OK, nad_vec_copy(src, &dst));
+    NAD_TEST_OK(nad_vec_copy(src, &dst));
 
     TEST_ASSERT_EQUAL_PTR(arena, nad_vec_al(dst));
     TEST_ASSERT_EQUAL_INT32_ARRAY(nad_vec_data(src), nad_vec_data(dst), 3);
@@ -235,19 +239,19 @@ static void test_copy_assign_grows_and_shrinks_the_len() {
     nad_Vec *dst = make_vec(2);
 
     // grow: 2 -> 6
-    TEST_ASSERT_EQUAL_INT(NAD_STATUS_OK, nad_vec_copy_assign(src, dst));
+    NAD_TEST_OK(nad_vec_copy_assign(src, dst));
     TEST_ASSERT_EQUAL_size_t(6, nad_vec_len(dst));
     TEST_ASSERT_EQUAL_INT32_ARRAY(nad_vec_data(src), nad_vec_data(dst), 6);
 
     // shrink: 6 -> 3
     nad_Vec *small = make_vec(3);
-    TEST_ASSERT_EQUAL_INT(NAD_STATUS_OK, nad_vec_copy_assign(small, dst));
+    NAD_TEST_OK(nad_vec_copy_assign(small, dst));
     TEST_ASSERT_EQUAL_size_t(3, nad_vec_len(dst));
     TEST_ASSERT_EQUAL_INT32_ARRAY(nad_vec_data(small), nad_vec_data(dst), 3);
 
     // shrink to empty: the len goes, the buffer stays
     nad_Vec *empty = make_vec(0);
-    TEST_ASSERT_EQUAL_INT(NAD_STATUS_OK, nad_vec_copy_assign(empty, dst));
+    NAD_TEST_OK(nad_vec_copy_assign(empty, dst));
     TEST_ASSERT_EQUAL_size_t(0, nad_vec_len(dst));
     TEST_ASSERT_NOT_NULL(nad_vec_data(dst));
 
@@ -262,7 +266,7 @@ static void test_copy_assign_keeps_the_target_capacity() {
     nad_Vec *src = make_vec(2);
     nad_Vec *dst = make_vec(6);
 
-    TEST_ASSERT_EQUAL_INT(NAD_STATUS_OK, nad_vec_copy_assign(src, dst));
+    NAD_TEST_OK(nad_vec_copy_assign(src, dst));
 
     TEST_ASSERT_EQUAL_size_t(2, nad_vec_len(dst));
     TEST_ASSERT_EQUAL_size_t(6, nad_vec_cap(dst));
@@ -274,7 +278,7 @@ static void test_copy_assign_keeps_the_target_capacity() {
 static void test_copy_assign_self_is_noop() {
     nad_Vec *v = make_vec(3);
 
-    TEST_ASSERT_EQUAL_INT(NAD_STATUS_OK, nad_vec_copy_assign(v, v));
+    NAD_TEST_OK(nad_vec_copy_assign(v, v));
     TEST_ASSERT_EQUAL_size_t(3, nad_vec_len(v));
     TEST_ASSERT_EQUAL_INT32(2, *NAD_VEC_GET_AS(int32_t, v, 2));
 
@@ -289,9 +293,9 @@ static void test_copy_assign_keeps_the_target_allocator() {
     nad_Vec *src = make_vec(4);
 
     nad_Vec *dst = nullptr;
-    TEST_ASSERT_EQUAL_INT(NAD_STATUS_OK, NAD_VEC_NEW_LEN(int32_t, 1, arena, &dst));
+    NAD_TEST_OK(NAD_VEC_NEW_LEN(int32_t, 1, arena, &dst));
 
-    TEST_ASSERT_EQUAL_INT(NAD_STATUS_OK, nad_vec_copy_assign(src, dst));
+    NAD_TEST_OK(nad_vec_copy_assign(src, dst));
 
     TEST_ASSERT_EQUAL_size_t(4, nad_vec_len(dst));
     TEST_ASSERT_EQUAL_PTR(arena, nad_vec_al(dst));
@@ -338,7 +342,7 @@ static void test_bytes_tracks_elem_size() {
     constexpr Pair src[2] = {{1, 2}, {3, 4}};
 
     nad_Vec *v = nullptr;
-    TEST_ASSERT_EQUAL_INT(NAD_STATUS_OK, NAD_VEC_FROM_DATA(Pair, src, 2, nad_al_default(), &v));
+    NAD_TEST_OK(NAD_VEC_FROM_DATA(Pair, src, 2, nad_al_default(), &v));
 
     TEST_ASSERT_EQUAL_size_t(2 * sizeof(Pair), nad_vec_bytes(v));
 
@@ -437,7 +441,7 @@ static void test_data_mut_writes_through() {
 // growth is 0 -> 1 and then doubling, and it only fires when the vec is full
 static void test_push_appends_and_doubles_the_capacity() {
     nad_Vec *v = nullptr;
-    TEST_ASSERT_EQUAL_INT(NAD_STATUS_OK, NAD_VEC_NEW(int32_t, nad_al_default(), &v));
+    NAD_TEST_OK(NAD_VEC_NEW(int32_t, nad_al_default(), &v));
 
     constexpr size_t want_cap[5] = {1, 2, 4, 4, 8};
     for (size_t i = 0; i < 5; ++i) {
@@ -471,10 +475,10 @@ static void test_push_uses_reserved_capacity_without_reallocating() {
 
 static void test_push_moves_whole_elems() {
     nad_Vec *v = nullptr;
-    TEST_ASSERT_EQUAL_INT(NAD_STATUS_OK, NAD_VEC_NEW(Pair, nad_al_default(), &v));
+    NAD_TEST_OK(NAD_VEC_NEW(Pair, nad_al_default(), &v));
 
-    TEST_ASSERT_EQUAL_INT(NAD_STATUS_OK, nad_vec_push(v, &(Pair){1, 2}));
-    TEST_ASSERT_EQUAL_INT(NAD_STATUS_OK, nad_vec_push(v, &(Pair){3, 4}));
+    NAD_TEST_OK(nad_vec_push(v, &(Pair){1, 2}));
+    NAD_TEST_OK(nad_vec_push(v, &(Pair){3, 4}));
 
     TEST_ASSERT_EQUAL_INT64(1, NAD_VEC_GET_AS(Pair, v, 0)->a);
     TEST_ASSERT_EQUAL_INT64(2, NAD_VEC_GET_AS(Pair, v, 0)->b);
@@ -521,9 +525,9 @@ static void test_push_after_pop_overwrites_the_slot() {
 static void test_insert_at_front_middle_and_end() {
     nad_Vec *v = make_vec(3); // 0, 1, 2
 
-    TEST_ASSERT_EQUAL_INT(NAD_STATUS_OK, NAD_VEC_INSERT(int32_t, v, 0, 10));
-    TEST_ASSERT_EQUAL_INT(NAD_STATUS_OK, NAD_VEC_INSERT(int32_t, v, 2, 20));
-    TEST_ASSERT_EQUAL_INT(NAD_STATUS_OK, NAD_VEC_INSERT(int32_t, v, 5, 30));
+    NAD_TEST_OK(NAD_VEC_INSERT(int32_t, v, 0, 10));
+    NAD_TEST_OK(NAD_VEC_INSERT(int32_t, v, 2, 20));
+    NAD_TEST_OK(NAD_VEC_INSERT(int32_t, v, 5, 30));
 
     constexpr int32_t want[6] = {10, 0, 20, 1, 2, 30};
     TEST_ASSERT_EQUAL_size_t(6, nad_vec_len(v));
@@ -535,9 +539,9 @@ static void test_insert_at_front_middle_and_end() {
 // idx == len on an empty vec is the only legal index there
 static void test_insert_into_an_empty_vec() {
     nad_Vec *v = nullptr;
-    TEST_ASSERT_EQUAL_INT(NAD_STATUS_OK, NAD_VEC_NEW(int32_t, nad_al_default(), &v));
+    NAD_TEST_OK(NAD_VEC_NEW(int32_t, nad_al_default(), &v));
 
-    TEST_ASSERT_EQUAL_INT(NAD_STATUS_OK, NAD_VEC_INSERT(int32_t, v, 0, 42));
+    NAD_TEST_OK(NAD_VEC_INSERT(int32_t, v, 0, 42));
 
     TEST_ASSERT_EQUAL_size_t(1, nad_vec_len(v));
     TEST_ASSERT_EQUAL_size_t(1, nad_vec_cap(v));
@@ -550,7 +554,7 @@ static void test_insert_into_an_empty_vec() {
 static void test_insert_grows_when_full() {
     nad_Vec *v = make_vec(2); // len == cap == 2
 
-    TEST_ASSERT_EQUAL_INT(NAD_STATUS_OK, NAD_VEC_INSERT(int32_t, v, 0, 9));
+    NAD_TEST_OK(NAD_VEC_INSERT(int32_t, v, 0, 9));
 
     TEST_ASSERT_EQUAL_size_t(3, nad_vec_len(v));
     TEST_ASSERT_TRUE(nad_vec_cap(v) >= 3);
@@ -591,9 +595,9 @@ static void test_insert_and_remove_move_whole_elems() {
     constexpr Pair src[2] = {{1, 2}, {3, 4}};
 
     nad_Vec *v = nullptr;
-    TEST_ASSERT_EQUAL_INT(NAD_STATUS_OK, NAD_VEC_FROM_DATA(Pair, src, 2, nad_al_default(), &v));
+    NAD_TEST_OK(NAD_VEC_FROM_DATA(Pair, src, 2, nad_al_default(), &v));
 
-    TEST_ASSERT_EQUAL_INT(NAD_STATUS_OK, nad_vec_insert(v, 1, &(Pair){5, 6}));
+    NAD_TEST_OK(nad_vec_insert(v, 1, &(Pair){5, 6}));
 
     TEST_ASSERT_EQUAL_size_t(3, nad_vec_len(v));
     TEST_ASSERT_EQUAL_INT64(5, NAD_VEC_GET_AS(Pair, v, 1)->a);
@@ -608,6 +612,262 @@ static void test_insert_and_remove_move_whole_elems() {
     TEST_ASSERT_EQUAL_INT64(6, NAD_VEC_GET_AS(Pair, v, 0)->b);
     TEST_ASSERT_EQUAL_INT64(3, NAD_VEC_GET_AS(Pair, v, 1)->a);
     TEST_ASSERT_EQUAL_INT64(4, NAD_VEC_GET_AS(Pair, v, 1)->b);
+
+    nad_vec_drop(v);
+}
+
+/* ========== bulk mods ========== */
+
+static void test_extend_appends_in_order() {
+    nad_Vec *v = make_vec(3); // 0, 1, 2
+    constexpr int32_t src[3] = {7, 8, 9};
+
+    NAD_TEST_OK(nad_vec_extend(v, NAD_SPAN_NEW(int32_t, src, 3)));
+
+    constexpr int32_t want[6] = {0, 1, 2, 7, 8, 9};
+    assert_elems(v, want, 6);
+
+    nad_vec_drop(v);
+}
+
+static void test_extend_onto_an_empty_vec() {
+    nad_Vec *v = nullptr;
+    NAD_TEST_OK(NAD_VEC_NEW(int32_t, nad_al_default(), &v));
+
+    constexpr int32_t src[2] = {4, 5};
+    NAD_TEST_OK(nad_vec_extend(v, NAD_SPAN_NEW(int32_t, src, 2)));
+
+    assert_elems(v, src, 2);
+
+    nad_vec_drop(v);
+}
+
+// an empty run is not an error and not a no-op by accident: nothing is allocated and
+// nothing moves
+static void test_extend_with_an_empty_span_changes_nothing() {
+    nad_Vec *v = make_vec(3);
+    const size_t cap = nad_vec_cap(v);
+    const void *before = nad_vec_data(v);
+
+    NAD_TEST_OK(nad_vec_extend(v, NAD_SPAN_NEW(int32_t, nullptr, 0)));
+
+    TEST_ASSERT_EQUAL_size_t(3, nad_vec_len(v));
+    TEST_ASSERT_EQUAL_size_t(cap, nad_vec_cap(v));
+    TEST_ASSERT_EQUAL_PTR(before, nad_vec_data(v));
+
+    nad_vec_drop(v);
+}
+
+// the whole point of the operation: the room for the run is asked for ONCE. Eight pushes
+// onto the same empty vec would walk the growth factor up and ask four times
+static void test_extend_takes_the_room_once() {
+    nad_TestProbe probe;
+    nad_test_probe_reset(&probe);
+    nad_Al al = nad_test_probe_full(&probe);
+
+    nad_Vec *v = nullptr;
+    NAD_TEST_OK(NAD_VEC_NEW(int32_t, &al, &v));
+
+    const size_t before = nad_test_probe_requests(&probe);
+
+    constexpr int32_t src[8] = {1, 2, 3, 4, 5, 6, 7, 8};
+    NAD_TEST_OK(nad_vec_extend(v, NAD_SPAN_NEW(int32_t, src, 8)));
+
+    TEST_ASSERT_EQUAL_size_t(1, nad_test_probe_requests(&probe) - before);
+    assert_elems(v, src, 8);
+
+    nad_vec_drop(v);
+    TEST_ASSERT_EQUAL_size_t(0, probe.live);
+}
+
+// a run of one-elem extends must cost what a run of pushes costs — the growth factor,
+// not one allocation per call. Asking for exactly the new length every time would make
+// this 64 requests instead of a handful
+static void test_a_run_of_extends_stays_amortized() {
+    nad_TestProbe probe;
+    nad_test_probe_reset(&probe);
+    nad_Al al = nad_test_probe_full(&probe);
+
+    nad_Vec *v = nullptr;
+    NAD_TEST_OK(NAD_VEC_NEW(int32_t, &al, &v));
+
+    for (int32_t i = 0; i < 64; ++i) {
+        NAD_TEST_OK(nad_vec_extend(v, NAD_SPAN_NEW(int32_t, &i, 1)));
+    }
+
+    TEST_ASSERT_EQUAL_size_t(64, nad_vec_len(v));
+    TEST_ASSERT_TRUE(nad_test_probe_requests(&probe) < 20);
+    TEST_ASSERT_EQUAL_INT32(63, *NAD_VEC_GET_AS(int32_t, v, 63));
+
+    nad_vec_drop(v);
+    TEST_ASSERT_EQUAL_size_t(0, probe.live);
+}
+
+static void test_extend_moves_wide_elems_whole() {
+    nad_Vec *v = nullptr;
+    NAD_TEST_OK(NAD_VEC_NEW(Pair, nad_al_default(), &v));
+
+    constexpr Pair src[2] = {{1, 10}, {2, 20}};
+    NAD_TEST_OK(nad_vec_extend(v, NAD_SPAN_NEW(Pair, src, 2)));
+
+    TEST_ASSERT_EQUAL_size_t(2, nad_vec_len(v));
+    TEST_ASSERT_EQUAL_INT64(10, NAD_VEC_GET_AS(Pair, v, 0)->b);
+    TEST_ASSERT_EQUAL_INT64(2, NAD_VEC_GET_AS(Pair, v, 1)->a);
+
+    nad_vec_drop(v);
+}
+
+static void test_insert_span_puts_the_run_before_the_index() {
+    nad_Vec *v = make_vec(4); // 0, 1, 2, 3
+    constexpr int32_t src[2] = {8, 9};
+
+    NAD_TEST_OK(nad_vec_insert_span(v, 1, NAD_SPAN_NEW(int32_t, src, 2)));
+
+    constexpr int32_t want[6] = {0, 8, 9, 1, 2, 3};
+    assert_elems(v, want, 6);
+
+    nad_vec_drop(v);
+}
+
+static void test_insert_span_at_the_front() {
+    nad_Vec *v = make_vec(3);
+    constexpr int32_t src[2] = {8, 9};
+
+    NAD_TEST_OK(nad_vec_insert_span(v, 0, NAD_SPAN_NEW(int32_t, src, 2)));
+
+    constexpr int32_t want[5] = {8, 9, 0, 1, 2};
+    assert_elems(v, want, 5);
+
+    nad_vec_drop(v);
+}
+
+// idx == len is the same operation extend performs, and extend is written as this call
+static void test_insert_span_at_len_is_extend() {
+    nad_Vec *v = make_vec(3);
+    constexpr int32_t src[2] = {8, 9};
+
+    NAD_TEST_OK(nad_vec_insert_span(v, nad_vec_len(v), NAD_SPAN_NEW(int32_t, src, 2)));
+
+    constexpr int32_t want[5] = {0, 1, 2, 8, 9};
+    assert_elems(v, want, 5);
+
+    nad_vec_drop(v);
+}
+
+static void test_insert_span_of_an_empty_span_changes_nothing() {
+    nad_Vec *v = make_vec(3);
+    const void *before = nad_vec_data(v);
+
+    NAD_TEST_OK(nad_vec_insert_span(v, 1, NAD_SPAN_NEW(int32_t, nullptr, 0)));
+
+    constexpr int32_t want[3] = {0, 1, 2};
+    assert_elems(v, want, 3);
+    TEST_ASSERT_EQUAL_PTR(before, nad_vec_data(v));
+
+    nad_vec_drop(v);
+}
+
+// the tail is what a loop of insert would walk again for every elem; here it moves once,
+// and a tail longer than the run is what tells a right shift from a wrong one
+static void test_insert_span_keeps_a_long_tail_in_order() {
+    nad_Vec *v = make_vec(16);
+    constexpr int32_t src[2] = {100, 200};
+
+    NAD_TEST_OK(nad_vec_insert_span(v, 2, NAD_SPAN_NEW(int32_t, src, 2)));
+
+    TEST_ASSERT_EQUAL_size_t(18, nad_vec_len(v));
+    TEST_ASSERT_EQUAL_INT32(1, *NAD_VEC_GET_AS(int32_t, v, 1));
+    TEST_ASSERT_EQUAL_INT32(100, *NAD_VEC_GET_AS(int32_t, v, 2));
+    TEST_ASSERT_EQUAL_INT32(200, *NAD_VEC_GET_AS(int32_t, v, 3));
+    for (size_t i = 4; i < 18; ++i) {
+        TEST_ASSERT_EQUAL_INT32((int32_t) i - 2, *NAD_VEC_GET_AS(int32_t, v, i));
+    }
+
+    nad_vec_drop(v);
+}
+
+static void test_remove_range_closes_the_gap() {
+    nad_Vec *v = make_vec(6); // 0 .. 5
+
+    nad_vec_remove_range(v, 1, 3);
+
+    constexpr int32_t want[3] = {0, 4, 5};
+    assert_elems(v, want, 3);
+
+    nad_vec_drop(v);
+}
+
+static void test_remove_range_at_the_front() {
+    nad_Vec *v = make_vec(5);
+
+    nad_vec_remove_range(v, 0, 2);
+
+    constexpr int32_t want[3] = {2, 3, 4};
+    assert_elems(v, want, 3);
+
+    nad_vec_drop(v);
+}
+
+// nothing follows the gap, so there is no tail to move
+static void test_remove_range_to_the_end() {
+    nad_Vec *v = make_vec(5);
+
+    nad_vec_remove_range(v, 3, 2);
+
+    constexpr int32_t want[3] = {0, 1, 2};
+    assert_elems(v, want, 3);
+
+    nad_vec_drop(v);
+}
+
+static void test_remove_range_of_zero_changes_nothing() {
+    nad_Vec *v = make_vec(4);
+
+    nad_vec_remove_range(v, 2, 0);
+
+    constexpr int32_t want[4] = {0, 1, 2, 3};
+    assert_elems(v, want, 4);
+
+    nad_vec_drop(v);
+}
+
+static void test_remove_range_of_everything_empties_the_vec() {
+    nad_Vec *v = make_vec(4);
+
+    nad_vec_remove_range(v, 0, 4);
+
+    TEST_ASSERT_EQUAL_size_t(0, nad_vec_len(v));
+
+    nad_vec_drop(v);
+}
+
+// dropping elems hands nothing back to the allocator, as with pop and clear
+static void test_remove_range_leaves_the_capacity_alone() {
+    nad_Vec *v = make_vec(6);
+    const size_t cap = nad_vec_cap(v);
+    const void *before = nad_vec_data(v);
+
+    nad_vec_remove_range(v, 1, 2);
+
+    TEST_ASSERT_EQUAL_size_t(cap, nad_vec_cap(v));
+    TEST_ASSERT_EQUAL_PTR(before, nad_vec_data(v));
+
+    nad_vec_drop(v);
+}
+
+static void test_remove_range_moves_wide_elems_whole() {
+    nad_Vec *v = nullptr;
+    NAD_TEST_OK(NAD_VEC_NEW(Pair, nad_al_default(), &v));
+
+    constexpr Pair src[4] = {{1, 10}, {2, 20}, {3, 30}, {4, 40}};
+    NAD_TEST_OK(nad_vec_extend(v, NAD_SPAN_NEW(Pair, src, 4)));
+
+    nad_vec_remove_range(v, 1, 2);
+
+    TEST_ASSERT_EQUAL_size_t(2, nad_vec_len(v));
+    TEST_ASSERT_EQUAL_INT64(1, NAD_VEC_GET_AS(Pair, v, 0)->a);
+    TEST_ASSERT_EQUAL_INT64(4, NAD_VEC_GET_AS(Pair, v, 1)->a);
+    TEST_ASSERT_EQUAL_INT64(40, NAD_VEC_GET_AS(Pair, v, 1)->b);
 
     nad_vec_drop(v);
 }
@@ -648,7 +908,7 @@ static void test_clear_of_an_empty_vec_is_a_noop() {
 static void test_reserve_grows_the_capacity_and_keeps_the_contents() {
     nad_Vec *v = make_vec(3);
 
-    TEST_ASSERT_EQUAL_INT(NAD_STATUS_OK, nad_vec_reserve(v, 16));
+    NAD_TEST_OK(nad_vec_reserve(v, 16));
 
     TEST_ASSERT_EQUAL_size_t(3, nad_vec_len(v));
     TEST_ASSERT_EQUAL_size_t(16, nad_vec_cap(v));
@@ -664,9 +924,9 @@ static void test_reserve_below_the_capacity_is_a_noop() {
     nad_Vec *v = make_vec_cap(8);
     const void *before = nad_vec_data(v);
 
-    TEST_ASSERT_EQUAL_INT(NAD_STATUS_OK, nad_vec_reserve(v, 2));
-    TEST_ASSERT_EQUAL_INT(NAD_STATUS_OK, nad_vec_reserve(v, 8));
-    TEST_ASSERT_EQUAL_INT(NAD_STATUS_OK, nad_vec_reserve(v, 0));
+    NAD_TEST_OK(nad_vec_reserve(v, 2));
+    NAD_TEST_OK(nad_vec_reserve(v, 8));
+    NAD_TEST_OK(nad_vec_reserve(v, 0));
 
     TEST_ASSERT_EQUAL_size_t(8, nad_vec_cap(v));
     TEST_ASSERT_EQUAL_PTR(before, nad_vec_data(v));
@@ -679,7 +939,7 @@ static void test_reserve_reports_size_overflow() {
     nad_Vec *v = make_vec(3);
     const void *before = nad_vec_data(v);
 
-    TEST_ASSERT_EQUAL_INT(NAD_STATUS_OUT_OF_MEMORY, nad_vec_reserve(v, SIZE_MAX));
+    NAD_TEST_STATUS(NAD_STATUS_OUT_OF_MEMORY, nad_vec_reserve(v, SIZE_MAX));
 
     // the vec is left as it was
     TEST_ASSERT_EQUAL_size_t(3, nad_vec_len(v));
@@ -697,7 +957,7 @@ static void test_shrink_to_fit_drops_the_slack() {
     push_int(v, 2);
     push_int(v, 3);
 
-    TEST_ASSERT_EQUAL_INT(NAD_STATUS_OK, nad_vec_shrink_to_fit(v));
+    NAD_TEST_OK(nad_vec_shrink_to_fit(v));
 
     TEST_ASSERT_EQUAL_size_t(3, nad_vec_len(v));
     TEST_ASSERT_EQUAL_size_t(3, nad_vec_cap(v));
@@ -712,7 +972,7 @@ static void test_shrink_to_fit_when_already_exact_is_a_noop() {
     nad_Vec *v = make_vec(4);
     const void *before = nad_vec_data(v);
 
-    TEST_ASSERT_EQUAL_INT(NAD_STATUS_OK, nad_vec_shrink_to_fit(v));
+    NAD_TEST_OK(nad_vec_shrink_to_fit(v));
 
     TEST_ASSERT_EQUAL_size_t(4, nad_vec_cap(v));
     TEST_ASSERT_EQUAL_PTR(before, nad_vec_data(v));
@@ -724,7 +984,7 @@ static void test_shrink_to_fit_when_already_exact_is_a_noop() {
 static void test_shrink_to_fit_of_empty_releases_the_buffer() {
     nad_Vec *v = make_vec_cap(8);
 
-    TEST_ASSERT_EQUAL_INT(NAD_STATUS_OK, nad_vec_shrink_to_fit(v));
+    NAD_TEST_OK(nad_vec_shrink_to_fit(v));
 
     TEST_ASSERT_EQUAL_size_t(0, nad_vec_cap(v));
     TEST_ASSERT_NULL(nad_vec_data(v));
@@ -738,9 +998,9 @@ static void test_shrink_to_fit_of_empty_releases_the_buffer() {
 
 static void test_shrink_to_fit_of_an_unallocated_vec_is_a_noop() {
     nad_Vec *v = nullptr;
-    TEST_ASSERT_EQUAL_INT(NAD_STATUS_OK, NAD_VEC_NEW(int32_t, nad_al_default(), &v));
+    NAD_TEST_OK(NAD_VEC_NEW(int32_t, nad_al_default(), &v));
 
-    TEST_ASSERT_EQUAL_INT(NAD_STATUS_OK, nad_vec_shrink_to_fit(v));
+    NAD_TEST_OK(nad_vec_shrink_to_fit(v));
 
     TEST_ASSERT_EQUAL_size_t(0, nad_vec_cap(v));
     TEST_ASSERT_NULL(nad_vec_data(v));
@@ -753,7 +1013,7 @@ static void test_shrink_to_fit_of_an_unallocated_vec_is_a_noop() {
 static void test_resize_up_zeroes_the_tail() {
     nad_Vec *v = make_vec(2); // 0, 1
 
-    TEST_ASSERT_EQUAL_INT(NAD_STATUS_OK, nad_vec_resize(v, 5));
+    NAD_TEST_OK(nad_vec_resize(v, 5));
 
     constexpr int32_t want[5] = {0, 1, 0, 0, 0};
     TEST_ASSERT_EQUAL_size_t(5, nad_vec_len(v));
@@ -765,7 +1025,7 @@ static void test_resize_up_zeroes_the_tail() {
 static void test_resize_down_keeps_the_head_and_the_capacity() {
     nad_Vec *v = make_vec(5);
 
-    TEST_ASSERT_EQUAL_INT(NAD_STATUS_OK, nad_vec_resize(v, 2));
+    NAD_TEST_OK(nad_vec_resize(v, 2));
 
     constexpr int32_t want[2] = {0, 1};
     TEST_ASSERT_EQUAL_size_t(2, nad_vec_len(v));
@@ -782,7 +1042,7 @@ static void test_resize_within_the_capacity_does_not_reallocate() {
     push_int(v, 2);
     const void *before = nad_vec_data(v);
 
-    TEST_ASSERT_EQUAL_INT(NAD_STATUS_OK, nad_vec_resize(v, 5));
+    NAD_TEST_OK(nad_vec_resize(v, 5));
 
     constexpr int32_t want[5] = {1, 2, 0, 0, 0};
     TEST_ASSERT_EQUAL_PTR(before, nad_vec_data(v));
@@ -796,7 +1056,7 @@ static void test_resize_to_zero_keeps_the_buffer() {
     nad_Vec *v = make_vec(4);
     const void *before = nad_vec_data(v);
 
-    TEST_ASSERT_EQUAL_INT(NAD_STATUS_OK, nad_vec_resize(v, 0));
+    NAD_TEST_OK(nad_vec_resize(v, 0));
 
     TEST_ASSERT_EQUAL_size_t(0, nad_vec_len(v));
     TEST_ASSERT_EQUAL_size_t(4, nad_vec_cap(v));
@@ -808,7 +1068,7 @@ static void test_resize_to_zero_keeps_the_buffer() {
 static void test_resize_to_the_same_len_is_a_noop() {
     nad_Vec *v = make_vec(3);
 
-    TEST_ASSERT_EQUAL_INT(NAD_STATUS_OK, nad_vec_resize(v, 3));
+    NAD_TEST_OK(nad_vec_resize(v, 3));
 
     constexpr int32_t want[3] = {0, 1, 2};
     TEST_ASSERT_EQUAL_size_t(3, nad_vec_len(v));
@@ -820,7 +1080,7 @@ static void test_resize_to_the_same_len_is_a_noop() {
 static void test_resize_reports_size_overflow() {
     nad_Vec *v = make_vec(3);
 
-    TEST_ASSERT_EQUAL_INT(NAD_STATUS_OUT_OF_MEMORY, nad_vec_resize(v, SIZE_MAX));
+    NAD_TEST_STATUS(NAD_STATUS_OUT_OF_MEMORY, nad_vec_resize(v, SIZE_MAX));
 
     TEST_ASSERT_EQUAL_size_t(3, nad_vec_len(v));
     TEST_ASSERT_EQUAL_size_t(3, nad_vec_cap(v));
@@ -834,7 +1094,7 @@ static void test_swap_self_is_noop() {
     nad_Vec *v = make_vec(3);
     const void *before = nad_vec_data(v);
 
-    TEST_ASSERT_EQUAL_INT(NAD_STATUS_OK, nad_vec_swap(v, v));
+    NAD_TEST_OK(nad_vec_swap(v, v));
 
     TEST_ASSERT_EQUAL_PTR(before, nad_vec_data(v));
     TEST_ASSERT_EQUAL_size_t(3, nad_vec_len(v));
@@ -851,7 +1111,7 @@ static void test_swap_same_allocator_hands_over_buffers() {
     const void *pa = nad_vec_data(a);
     const void *pb = nad_vec_data(b);
 
-    TEST_ASSERT_EQUAL_INT(NAD_STATUS_OK, nad_vec_swap(a, b));
+    NAD_TEST_OK(nad_vec_swap(a, b));
 
     TEST_ASSERT_EQUAL_PTR(pb, nad_vec_data(a));
     TEST_ASSERT_EQUAL_PTR(pa, nad_vec_data(b));
@@ -869,7 +1129,7 @@ static void test_swap_same_allocator_carries_the_capacity() {
 
     nad_Vec *b = make_vec(3);
 
-    TEST_ASSERT_EQUAL_INT(NAD_STATUS_OK, nad_vec_swap(a, b));
+    NAD_TEST_OK(nad_vec_swap(a, b));
 
     TEST_ASSERT_EQUAL_size_t(3, nad_vec_len(a));
     TEST_ASSERT_EQUAL_size_t(3, nad_vec_cap(a));
@@ -888,9 +1148,9 @@ static void test_swap_across_allocators_moves_the_bytes() {
     nad_Vec *a = make_vec(2); // default: 0, 1
 
     nad_Vec *b = nullptr;
-    TEST_ASSERT_EQUAL_INT(NAD_STATUS_OK, NAD_VEC_OF(int32_t, arena, &b, 10, 20, 30));
+    NAD_TEST_OK(NAD_VEC_OF(int32_t, arena, &b, 10, 20, 30));
 
-    TEST_ASSERT_EQUAL_INT(NAD_STATUS_OK, nad_vec_swap(a, b));
+    NAD_TEST_OK(nad_vec_swap(a, b));
 
     TEST_ASSERT_EQUAL_size_t(3, nad_vec_len(a));
     TEST_ASSERT_EQUAL_size_t(2, nad_vec_len(b));
@@ -917,9 +1177,9 @@ static void test_swap_across_allocators_fits_each_side_to_its_content() {
     push_int(a, 7);
 
     nad_Vec *b = nullptr;
-    TEST_ASSERT_EQUAL_INT(NAD_STATUS_OK, NAD_VEC_OF(int32_t, arena, &b, 1, 2, 3));
+    NAD_TEST_OK(NAD_VEC_OF(int32_t, arena, &b, 1, 2, 3));
 
-    TEST_ASSERT_EQUAL_INT(NAD_STATUS_OK, nad_vec_swap(a, b));
+    NAD_TEST_OK(nad_vec_swap(a, b));
 
     TEST_ASSERT_EQUAL_size_t(3, nad_vec_len(a));
     TEST_ASSERT_EQUAL_size_t(3, nad_vec_cap(a));
@@ -939,9 +1199,9 @@ static void test_swap_across_allocators_with_an_empty_side() {
     nad_Vec *a = make_vec_cap(8); // room, but no content
 
     nad_Vec *b = nullptr;
-    TEST_ASSERT_EQUAL_INT(NAD_STATUS_OK, NAD_VEC_OF(int32_t, arena, &b, 1, 2, 3));
+    NAD_TEST_OK(NAD_VEC_OF(int32_t, arena, &b, 1, 2, 3));
 
-    TEST_ASSERT_EQUAL_INT(NAD_STATUS_OK, nad_vec_swap(a, b));
+    NAD_TEST_OK(nad_vec_swap(a, b));
 
     TEST_ASSERT_EQUAL_size_t(3, nad_vec_len(a));
     TEST_ASSERT_EQUAL_INT32(2, *NAD_VEC_GET_AS(int32_t, a, 1));
@@ -965,10 +1225,10 @@ static void test_swap_across_allocators_rolls_back_a_failed_second_alloc() {
     TEST_ASSERT_NOT_NULL(arena);
 
     nad_Vec *a = nullptr;
-    TEST_ASSERT_EQUAL_INT(NAD_STATUS_OK, NAD_VEC_OF(int32_t, nad_al_default(), &a, 1, 2));
+    NAD_TEST_OK(NAD_VEC_OF(int32_t, nad_al_default(), &a, 1, 2));
 
     nad_Vec *b = nullptr;
-    TEST_ASSERT_EQUAL_INT(NAD_STATUS_OK, NAD_VEC_OF(int32_t, arena, &b, 10, 20, 30));
+    NAD_TEST_OK(NAD_VEC_OF(int32_t, arena, &b, 10, 20, 30));
 
     const void *pa = nad_vec_data(a);
     const void *pb = nad_vec_data(b);
@@ -976,7 +1236,7 @@ static void test_swap_across_allocators_rolls_back_a_failed_second_alloc() {
     // b's side has nothing left to give
     nad_test_arena_leave(arena, 0);
 
-    TEST_ASSERT_EQUAL_INT(NAD_STATUS_OUT_OF_MEMORY, nad_vec_swap(a, b));
+    NAD_TEST_STATUS(NAD_STATUS_OUT_OF_MEMORY, nad_vec_swap(a, b));
 
     // both vecs untouched
     TEST_ASSERT_EQUAL_size_t(2, nad_vec_len(a));
@@ -1019,7 +1279,7 @@ static void test_swap_elems_moves_wide_elems_whole() {
     constexpr Pair src[2] = {{1, 2}, {3, 4}};
 
     nad_Vec *v = nullptr;
-    TEST_ASSERT_EQUAL_INT(NAD_STATUS_OK, NAD_VEC_FROM_DATA(Pair, src, 2, nad_al_default(), &v));
+    NAD_TEST_OK(NAD_VEC_FROM_DATA(Pair, src, 2, nad_al_default(), &v));
 
     nad_vec_swap_elems(v, 0, 1);
 
@@ -1063,7 +1323,7 @@ static void test_to_span_mut_writes_reach_the_vec() {
 
 static void test_to_span_of_empty_keeps_elem_size() {
     nad_Vec *v = nullptr;
-    TEST_ASSERT_EQUAL_INT(NAD_STATUS_OK, NAD_VEC_NEW(int32_t, nad_al_default(), &v));
+    NAD_TEST_OK(NAD_VEC_NEW(int32_t, nad_al_default(), &v));
 
     const nad_Span s = nad_vec_to_span(v);
 
@@ -1080,10 +1340,7 @@ static void test_to_span_of_empty_keeps_elem_size() {
 static void test_new_len_reports_size_overflow() {
     nad_Vec *v = nullptr;
 
-    TEST_ASSERT_EQUAL_INT(
-        NAD_STATUS_OUT_OF_MEMORY,
-        nad_vec_new_len(SIZE_MAX, 2, nad_al_default(), &v)
-    );
+    NAD_TEST_STATUS(NAD_STATUS_OUT_OF_MEMORY, nad_vec_new_len(SIZE_MAX, 2, nad_al_default(), &v));
 
     TEST_ASSERT_NULL(v); // out is untouched on failure
 }
@@ -1091,10 +1348,7 @@ static void test_new_len_reports_size_overflow() {
 static void test_new_cap_reports_size_overflow() {
     nad_Vec *v = nullptr;
 
-    TEST_ASSERT_EQUAL_INT(
-        NAD_STATUS_OUT_OF_MEMORY,
-        nad_vec_new_cap(SIZE_MAX, 2, nad_al_default(), &v)
-    );
+    NAD_TEST_STATUS(NAD_STATUS_OUT_OF_MEMORY, nad_vec_new_cap(SIZE_MAX, 2, nad_al_default(), &v));
 
     TEST_ASSERT_NULL(v);
 }
@@ -1103,7 +1357,7 @@ static void test_from_data_reports_size_overflow() {
     constexpr int32_t src[1] = {1};
     nad_Vec *v = nullptr;
 
-    TEST_ASSERT_EQUAL_INT(
+    NAD_TEST_STATUS(
         NAD_STATUS_OUT_OF_MEMORY,
         nad_vec_from_data(src, SIZE_MAX, 2, nad_al_default(), &v)
     );
@@ -1117,10 +1371,7 @@ static void test_new_len_reports_an_exhausted_arena() {
 
     nad_Vec *v = nullptr;
 
-    TEST_ASSERT_EQUAL_INT(
-        NAD_STATUS_OUT_OF_MEMORY,
-        NAD_VEC_NEW_LEN(int32_t, 1000, arena, &v)
-    );
+    NAD_TEST_STATUS(NAD_STATUS_OUT_OF_MEMORY, NAD_VEC_NEW_LEN(int32_t, 1000, arena, &v));
 
     TEST_ASSERT_NULL(v);
 
@@ -1133,7 +1384,7 @@ static void test_push_reports_an_exhausted_arena() {
     TEST_ASSERT_NOT_NULL(arena);
 
     nad_Vec *v = nullptr;
-    TEST_ASSERT_EQUAL_INT(NAD_STATUS_OK, NAD_VEC_NEW_CAP(int32_t, 2, arena, &v));
+    NAD_TEST_OK(NAD_VEC_NEW_CAP(int32_t, 2, arena, &v));
 
     push_int(v, 1);
     push_int(v, 2);
@@ -1141,7 +1392,7 @@ static void test_push_reports_an_exhausted_arena() {
 
     nad_test_arena_leave(arena, 0);
 
-    TEST_ASSERT_EQUAL_INT(NAD_STATUS_OUT_OF_MEMORY, NAD_VEC_PUSH(int32_t, v, 3));
+    NAD_TEST_STATUS(NAD_STATUS_OUT_OF_MEMORY, NAD_VEC_PUSH(int32_t, v, 3));
 
     TEST_ASSERT_EQUAL_size_t(2, nad_vec_len(v));
     TEST_ASSERT_EQUAL_size_t(2, nad_vec_cap(v));
@@ -1165,15 +1416,15 @@ static void test_push_falls_back_to_one_more_slot_when_doubling_fails() {
     TEST_ASSERT_NOT_NULL(arena);
 
     nad_Vec *v = nullptr;
-    TEST_ASSERT_EQUAL_INT(NAD_STATUS_OK, NAD_VEC_NEW_CAP(Pair, 2, arena, &v));
+    NAD_TEST_OK(NAD_VEC_NEW_CAP(Pair, 2, arena, &v));
 
-    TEST_ASSERT_EQUAL_INT(NAD_STATUS_OK, nad_vec_push(v, &(Pair){1, 2}));
-    TEST_ASSERT_EQUAL_INT(NAD_STATUS_OK, nad_vec_push(v, &(Pair){3, 4}));
+    NAD_TEST_OK(nad_vec_push(v, &(Pair){1, 2}));
+    NAD_TEST_OK(nad_vec_push(v, &(Pair){3, 4}));
 
     // room for three elems, not for the four that doubling would ask for
     nad_test_arena_leave(arena, for_three);
 
-    TEST_ASSERT_EQUAL_INT(NAD_STATUS_OK, nad_vec_push(v, &(Pair){5, 6}));
+    NAD_TEST_OK(nad_vec_push(v, &(Pair){5, 6}));
 
     TEST_ASSERT_EQUAL_size_t(3, nad_vec_len(v));
     TEST_ASSERT_EQUAL_size_t(3, nad_vec_cap(v));
@@ -1187,11 +1438,99 @@ static void test_push_falls_back_to_one_more_slot_when_doubling_fails() {
     nad_al_arena_drop(arena);
 }
 
+// a refused run must leave the vec exactly as it was: the length, the block and the
+// elems, with no part of 'src' written anywhere
+static void test_extend_reports_an_exhausted_arena_and_changes_nothing() {
+    nad_Al *arena = nad_al_arena_new(nad_al_default(), 1024);
+    TEST_ASSERT_NOT_NULL(arena);
+
+    nad_Vec *v = nullptr;
+    NAD_TEST_OK(NAD_VEC_NEW_CAP(int32_t, 2, arena, &v));
+    push_int(v, 1);
+    push_int(v, 2);
+    const void *before = nad_vec_data(v);
+
+    nad_test_arena_leave(arena, 0);
+
+    constexpr int32_t src[3] = {7, 8, 9};
+    NAD_TEST_STATUS(NAD_STATUS_OUT_OF_MEMORY, nad_vec_extend(v, NAD_SPAN_NEW(int32_t, src, 3)));
+
+    constexpr int32_t want[2] = {1, 2};
+    assert_elems(v, want, 2);
+    TEST_ASSERT_EQUAL_size_t(2, nad_vec_cap(v));
+    TEST_ASSERT_EQUAL_PTR(before, nad_vec_data(v));
+
+    nad_al_arena_drop(arena);
+}
+
+// the same for a run going into the middle: the tail must not be shifted by a call that
+// then reports failure
+static void test_insert_span_reports_an_exhausted_arena_and_changes_nothing() {
+    nad_Al *arena = nad_al_arena_new(nad_al_default(), 1024);
+    TEST_ASSERT_NOT_NULL(arena);
+
+    nad_Vec *v = nullptr;
+    NAD_TEST_OK(NAD_VEC_NEW_CAP(int32_t, 3, arena, &v));
+    push_int(v, 1);
+    push_int(v, 2);
+    push_int(v, 3);
+
+    nad_test_arena_leave(arena, 0);
+
+    constexpr int32_t src[2] = {7, 8};
+    NAD_TEST_STATUS(
+        NAD_STATUS_OUT_OF_MEMORY,
+        nad_vec_insert_span(v, 1, NAD_SPAN_NEW(int32_t, src, 2))
+    );
+
+    constexpr int32_t want[3] = {1, 2, 3};
+    assert_elems(v, want, 3);
+
+    nad_al_arena_drop(arena);
+}
+
+// len + src.len overflows size_t: reported, and no byte is read from 'src'
+static void test_extend_reports_size_overflow() {
+    nad_Vec *v = make_vec(3);
+
+    constexpr int32_t src[1] = {1};
+    NAD_TEST_STATUS(
+        NAD_STATUS_OUT_OF_MEMORY,
+        nad_vec_extend(v, NAD_SPAN_NEW(int32_t, src, SIZE_MAX))
+    );
+
+    constexpr int32_t want[3] = {0, 1, 2};
+    assert_elems(v, want, 3);
+
+    nad_vec_drop(v);
+}
+
+// a run that fits in the room already there needs no allocator at all, so an exhausted
+// arena is no obstacle
+static void test_extend_within_the_capacity_needs_no_allocator() {
+    nad_Al *arena = nad_al_arena_new(nad_al_default(), 1024);
+    TEST_ASSERT_NOT_NULL(arena);
+
+    nad_Vec *v = nullptr;
+    NAD_TEST_OK(NAD_VEC_NEW_CAP(int32_t, 8, arena, &v));
+    push_int(v, 1);
+
+    nad_test_arena_leave(arena, 0);
+
+    constexpr int32_t src[3] = {7, 8, 9};
+    NAD_TEST_OK(nad_vec_extend(v, NAD_SPAN_NEW(int32_t, src, 3)));
+
+    constexpr int32_t want[4] = {1, 7, 8, 9};
+    assert_elems(v, want, 4);
+
+    nad_al_arena_drop(arena);
+}
+
 /* ========== macros ========== */
 
 static void test_macro_of_builds_from_literals() {
     nad_Vec *v = nullptr;
-    TEST_ASSERT_EQUAL_INT(NAD_STATUS_OK, NAD_VEC_OF(int32_t, nad_al_default(), &v, 4, 5, 6));
+    NAD_TEST_OK(NAD_VEC_OF(int32_t, nad_al_default(), &v, 4, 5, 6));
 
     TEST_ASSERT_EQUAL_size_t(3, nad_vec_len(v));
     TEST_ASSERT_EQUAL_size_t(sizeof(int32_t), nad_vec_elem_size(v));
@@ -1204,7 +1543,7 @@ static void test_macro_of_builds_from_literals() {
 
 static void test_macro_of_derives_len_from_the_list() {
     nad_Vec *v = nullptr;
-    TEST_ASSERT_EQUAL_INT(NAD_STATUS_OK, NAD_VEC_OF(int64_t, nad_al_default(), &v, 1, 2, 3, 4, 5));
+    NAD_TEST_OK(NAD_VEC_OF(int64_t, nad_al_default(), &v, 1, 2, 3, 4, 5));
 
     TEST_ASSERT_EQUAL_size_t(5, nad_vec_len(v));
     TEST_ASSERT_EQUAL_size_t(sizeof(int64_t), nad_vec_elem_size(v));
@@ -1214,10 +1553,10 @@ static void test_macro_of_derives_len_from_the_list() {
 
 static void test_macro_push_appends_a_value() {
     nad_Vec *v = nullptr;
-    TEST_ASSERT_EQUAL_INT(NAD_STATUS_OK, NAD_VEC_NEW(int32_t, nad_al_default(), &v));
+    NAD_TEST_OK(NAD_VEC_NEW(int32_t, nad_al_default(), &v));
 
-    TEST_ASSERT_EQUAL_INT(NAD_STATUS_OK, NAD_VEC_PUSH(int32_t, v, 4));
-    TEST_ASSERT_EQUAL_INT(NAD_STATUS_OK, NAD_VEC_PUSH(int32_t, v, 5));
+    NAD_TEST_OK(NAD_VEC_PUSH(int32_t, v, 4));
+    NAD_TEST_OK(NAD_VEC_PUSH(int32_t, v, 5));
 
     TEST_ASSERT_EQUAL_size_t(2, nad_vec_len(v));
     constexpr int32_t want[2] = {4, 5};
@@ -1229,11 +1568,11 @@ static void test_macro_push_appends_a_value() {
 // the value lands in a compound literal, so it must be spelled out exactly once
 static void test_macro_push_evaluates_its_value_once() {
     nad_Vec *v = nullptr;
-    TEST_ASSERT_EQUAL_INT(NAD_STATUS_OK, NAD_VEC_NEW(int32_t, nad_al_default(), &v));
+    NAD_TEST_OK(NAD_VEC_NEW(int32_t, nad_al_default(), &v));
 
     int32_t next = 0;
     for (int i = 0; i < 3; ++i) {
-        TEST_ASSERT_EQUAL_INT(NAD_STATUS_OK, NAD_VEC_PUSH(int32_t, v, next++));
+        NAD_TEST_OK(NAD_VEC_PUSH(int32_t, v, next++));
     }
 
     TEST_ASSERT_EQUAL_INT32(3, next);
@@ -1247,11 +1586,34 @@ static void test_macro_from_data_infers_elem_size() {
     constexpr int32_t src[2] = {1, 2};
 
     nad_Vec *v = nullptr;
-    TEST_ASSERT_EQUAL_INT(NAD_STATUS_OK, NAD_VEC_FROM_DATA(int32_t, src, 2, nad_al_default(), &v));
+    NAD_TEST_OK(NAD_VEC_FROM_DATA(int32_t, src, 2, nad_al_default(), &v));
 
     TEST_ASSERT_EQUAL_size_t(2, nad_vec_len(v));
     TEST_ASSERT_EQUAL_size_t(sizeof(int32_t), nad_vec_elem_size(v));
     TEST_ASSERT_EQUAL_INT32_ARRAY(src, nad_vec_data(v), 2);
+
+    nad_vec_drop(v);
+}
+
+static void test_macro_extend_appends_a_literal_list() {
+    nad_Vec *v = nullptr;
+    NAD_TEST_OK(NAD_VEC_NEW(int32_t, nad_al_default(), &v));
+
+    NAD_TEST_OK(NAD_VEC_EXTEND(int32_t, v, 4, 5, 6));
+
+    constexpr int32_t want[3] = {4, 5, 6};
+    assert_elems(v, want, 3);
+
+    nad_vec_drop(v);
+}
+
+static void test_macro_insert_span_places_a_literal_list() {
+    nad_Vec *v = make_vec(2); // 0, 1
+
+    NAD_TEST_OK(NAD_VEC_INSERT_SPAN(int32_t, v, 1, 8, 9));
+
+    constexpr int32_t want[4] = {0, 8, 9, 1};
+    assert_elems(v, want, 4);
 
     nad_vec_drop(v);
 }
@@ -1305,6 +1667,27 @@ int main() {
     RUN_TEST(test_remove_of_the_last_elem_empties_the_vec);
     RUN_TEST(test_insert_and_remove_move_whole_elems);
 
+    RUN_TEST(test_extend_appends_in_order);
+    RUN_TEST(test_extend_onto_an_empty_vec);
+    RUN_TEST(test_extend_with_an_empty_span_changes_nothing);
+    RUN_TEST(test_extend_takes_the_room_once);
+    RUN_TEST(test_a_run_of_extends_stays_amortized);
+    RUN_TEST(test_extend_moves_wide_elems_whole);
+
+    RUN_TEST(test_insert_span_puts_the_run_before_the_index);
+    RUN_TEST(test_insert_span_at_the_front);
+    RUN_TEST(test_insert_span_at_len_is_extend);
+    RUN_TEST(test_insert_span_of_an_empty_span_changes_nothing);
+    RUN_TEST(test_insert_span_keeps_a_long_tail_in_order);
+
+    RUN_TEST(test_remove_range_closes_the_gap);
+    RUN_TEST(test_remove_range_at_the_front);
+    RUN_TEST(test_remove_range_to_the_end);
+    RUN_TEST(test_remove_range_of_zero_changes_nothing);
+    RUN_TEST(test_remove_range_of_everything_empties_the_vec);
+    RUN_TEST(test_remove_range_leaves_the_capacity_alone);
+    RUN_TEST(test_remove_range_moves_wide_elems_whole);
+
     RUN_TEST(test_clear_drops_the_len_and_keeps_the_buffer);
     RUN_TEST(test_clear_of_an_empty_vec_is_a_noop);
 
@@ -1346,12 +1729,18 @@ int main() {
     RUN_TEST(test_new_len_reports_an_exhausted_arena);
     RUN_TEST(test_push_reports_an_exhausted_arena);
     RUN_TEST(test_push_falls_back_to_one_more_slot_when_doubling_fails);
+    RUN_TEST(test_extend_reports_an_exhausted_arena_and_changes_nothing);
+    RUN_TEST(test_insert_span_reports_an_exhausted_arena_and_changes_nothing);
+    RUN_TEST(test_extend_reports_size_overflow);
+    RUN_TEST(test_extend_within_the_capacity_needs_no_allocator);
 
     RUN_TEST(test_macro_of_builds_from_literals);
     RUN_TEST(test_macro_of_derives_len_from_the_list);
     RUN_TEST(test_macro_push_appends_a_value);
     RUN_TEST(test_macro_push_evaluates_its_value_once);
     RUN_TEST(test_macro_from_data_infers_elem_size);
+    RUN_TEST(test_macro_extend_appends_a_literal_list);
+    RUN_TEST(test_macro_insert_span_places_a_literal_list);
 
     return UNITY_END();
 }

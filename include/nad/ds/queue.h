@@ -96,7 +96,8 @@ void *nad_queue_back_mut(nad_Queue *self);
 
 /* ========== mods ========== */
 
-/// joins the back of the queue
+/// joins the back of the queue. 'val' must not point into the queue's own elems: a push
+/// that grows moves them out from under it
 [[nodiscard]] NAD_API
 nad_Status nad_queue_push(nad_Queue *self, const void *val);
 

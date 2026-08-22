@@ -76,6 +76,8 @@ const void *nad_pqueue_top(const nad_PQueue *self);
 
 /* ========== mods ========== */
 
+/// 'val' must not point into the queue's own elems: a push that grows moves them out
+/// from under it
 [[nodiscard]] NAD_API
 nad_Status nad_pqueue_push(nad_PQueue *self, const void *val);
 

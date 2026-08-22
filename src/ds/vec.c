@@ -38,6 +38,12 @@ static size_t next_cap(const nad_Vec *self);
 [[nodiscard]]
 static nad_Status grow(nad_Vec *self);
 
+/// room for 'new_len' elems, asked for with the growth factor when that is the bigger of
+/// the two so a run of extends keeps the amortized cost a run of pushes has. Falls back
+/// to the exact length when the eager request is refused
+[[nodiscard]]
+static nad_Status reserve_for(nad_Vec *self, size_t new_len);
+
 [[nodiscard]]
 static size_t len_bytes(const nad_Vec *self);
 
@@ -456,6 +462,68 @@ void nad_vec_swap_elems(nad_Vec *self, size_t i, size_t j) {
     nad_span_swap_elems(nad_vec_to_span_mut(self), i, j);
 }
 
+/* ========== bulk mods ========== */
+
+nad_Status nad_vec_extend(nad_Vec *self, nad_Span src) {
+    ASSERT_VEC(self);
+    NAD_SPAN_ASSERT(src);
+    assert(src.elem_size == self->elem_size);
+
+    return nad_vec_insert_span(self, self->len, src);
+}
+
+nad_Status nad_vec_insert_span(nad_Vec *self, size_t idx, nad_Span src) {
+    ASSERT_VEC(self);
+    NAD_SPAN_ASSERT(src);
+    assert(src.elem_size == self->elem_size);
+    assert(idx <= self->len);
+
+    if (src.len == 0) {
+        return NAD_STATUS_OK;
+    }
+
+    size_t new_len;
+    if (ckd_add(&new_len, self->len, src.len)) {
+        return NAD_STATUS_OUT_OF_MEMORY;
+    }
+
+    if (new_len > self->cap) {
+        const nad_Status st = reserve_for(self, new_len);
+        if (NAD_STATUS_IS_ERR(st)) {
+            return st;
+        }
+    }
+
+    // one move for the whole run: this is the difference from a loop of insert, which
+    // walks the tail again for every elem
+    const size_t tail = self->len - idx;
+    if (tail > 0) {
+        memmove(vec_offset_mut(self, idx + src.len), vec_offset_mut(self, idx), tail * self->elem_size);
+    }
+
+    memcpy(vec_offset_mut(self, idx), src.data, src.len * self->elem_size);
+    self->len = new_len;
+
+    return NAD_STATUS_OK;
+}
+
+void nad_vec_remove_range(nad_Vec *self, size_t idx, size_t count) {
+    ASSERT_VEC(self);
+    assert(idx <= self->len);
+    assert(count <= self->len - idx);
+
+    if (count == 0) {
+        return;
+    }
+
+    const size_t tail = self->len - idx - count;
+    if (tail > 0) {
+        memmove(vec_offset_mut(self, idx), vec_offset_mut(self, idx + count), tail * self->elem_size);
+    }
+
+    self->len -= count;
+}
+
 /* ========== to span ========== */
 
 nad_SpanMut nad_vec_to_span_mut(nad_Vec *self) {
@@ -565,6 +633,20 @@ static nad_Status grow(nad_Vec *self) {
     }
 
     return nad_vec_reserve(self, self->cap + 1);
+}
+
+static nad_Status reserve_for(nad_Vec *self, size_t new_len) {
+    assert(new_len > self->cap);
+
+    const size_t eager = next_cap(self);
+    if (eager > new_len) {
+        const nad_Status st = nad_vec_reserve(self, eager);
+        if (NAD_STATUS_IS_OK(st)) {
+            return st;
+        }
+    }
+
+    return nad_vec_reserve(self, new_len);
 }
 
 static size_t len_bytes(const nad_Vec *self) {

@@ -80,6 +80,8 @@ void *nad_stack_top_mut(nad_Stack *self);
 
 /* ========== mods ========== */
 
+/// 'val' must not point into the stack's own elems: a push that grows moves them out
+/// from under it
 [[nodiscard]] NAD_API
 nad_Status nad_stack_push(nad_Stack *self, const void *val);
 

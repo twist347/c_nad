@@ -113,9 +113,12 @@ void nad_deque_set(nad_Deque *self, size_t idx, const void *val);
 
 /* ========== mods ========== */
 
+/// 'val' must not point into this deque's own buffer: a push that grows moves the elems
+/// out from under it
 [[nodiscard]] NAD_API
 nad_Status nad_deque_push_front(nad_Deque *self, const void *val);
 
+/// 'val' must not point into this deque's own buffer, as in push_front
 [[nodiscard]] NAD_API
 nad_Status nad_deque_push_back(nad_Deque *self, const void *val);
 
@@ -127,7 +130,8 @@ void nad_deque_pop_back(nad_Deque *self);
 
 /// 'idx == len' is legal and means push_back. Shifts whichever side is shorter, so this
 /// is O(n) with half the constant of a vec — but it is still O(n), and the two ends are
-/// what the type is for
+/// what the type is for. 'val' must not point into this deque's own buffer, as in
+/// push_front
 [[nodiscard]] NAD_API
 nad_Status nad_deque_insert(nad_Deque *self, size_t idx, const void *val);
 

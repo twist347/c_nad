@@ -85,12 +85,16 @@ void *nad_vec_data_mut(nad_Vec *self);
 
 /* ========== mods ========== */
 
+/// 'val' must not point into this vec's own buffer: a push that grows moves the elems
+/// out from under it
 [[nodiscard]] NAD_API
 nad_Status nad_vec_push(nad_Vec *self, const void *val);
 
 NAD_API
 void nad_vec_pop(nad_Vec *self);
 
+/// 'idx == len' is legal and means push. 'val' must not point into this vec's own
+/// buffer, for the same reason it must not in push
 [[nodiscard]] NAD_API
 nad_Status nad_vec_insert(nad_Vec *self, size_t idx, const void *val);
 
@@ -116,6 +120,30 @@ nad_Status nad_vec_swap(nad_Vec *self, nad_Vec *other);
 
 NAD_API
 void nad_vec_swap_elems(nad_Vec *self, size_t i, size_t j);
+
+/* ========== bulk mods ========== */
+
+/// appends every elem of 'src' to the back, in order. The room is taken once for the
+/// whole run rather than once per elem, and taken with the same growth factor a push
+/// uses, so a run of extends stays amortized O(1) per elem.
+///
+/// 'src' must not view this vec's own buffer: growing frees the block 'src' would be
+/// reading from. This is the rule nad_span_copy holds callers to, for the same reason
+[[nodiscard]] NAD_API
+nad_Status nad_vec_extend(nad_Vec *self, nad_Span src);
+
+/// inserts every elem of 'src' before 'idx', in order; 'idx == len' is legal and means
+/// extend. The tail moves ONCE for the whole run, which is what a loop of insert cannot
+/// do: that loop moves the tail once per elem and costs O(len * src.len).
+///
+/// 'src' must not view this vec's own buffer, as in extend
+[[nodiscard]] NAD_API
+nad_Status nad_vec_insert_span(nad_Vec *self, size_t idx, nad_Span src);
+
+/// drops 'count' elems starting at 'idx' and closes the gap, moving the tail once.
+/// 'count == 0' is legal and does nothing. Nothing is allocated, so nothing can fail
+NAD_API
+void nad_vec_remove_range(nad_Vec *self, size_t idx, size_t count);
 
 /* ========== to span ========== */
 
@@ -179,3 +207,9 @@ void nad_vec_print(const nad_Vec *self, nad_FPrint fprint);
 
 #define NAD_VEC_INSERT(T, self, idx, val) \
     nad_vec_insert((self), (idx), &(T){ (val) })
+
+#define NAD_VEC_EXTEND(T, self, ...) \
+    nad_vec_extend((self), NAD_SPAN_OF(T, __VA_ARGS__))
+
+#define NAD_VEC_INSERT_SPAN(T, self, idx, ...) \
+    nad_vec_insert_span((self), (idx), NAD_SPAN_OF(T, __VA_ARGS__))
