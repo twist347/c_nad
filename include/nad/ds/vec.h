@@ -7,6 +7,29 @@
 
 #include <stddef.h>
 
+/// owning growable array of type-erased elems: one contiguous block, a length that says
+/// how much of it holds elems and a capacity that says how much of it there is. Pushing
+/// costs O(1) amortized — the block doubles when it fills, so across a run of pushes each
+/// elem is moved a constant number of times on average.
+///
+/// Those two numbers are the whole difference from ds/arr, which has a length and nothing
+/// else. Everything an arr does a vec does and spells the same way; what a vec adds is
+/// what only means something when the block can change size — the capacity, the
+/// constructors that take one, and every operation that changes a length.
+///
+/// Growing moves the elems. A pointer from nad_vec_get_mut, a view from
+/// nad_vec_to_span_mut and the block from nad_vec_data are good only until the next
+/// operation that may reallocate — push, insert, extend, insert_span, reserve, resize,
+/// shrink_to_fit or swap. Stable positions are what ds/list is for.
+///
+/// The bridge to algo runs BOTH ways: nad_vec_to_span_mut hands the elems over to be
+/// sorted, partitioned or filled in place, and nad_vec_resize adopts whatever length the
+/// algorithm leaves behind — the pair the header of algo/modify is written around. A vec
+/// keeps no order of its own to protect, unlike ds/stack and ds/queue.
+///
+/// An index out of range is a programmer error rather than a runtime state, so get, set
+/// and swap_elems assert it. The operations that return a nad_Status are the ones that
+/// allocate.
 typedef struct nad_Vec nad_Vec;
 
 /* ========== lifetime ========== */

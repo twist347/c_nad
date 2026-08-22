@@ -197,7 +197,8 @@ static void test_order_survives_growth() {
     nad_stack_drop(s);
 }
 
-// pushing and popping in step keeps the stack one elem tall while a hundred pass through
+// pushing and popping in step keeps the stack short while far more elems than it holds
+// pass through
 static void test_pushing_and_popping_in_step_stays_in_order() {
     nad_Stack *s = nullptr;
     NAD_TEST_OK(NAD_STACK_NEW(int32_t, nad_al_default(), &s));

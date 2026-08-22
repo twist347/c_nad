@@ -9,7 +9,26 @@
 
 #include <stddef.h>
 
-/// doubly linked owning list of type-erased elems
+/// doubly linked owning list of type-erased elems: every elem sits in a node of its own,
+/// and the nodes are held together by pointers rather than by being neighbours in memory.
+///
+/// What that buys is the guarantee no contiguous container can make: a node never moves,
+/// so a position stays good for as long as the elem does. What it costs is everything
+/// contiguity gives — an allocation per elem, memory scattered across the heap, no index,
+/// and reaching the n-th elem is a walk rather than a multiplication.
+///
+/// Insertion and removal are O(1) anywhere a node is already in hand, which is the other
+/// half of the trade: a vec pays O(n) to open or close a gap, a list pays nothing.
+///
+/// The relink family — reverse, sort, merge and splice_node — does its work by moving
+/// NODES rather than elems, so a borrowed node still names the elem it named before.
+/// Sorting a copy would leave every such pointer naming something else, which is why a
+/// list sorts itself instead of handing the work to algo/sort.
+///
+/// The bridge to algo is the pair nad_list_copy_to_span / nad_list_copy_from_span: the
+/// elems are not contiguous, so there is no view to hand over and nothing cheaper than a
+/// copy. Splice and swap want both lists on one allocator — a node cannot change owner
+/// without moving, and moving is what this type exists not to do.
 typedef struct nad_List nad_List;
 
 /// a position in the list; borrowed from the list

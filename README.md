@@ -37,8 +37,8 @@ nad_al_arena_drop(arena); // the vec went with it
 |---|---|
 | `core` | `nad_Status`, `nad_Span` (non-owning view), comparators and hashers for the built-in types, `nad_ElemOps` |
 | `alloc` | the `nad_Al` interface + default, arena, pool and logging allocators |
-| `ds` | `nad_Arr` (fixed), `nad_Vec` (growable), `nad_List` (doubly linked) |
-| `algo` | 52 operations over spans: sort, search, compare, copy, fill, fold, merge, modify, permute, transform — customized only through function pointers: `nad_Cmp`, `nad_Eq`, `nad_Pred` and the fold, generate and transform forms in `algo/fn.h` |
+| `ds` | `nad_Arr` (fixed), `nad_Vec` (growable), `nad_Deque` (ring, both ends O(1) amortized), `nad_List` (doubly linked, a position stays valid), `nad_HMap` / `nad_HSet` (separate chaining, an entry never moves), and the adapters `nad_Stack`, `nad_Queue` (narrower interfaces over the above) and `nad_PQueue` (a buffer kept under a heap discipline) |
+| `algo` | operations over spans: sort, heap, search, compare, copy, fill, fold, merge, modify, permute, set, transform — customized only through function pointers: `nad_Cmp`, `nad_Eq`, `nad_Pred` and the fold, generate and transform forms in `algo/fn.h` |
 
 Dependencies run one way — `core` <- `alloc` <- `algo` <- `ds`. A span carries no
 allocator and owns nothing, so it sits in `core` next to the other vocabulary types;

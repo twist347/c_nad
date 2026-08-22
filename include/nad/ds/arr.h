@@ -13,9 +13,9 @@
 /// keeps track of. There is no nad_arr_new — every constructor names a length, because
 /// an arr without one is not an empty arr, it is not an arr.
 ///
-/// This is ds/vec minus the eleven names that exist only because a vec can grow: new,
-/// new_cap and cap, then push, pop, insert, remove, clear, reserve, shrink_to_fit and
-/// resize. Everything else is spelled the same and means the same, so the two are one
+/// This is ds/vec minus everything that exists only because a vec can grow: the capacity,
+/// the constructors that take one, and every operation that changes a length. Everything
+/// else is spelled the same and means the same, so the two are one
 /// vocabulary with a boundary drawn through it. The boundary is a TYPE rather than a
 /// flag inside one container: what cannot be done is what cannot be named, and no
 /// question about it has to be asked at runtime.
