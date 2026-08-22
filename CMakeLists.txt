@@ -43,6 +43,7 @@ set(NAD_DS_SOURCES
         src/ds/deque.c
         src/ds/list.c
         src/ds/pqueue.c
+        src/ds/queue.c
         src/ds/vec.c
 )
 
