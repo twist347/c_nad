@@ -1,5 +1,7 @@
 nad_add_test(test_ds_arr test_arr.c)
 nad_add_test(test_ds_deque test_deque.c)
+nad_add_test(test_ds_hmap test_hmap.c)
+nad_add_test(test_ds_hset test_hset.c)
 nad_add_test(test_ds_list test_list.c)
 nad_add_test(test_ds_pqueue test_pqueue.c)
 nad_add_test(test_ds_queue test_queue.c)
