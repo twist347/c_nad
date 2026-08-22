@@ -33,12 +33,60 @@ nad_al_arena_drop(arena); // the vec went with it
 
 ## Layout
 
+**`core`** — the vocabulary the rest is written in.
+
 | | |
 |---|---|
-| `core` | `nad_Status`, `nad_Span` (non-owning view), comparators and hashers for the built-in types, `nad_ElemOps` |
-| `alloc` | the `nad_Al` interface + default, arena, pool and logging allocators |
-| `ds` | `nad_Arr` (fixed), `nad_Vec` (growable), `nad_Deque` (ring, both ends O(1) amortized), `nad_List` (doubly linked, a position stays valid), `nad_HMap` / `nad_HSet` (separate chaining, an entry never moves), and the adapters `nad_Stack`, `nad_Queue` (narrower interfaces over the above) and `nad_PQueue` (a buffer kept under a heap discipline) |
-| `algo` | operations over spans: sort, heap, search, compare, copy, fill, fold, merge, modify, permute, set, transform — customized only through function pointers: `nad_Cmp`, `nad_Eq`, `nad_Pred` and the fold, generate and transform forms in `algo/fn.h` |
+| `status.h` | `nad_Status`, what every fallible operation returns |
+| `span.h` | `nad_Span` / `nad_SpanMut`, a non-owning view over contiguous elems |
+| `cmp.h` | `nad_Cmp` and `nad_Eq`, plus ready-made ones for the built-in types |
+| `hash.h` | `nad_Hasher`, `nad_Hash`, hashers for the built-in types and `nad_hash_combine` |
+| `elem_ops.h` | `nad_ElemOps` — copy, drop and hash of a single elem, gathered |
+| `print.h` | `nad_FPrint`, the printer a container is handed to show itself |
+| `util.h` | `NAD_SWAP`, `NAD_UNUSED` |
+| `export.h` | `NAD_API` and the visibility it carries |
+
+**`alloc`** — memory, explicit and swappable.
+
+| | |
+|---|---|
+| `alloc.h` | the `nad_Al` interface and the `nad_alloc` / `nad_calloc` / `nad_realloc` / `nad_dealloc` wrappers |
+| `default.h` | malloc and friends |
+| `arena.h` | bump allocation, freed all at once |
+| `pool.h` | fixed-size blocks off a free list |
+| `log.h` | wraps another allocator and writes down what it is asked |
+
+**`algo`** — operations over spans, customized only through function pointers.
+
+| | |
+|---|---|
+| `fn.h` | `nad_Pred`, `nad_Fold`, `nad_Gen`, `nad_UnOp`, `nad_BinOp` |
+| `search.h` | find and its kin, count, the all_of/any_of/none_of trio, min_elem and max_elem, and the binary family over a sorted span |
+| `sort.h` | sort and sort_stable, insertion_sort, partial_sort, nth_elem and the is_sorted checks |
+| `heap.h` | make_heap, push_heap, pop_heap, sort_heap and the is_heap checks |
+| `permute.h` | reverse, rotate, swap_ranges, the partition family and stepping through permutations |
+| `modify.h` | remove, remove_if and unique, which return the new length; replace and replace_if, which write in place |
+| `copy.h` | copy, copy_if, copy_within |
+| `fill.h` | fill, fill_zero, generate |
+| `fold.h` | fold, rfold, partial_sum, adjacent_difference |
+| `transform.h` | transform and zip |
+| `compare.h` | cmp, eq, eq_by, mismatch |
+| `merge.h` | merge and inplace_merge |
+| `set.h` | union, intersection, difference, symmetric difference and includes, over sorted spans |
+
+**`ds`** — owning containers.
+
+| | |
+|---|---|
+| `arr.h` | `nad_Arr` — a length fixed at construction |
+| `vec.h` | `nad_Vec` — growable, one contiguous block |
+| `deque.h` | `nad_Deque` — a ring, both ends O(1) amortized |
+| `list.h` | `nad_List` — doubly linked; a position stays valid |
+| `hmap.h` | `nad_HMap` — separate chaining; an entry never moves |
+| `hset.h` | `nad_HSet` — the same table with nothing on the value side |
+| `stack.h` | `nad_Stack` — a vec through a narrower keyhole |
+| `queue.h` | `nad_Queue` — a deque through a narrower keyhole |
+| `pqueue.h` | `nad_PQueue` — a buffer kept under a heap discipline |
 
 Dependencies run one way — `core` <- `alloc` <- `algo` <- `ds`. A span carries no
 allocator and owns nothing, so it sits in `core` next to the other vocabulary types;
