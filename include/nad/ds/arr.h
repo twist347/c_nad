@@ -8,7 +8,32 @@
 
 #include <stddef.h>
 
-/// fixed-len owning array of type-erased elems
+/// owning array whose length is fixed when it is built: the elems live in one block,
+/// allocated once, and the length is part of what the arr IS rather than something it
+/// keeps track of. There is no nad_arr_new — every constructor names a length, because
+/// an arr without one is not an empty arr, it is not an arr.
+///
+/// This is ds/vec minus the eleven names that exist only because a vec can grow: new,
+/// new_cap and cap, then push, pop, insert, remove, clear, reserve, shrink_to_fit and
+/// resize. Everything else is spelled the same and means the same, so the two are one
+/// vocabulary with a boundary drawn through it. The boundary is a TYPE rather than a
+/// flag inside one container: what cannot be done is what cannot be named, and no
+/// question about it has to be asked at runtime.
+///
+/// What the fixed length buys is the guarantee the growable containers cannot make: the
+/// block never moves under the caller. Pointers from nad_arr_get_mut, views from
+/// nad_arr_to_span_mut and the block from nad_arr_data all stay good for as long as the
+/// arr does. Only nad_arr_swap breaks that, and it does so by exchanging two arrs whole,
+/// lengths and all — the one way a nad_Arr * comes to name a different length, and an
+/// operation the caller asks for by name.
+///
+/// The bridge to algo runs BOTH ways: nad_arr_to_span_mut hands over the elems to sort,
+/// partition or fill in place. An arr keeps no order of its own to protect — unlike
+/// ds/stack and ds/queue, whose views are read only for exactly that reason.
+///
+/// An index out of range is a programmer error rather than a runtime state, so get, set
+/// and swap_elems assert it. The operations that return a nad_Status here are the ones
+/// that allocate.
 typedef struct nad_Arr nad_Arr;
 
 /* ========== lifetime ========== */
