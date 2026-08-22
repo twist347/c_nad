@@ -64,6 +64,22 @@ static nad_Status clone_into(const nad_List *self, nad_Al *al, nad_List **out);
 [[nodiscard]] [[maybe_unused]]
 static bool owns_node(const nad_List *self, const nad_ListNode *node);
 
+/// merges two chains linked through 'next' alone and returns the head of the result.
+/// Equal elems keep 'a' before 'b', which is what makes the sort stable. 'prev' is left
+/// wrong on purpose: relink_prev repairs it once, at the end, instead of on every step
+[[nodiscard]]
+static nad_ListNode *merge_chains(nad_ListNode *a, nad_ListNode *b, nad_Cmp cmp);
+
+/// sorts a chain of 'len' nodes linked through 'next' alone and returns its new head
+[[nodiscard]]
+static nad_ListNode *sort_chain(nad_ListNode *head, size_t len, nad_Cmp cmp);
+
+/// walks the list forward and rebuilds every 'prev' and the tail from the 'next' chain
+static void relink_prev(nad_List *self);
+
+/// merges 'src' into 'self' by relinking and leaves 'src' empty; both already sorted
+static void merge_into(nad_List *self, nad_List *src, nad_Cmp cmp);
+
 /* ========== lifetime ========== */
 
 nad_Status nad_list_new(size_t elem_size, nad_Al *al, nad_List **out) {
@@ -451,6 +467,133 @@ void nad_list_swap(nad_List *self, nad_List *other) {
     ASSERT_LIST(other);
 }
 
+nad_Status nad_list_splice_node(nad_List *self, nad_ListNode *at, nad_List *src, nad_ListNode *node) {
+    ASSERT_LIST(self);
+    ASSERT_LIST(src);
+    assert(self->elem_size == src->elem_size);
+    assert(node);
+    assert(owns_node(src, node));
+    assert(!at || owns_node(self, at));
+    assert(at != node);
+
+    if (self->al != src->al) {
+        // a node belongs to the allocator that made it, so it cannot change lists: the
+        // elem is copied into a node of 'self' and the old one goes
+        nad_ListNode *prev = at ? at->prev : self->tail;
+        const nad_Status st = insert_between(self, prev, at, node->elem);
+        if (NAD_STATUS_IS_ERR(st)) {
+            return st;
+        }
+
+        remove_node(src, node);
+
+        ASSERT_LIST(self);
+        ASSERT_LIST(src);
+
+        return NAD_STATUS_OK;
+    }
+
+    // unlinking first is what makes 'self == src' work: 'at->prev' is read from a list
+    // that no longer holds 'node', so moving a node one step forward lands where it must
+    unlink_node(src, node);
+    link_node(self, node, at ? at->prev : self->tail, at);
+
+    ASSERT_LIST(self);
+    ASSERT_LIST(src);
+    ASSERT_NODE(node);
+
+    return NAD_STATUS_OK;
+}
+
+/* ========== relink ========== */
+
+void nad_list_reverse(nad_List *self) {
+    ASSERT_LIST(self);
+
+    nad_ListNode *cur = self->head;
+    while (cur) {
+        nad_ListNode *next = cur->next;
+        NAD_SWAP(cur->next, cur->prev);
+        cur = next;
+    }
+
+    NAD_SWAP(self->head, self->tail);
+
+    ASSERT_LIST(self);
+}
+
+void nad_list_sort(nad_List *self, nad_Cmp cmp) {
+    ASSERT_LIST(self);
+    assert(cmp);
+
+    if (self->len < 2) {
+        return;
+    }
+
+    self->head = sort_chain(self->head, self->len, cmp);
+    relink_prev(self);
+
+    ASSERT_LIST(self);
+}
+
+nad_Status nad_list_merge(nad_List *self, nad_List *src, nad_Cmp cmp) {
+    ASSERT_LIST(self);
+    ASSERT_LIST(src);
+    assert(self != src);
+    assert(self->elem_size == src->elem_size);
+    assert(cmp);
+
+    if (src->len == 0) {
+        return NAD_STATUS_OK;
+    }
+
+    if (self->al == src->al) {
+        merge_into(self, src, cmp);
+        return NAD_STATUS_OK;
+    }
+
+    nad_List *copy;
+    const nad_Status st = clone_into(src, self->al, &copy);
+    if (NAD_STATUS_IS_ERR(st)) {
+        return st;
+    }
+
+    merge_into(self, copy, cmp);
+    nad_list_drop(copy);
+    clear_nodes(src);
+
+    ASSERT_LIST(self);
+    ASSERT_LIST(src);
+
+    return NAD_STATUS_OK;
+}
+
+/* ========== copy to span ========== */
+
+void nad_list_copy_to_span(const nad_List *self, nad_SpanMut dst) {
+    ASSERT_LIST(self);
+    NAD_SPAN_ASSERT(dst);
+    assert(dst.elem_size == self->elem_size);
+    assert(dst.len == self->len);
+
+    size_t i = 0;
+    for (const nad_ListNode *node = self->head; node; node = node->next, ++i) {
+        memcpy(nad_byte_offset_mut(dst.data, self->elem_size, i), node->elem, self->elem_size);
+    }
+}
+
+void nad_list_copy_from_span(nad_List *self, nad_Span src) {
+    ASSERT_LIST(self);
+    NAD_SPAN_ASSERT(src);
+    assert(src.elem_size == self->elem_size);
+    assert(src.len == self->len);
+
+    size_t i = 0;
+    for (nad_ListNode *node = self->head; node; node = node->next, ++i) {
+        memcpy(node->elem, nad_byte_offset(src.data, self->elem_size, i), self->elem_size);
+    }
+}
+
 /* ========== print ========== */
 
 void nad_list_fprint(const nad_List *self, FILE *stream, nad_FPrint fprint) {
@@ -643,6 +786,78 @@ static nad_Status clone_into(const nad_List *self, nad_Al *al, nad_List **out) {
     *out = list;
 
     return NAD_STATUS_OK;
+}
+
+static nad_ListNode *merge_chains(nad_ListNode *a, nad_ListNode *b, nad_Cmp cmp) {
+    assert(cmp);
+
+    nad_ListNode *head = nullptr;
+    nad_ListNode **tail = &head;
+
+    while (a && b) {
+        if (cmp(a->elem, b->elem) <= 0) {
+            *tail = a;
+            a = a->next;
+        } else {
+            *tail = b;
+            b = b->next;
+        }
+        tail = &(*tail)->next;
+    }
+
+    *tail = a ? a : b;
+
+    return head;
+}
+
+static nad_ListNode *sort_chain(nad_ListNode *head, size_t len, nad_Cmp cmp) {
+    assert(head);
+    assert(cmp);
+
+    if (len < 2) {
+        return head;
+    }
+
+    const size_t half = len / 2;
+
+    // walk to the LAST node of the left half, so the chain can be cut behind it
+    nad_ListNode *left_tail = head;
+    for (size_t i = 1; i < half; ++i) {
+        left_tail = left_tail->next;
+    }
+
+    nad_ListNode *right = left_tail->next;
+    left_tail->next = nullptr;
+
+    return merge_chains(sort_chain(head, half, cmp), sort_chain(right, len - half, cmp), cmp);
+}
+
+static void relink_prev(nad_List *self) {
+    nad_ListNode *prev = nullptr;
+
+    for (nad_ListNode *node = self->head; node; node = node->next) {
+        node->prev = prev;
+        prev = node;
+    }
+
+    self->tail = prev;
+}
+
+static void merge_into(nad_List *self, nad_List *src, nad_Cmp cmp) {
+    assert(self->al == src->al);
+    assert(self->elem_size == src->elem_size);
+    assert(src->len > 0);
+
+    self->head = merge_chains(self->head, src->head, cmp);
+    self->len += src->len;
+    relink_prev(self);
+
+    src->head = nullptr;
+    src->tail = nullptr;
+    src->len = 0;
+
+    ASSERT_LIST(self);
+    ASSERT_LIST(src);
 }
 
 static bool owns_node(const nad_List *self, const nad_ListNode *node) {

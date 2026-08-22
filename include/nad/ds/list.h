@@ -1,6 +1,7 @@
 #pragma once
 
 #include "nad/alloc/alloc.h"
+#include "nad/core/cmp.h"
 #include "nad/core/export.h"
 #include "nad/core/print.h"
 #include "nad/core/span.h"
@@ -134,6 +135,56 @@ nad_Status nad_list_splice_back(nad_List *self, nad_List *src);
 /// without moving, so every borrowed node stays valid
 NAD_API
 void nad_list_swap(nad_List *self, nad_List *other);
+
+/// moves ONE node out of 'src' and into 'self' before 'at'; 'at == nullptr' means the
+/// back. 'src' and 'self' may be the same list, which moves the node within it.
+///
+/// O(1) when both share an allocator, and the node keeps its address, so a borrowed
+/// pointer to it survives the move. On two allocators the elem is copied into a node of
+/// 'self' and the old one goes, exactly as in splice_front — the address does not survive
+[[nodiscard]] NAD_API
+nad_Status nad_list_splice_node(nad_List *self, nad_ListNode *at, nad_List *src, nad_ListNode *node);
+
+/* ========== relink ========== */
+
+/// reverses the list by relinking, O(n) and no allocation. Every borrowed node keeps its
+/// address and its elem — only the order changes
+NAD_API
+void nad_list_reverse(nad_List *self);
+
+/// sorts by relinking: stable, O(n log n), no allocation.
+///
+/// This is not the same operation as sorting a copy. The elems do not move between
+/// nodes — the nodes themselves change places — so a borrowed node still names the elem
+/// it named before. Sorting a copy would leave every such pointer naming something else,
+/// which is why a list sorts itself instead of handing the work to algo/sort
+NAD_API
+void nad_list_sort(nad_List *self, nad_Cmp cmp);
+
+/// merges the sorted 'src' into the sorted 'self' and leaves 'src' empty, keeping equal
+/// elems of 'self' before those of 'src'. Both must already be sorted under 'cmp'.
+///
+/// O(n + m) and no allocation when both share an allocator, a copy of every elem
+/// otherwise — the same two paths splice_back has. Reaching the same result through
+/// splice_back plus sort would cost O(n log n) and throw away what is already known
+[[nodiscard]] NAD_API
+nad_Status nad_list_merge(nad_List *self, nad_List *src, nad_Cmp cmp);
+
+/* ========== copy to span ========== */
+
+/// writes every elem into 'dst', front to back. 'dst' must be exactly as long as the
+/// list, the same rule nad_span_copy holds callers to.
+///
+/// This is the list's only bridge to algo: the elems are not contiguous, so there is no
+/// view to hand over and nothing cheaper than a copy. Search it, count it, fold it
+NAD_API
+void nad_list_copy_to_span(const nad_List *self, nad_SpanMut dst);
+
+/// overwrites every elem from 'src', which must be exactly as long as the list. The pair
+/// to nad_list_copy_to_span: take the contents out, hand them to algo, put the answer
+/// back. The nodes stay where they are, so nothing is allocated and nothing can fail
+NAD_API
+void nad_list_copy_from_span(nad_List *self, nad_Span src);
 
 /* ========== print ========== */
 

@@ -1,6 +1,9 @@
 #include "nad/ds/list.h"
+#include "nad/algo/search.h"
+#include "nad/algo/sort.h"
 #include "nad/alloc/arena.h"
 #include "nad/alloc/default.h"
+#include "nad/core/cmp.h"
 
 #include "support/arena.h"
 #include "support/pair.h"
@@ -60,6 +63,48 @@ static void assert_elems(const nad_List *l, const int32_t *want, size_t n) {
     } else {
         TEST_ASSERT_NULL(nad_list_first_node(l));
         TEST_ASSERT_NULL(nad_list_last_node(l));
+    }
+}
+
+// order over Pair by its first field alone, so the second is free to witness stability
+static int cmp_pair_a(const void *lhs, const void *rhs) {
+    return nad_cmp_i64(&((const Pair *) lhs)->a, &((const Pair *) rhs)->a);
+}
+
+[[nodiscard]]
+static nad_ListNode *node_at(nad_List *l, size_t idx) {
+    nad_ListNode *node = nad_list_first_node_mut(l);
+    for (size_t i = 0; i < idx; ++i) {
+        node = nad_list_node_next_mut(node);
+    }
+    TEST_ASSERT_NOT_NULL(node);
+    return node;
+}
+
+// the node addresses, front to back — what a relinking operation must preserve and a
+// copying one cannot
+static void collect_nodes(const nad_List *l, const nad_ListNode **dst, size_t n) {
+    TEST_ASSERT_EQUAL_size_t(n, nad_list_len(l));
+
+    size_t i = 0;
+    for (const nad_ListNode *node = nad_list_first_node(l); node; node = nad_list_node_next(node)) {
+        dst[i++] = node;
+    }
+}
+
+// every node of 'want' is still a node of 'l', in whatever order
+static void assert_same_nodes(const nad_List *l, const nad_ListNode **want, size_t n) {
+    TEST_ASSERT_EQUAL_size_t(n, nad_list_len(l));
+
+    for (size_t i = 0; i < n; ++i) {
+        bool found = false;
+        for (const nad_ListNode *node = nad_list_first_node(l); node; node = nad_list_node_next(node)) {
+            if (node == want[i]) {
+                found = true;
+                break;
+            }
+        }
+        TEST_ASSERT_TRUE_MESSAGE(found, "a node was replaced instead of relinked");
     }
 }
 
@@ -840,6 +885,532 @@ static void test_swap_with_an_empty_list_works_both_ways() {
     nad_list_drop(l);
 }
 
+/* ========== splice_node ========== */
+
+static void test_splice_node_moves_one_node_between_lists() {
+    nad_List *a = make_list(3); // 0, 1, 2
+    nad_List *b = make_list(2); // 0, 1
+
+    NAD_TEST_OK(nad_list_splice_node(b, node_at(b, 1), a, node_at(a, 1)));
+
+    constexpr int32_t want_a[2] = {0, 2};
+    constexpr int32_t want_b[3] = {0, 1, 1};
+    assert_elems(a, want_a, 2);
+    assert_elems(b, want_b, 3);
+
+    nad_list_drop(a);
+    nad_list_drop(b);
+}
+
+// the whole reason the operation exists: the node itself changes lists, so a pointer
+// held before the move still names the same node afterwards
+static void test_splice_node_keeps_the_node_address() {
+    nad_List *a = make_list(3);
+    nad_List *b = make_list(1);
+
+    const nad_ListNode *moved = node_at(a, 2);
+    NAD_TEST_OK(nad_list_splice_node(b, nullptr, a, node_at(a, 2)));
+
+    TEST_ASSERT_EQUAL_PTR(moved, nad_list_last_node(b));
+    TEST_ASSERT_EQUAL_INT32(2, *NAD_LIST_NODE_ELEM_AS(int32_t, moved));
+
+    nad_list_drop(a);
+    nad_list_drop(b);
+}
+
+static void test_splice_node_at_null_appends_to_the_back() {
+    nad_List *a = make_list(2); // 0, 1
+    nad_List *b = nullptr;
+    NAD_TEST_OK(NAD_LIST_OF(int32_t, nad_al_default(), &b, 7, 8));
+
+    NAD_TEST_OK(nad_list_splice_node(b, nullptr, a, node_at(a, 0)));
+
+    constexpr int32_t want_a[1] = {1};
+    constexpr int32_t want_b[3] = {7, 8, 0};
+    assert_elems(a, want_a, 1);
+    assert_elems(b, want_b, 3);
+
+    nad_list_drop(a);
+    nad_list_drop(b);
+}
+
+// one list on both sides: the node is unlinked before its new neighbour is read, which
+// is what keeps a move inside one list from landing next to itself
+static void test_splice_node_within_one_list_moves_the_elem() {
+    nad_List *l = make_list(4); // 0, 1, 2, 3
+
+    NAD_TEST_OK(nad_list_splice_node(l, node_at(l, 1), l, node_at(l, 3)));
+
+    constexpr int32_t want[4] = {0, 3, 1, 2};
+    assert_elems(l, want, 4);
+
+    nad_list_drop(l);
+}
+
+static void test_splice_node_to_the_front_of_the_same_list() {
+    nad_List *l = make_list(3); // 0, 1, 2
+
+    NAD_TEST_OK(nad_list_splice_node(l, node_at(l, 0), l, node_at(l, 2)));
+
+    constexpr int32_t want[3] = {2, 0, 1};
+    assert_elems(l, want, 3);
+
+    nad_list_drop(l);
+}
+
+// a move one step forward inside one list: the naive order — read the neighbour, then
+// unlink — puts the node back where it started
+static void test_splice_node_one_step_forward() {
+    nad_List *l = make_list(3); // 0, 1, 2
+
+    NAD_TEST_OK(nad_list_splice_node(l, node_at(l, 2), l, node_at(l, 1)));
+
+    constexpr int32_t want[3] = {0, 1, 2};
+    assert_elems(l, want, 3);
+
+    nad_list_drop(l);
+}
+
+static void test_splice_node_of_the_only_node_empties_the_source() {
+    nad_List *a = make_list(1);
+    nad_List *b = make_list(2);
+
+    NAD_TEST_OK(nad_list_splice_node(b, nad_list_first_node_mut(b), a, node_at(a, 0)));
+
+    assert_empty(a);
+    constexpr int32_t want_b[3] = {0, 0, 1};
+    assert_elems(b, want_b, 3);
+
+    nad_list_drop(a);
+    nad_list_drop(b);
+}
+
+// two allocators: a node cannot change owner, so the elem is copied and the address does
+// not survive — the same rule splice_front follows
+static void test_splice_node_across_allocators_copies_the_elem() {
+    nad_Al *arena = nad_al_arena_new(nad_al_default(), 1024);
+    TEST_ASSERT_NOT_NULL(arena);
+
+    nad_List *a = make_list(3); // default: 0, 1, 2
+    nad_List *b = nullptr;
+    NAD_TEST_OK(NAD_LIST_OF(int32_t, arena, &b, 9));
+
+    const nad_ListNode *before = node_at(a, 1);
+    NAD_TEST_OK(nad_list_splice_node(b, nullptr, a, node_at(a, 1)));
+
+    constexpr int32_t want_a[2] = {0, 2};
+    constexpr int32_t want_b[2] = {9, 1};
+    assert_elems(a, want_a, 2);
+    assert_elems(b, want_b, 2);
+    TEST_ASSERT_TRUE(before != nad_list_last_node(b));
+
+    nad_list_drop(a);
+    nad_list_drop(b);
+    nad_al_arena_drop(arena);
+}
+
+/* ========== reverse ========== */
+
+static void test_reverse_turns_the_list_around() {
+    nad_List *l = make_list(5); // 0 .. 4
+
+    nad_list_reverse(l);
+
+    constexpr int32_t want[5] = {4, 3, 2, 1, 0};
+    assert_elems(l, want, 5);
+
+    nad_list_drop(l);
+}
+
+static void test_reverse_of_empty_and_single_changes_nothing() {
+    nad_List *empty = make_list(0);
+    nad_list_reverse(empty);
+    assert_empty(empty);
+    nad_list_drop(empty);
+
+    nad_List *one = make_list(1);
+    nad_list_reverse(one);
+    constexpr int32_t want[1] = {0};
+    assert_elems(one, want, 1);
+    nad_list_drop(one);
+}
+
+// relinking, not rebuilding: the same nodes come back in the other order
+static void test_reverse_keeps_every_node_address() {
+    nad_List *l = make_list(4);
+
+    const nad_ListNode *before[4];
+    collect_nodes(l, before, 4);
+
+    nad_list_reverse(l);
+
+    assert_same_nodes(l, before, 4);
+    TEST_ASSERT_EQUAL_PTR(before[3], nad_list_first_node(l));
+    TEST_ASSERT_EQUAL_PTR(before[0], nad_list_last_node(l));
+
+    nad_list_drop(l);
+}
+
+static void test_reverse_twice_is_the_original() {
+    nad_List *l = make_list(6);
+
+    nad_list_reverse(l);
+    nad_list_reverse(l);
+
+    constexpr int32_t want[6] = {0, 1, 2, 3, 4, 5};
+    assert_elems(l, want, 6);
+
+    nad_list_drop(l);
+}
+
+/* ========== sort ========== */
+
+static void test_sort_orders_the_elems() {
+    nad_List *l = nullptr;
+    NAD_TEST_OK(NAD_LIST_OF(int32_t, nad_al_default(), &l, 5, 1, 9, 3, 7, 2));
+
+    nad_list_sort(l, nad_cmp_i32);
+
+    constexpr int32_t want[6] = {1, 2, 3, 5, 7, 9};
+    assert_elems(l, want, 6);
+
+    nad_list_drop(l);
+}
+
+static void test_sort_of_empty_and_single_is_a_noop() {
+    nad_List *empty = make_list(0);
+    nad_list_sort(empty, nad_cmp_i32);
+    assert_empty(empty);
+    nad_list_drop(empty);
+
+    nad_List *one = make_list(1);
+    nad_list_sort(one, nad_cmp_i32);
+    constexpr int32_t want[1] = {0};
+    assert_elems(one, want, 1);
+    nad_list_drop(one);
+}
+
+static void test_sort_handles_duplicates() {
+    nad_List *l = nullptr;
+    NAD_TEST_OK(NAD_LIST_OF(int32_t, nad_al_default(), &l, 3, 1, 3, 1, 3));
+
+    nad_list_sort(l, nad_cmp_i32);
+
+    constexpr int32_t want[5] = {1, 1, 3, 3, 3};
+    assert_elems(l, want, 5);
+
+    nad_list_drop(l);
+}
+
+static void test_sort_takes_a_descending_comparator() {
+    nad_List *l = nullptr;
+    NAD_TEST_OK(NAD_LIST_OF(int32_t, nad_al_default(), &l, 5, 1, 9, 3));
+
+    nad_list_sort(l, nad_cmp_desc_i32);
+
+    constexpr int32_t want[4] = {9, 5, 3, 1};
+    assert_elems(l, want, 4);
+
+    nad_list_drop(l);
+}
+
+// every length up to 17 exercises a different split in the merge sort, and an odd one
+// tells a half computed as len/2 from one computed as (len + 1)/2
+static void test_sort_works_at_every_length() {
+    for (size_t n = 0; n <= 17; ++n) {
+        nad_List *l = nullptr;
+        NAD_TEST_OK(NAD_LIST_NEW(int32_t, nad_al_default(), &l));
+
+        // a descending run: the worst input for a sort that assumes anything
+        for (size_t i = 0; i < n; ++i) {
+            push_int(l, (int32_t) (n - i));
+        }
+
+        nad_list_sort(l, nad_cmp_i32);
+
+        TEST_ASSERT_EQUAL_size_t(n, nad_list_len(l));
+        int32_t prev = 0;
+        size_t seen = 0;
+        for (const nad_ListNode *node = nad_list_first_node(l); node; node = nad_list_node_next(node)) {
+            const int32_t val = *NAD_LIST_NODE_ELEM_AS(int32_t, node);
+            if (seen > 0) {
+                TEST_ASSERT_TRUE_MESSAGE(prev <= val, "the sorted list is out of order");
+            }
+            prev = val;
+            ++seen;
+        }
+        TEST_ASSERT_EQUAL_size_t(n, seen);
+
+        nad_list_drop(l);
+    }
+}
+
+// equal keys must keep the order they were pushed in — the second field is what shows it
+static void test_sort_is_stable() {
+    nad_List *l = nullptr;
+    NAD_TEST_OK(NAD_LIST_NEW(Pair, nad_al_default(), &l));
+
+    constexpr Pair src[6] = {{2, 1}, {1, 1}, {2, 2}, {1, 2}, {2, 3}, {1, 3}};
+    for (size_t i = 0; i < 6; ++i) {
+        NAD_TEST_OK(nad_list_push_back(l, &src[i]));
+    }
+
+    nad_list_sort(l, cmp_pair_a);
+
+    constexpr Pair want[6] = {{1, 1}, {1, 2}, {1, 3}, {2, 1}, {2, 2}, {2, 3}};
+    size_t i = 0;
+    for (const nad_ListNode *node = nad_list_first_node(l); node; node = nad_list_node_next(node)) {
+        const Pair *got = NAD_LIST_NODE_ELEM_AS(Pair, node);
+        TEST_ASSERT_EQUAL_INT64(want[i].a, got->a);
+        TEST_ASSERT_EQUAL_INT64(want[i].b, got->b);
+        ++i;
+    }
+    TEST_ASSERT_EQUAL_size_t(6, i);
+
+    nad_list_drop(l);
+}
+
+// the difference from sorting a copy: the nodes move, the elems stay in the node they
+// were pushed into, so a pointer taken before the sort still names the same elem
+static void test_sort_keeps_every_node_and_its_elem() {
+    nad_List *l = nullptr;
+    NAD_TEST_OK(NAD_LIST_OF(int32_t, nad_al_default(), &l, 5, 1, 9, 3));
+
+    const nad_ListNode *before[4];
+    collect_nodes(l, before, 4);
+    const nad_ListNode *node_of_nine = before[2];
+
+    nad_list_sort(l, nad_cmp_i32);
+
+    assert_same_nodes(l, before, 4);
+    TEST_ASSERT_EQUAL_INT32(9, *NAD_LIST_NODE_ELEM_AS(int32_t, node_of_nine));
+    TEST_ASSERT_EQUAL_PTR(node_of_nine, nad_list_last_node(l));
+
+    nad_list_drop(l);
+}
+
+// relinking asks the allocator for nothing at all
+static void test_sort_never_allocates() {
+    nad_TestProbe probe;
+    nad_test_probe_reset(&probe);
+    nad_Al al = nad_test_probe_full(&probe);
+
+    nad_List *l = nullptr;
+    NAD_TEST_OK(NAD_LIST_OF(int32_t, &al, &l, 5, 1, 9, 3, 7, 2, 8));
+
+    const size_t requests = nad_test_probe_requests(&probe);
+    nad_list_sort(l, nad_cmp_i32);
+
+    TEST_ASSERT_EQUAL_size_t(requests, nad_test_probe_requests(&probe));
+
+    constexpr int32_t want[7] = {1, 2, 3, 5, 7, 8, 9};
+    assert_elems(l, want, 7);
+
+    nad_list_drop(l);
+    TEST_ASSERT_EQUAL_size_t(0, probe.live);
+}
+
+/* ========== merge ========== */
+
+static void test_merge_interleaves_two_sorted_lists() {
+    nad_List *a = nullptr;
+    nad_List *b = nullptr;
+    NAD_TEST_OK(NAD_LIST_OF(int32_t, nad_al_default(), &a, 1, 4, 7));
+    NAD_TEST_OK(NAD_LIST_OF(int32_t, nad_al_default(), &b, 2, 3, 8, 9));
+
+    NAD_TEST_OK(nad_list_merge(a, b, nad_cmp_i32));
+
+    constexpr int32_t want[7] = {1, 2, 3, 4, 7, 8, 9};
+    assert_elems(a, want, 7);
+    assert_empty(b);
+
+    nad_list_drop(a);
+    nad_list_drop(b);
+}
+
+static void test_merge_with_an_empty_source_changes_nothing() {
+    nad_List *a = make_list(3);
+    nad_List *b = make_list(0);
+
+    NAD_TEST_OK(nad_list_merge(a, b, nad_cmp_i32));
+
+    constexpr int32_t want[3] = {0, 1, 2};
+    assert_elems(a, want, 3);
+    assert_empty(b);
+
+    nad_list_drop(a);
+    nad_list_drop(b);
+}
+
+static void test_merge_into_an_empty_list_takes_everything() {
+    nad_List *a = make_list(0);
+    nad_List *b = make_list(4);
+
+    NAD_TEST_OK(nad_list_merge(a, b, nad_cmp_i32));
+
+    constexpr int32_t want[4] = {0, 1, 2, 3};
+    assert_elems(a, want, 4);
+    assert_empty(b);
+
+    nad_list_drop(a);
+    nad_list_drop(b);
+}
+
+// equal elems of 'self' come before those of 'src', the same rule algo/merge follows
+static void test_merge_keeps_equal_elems_of_self_first() {
+    nad_List *a = nullptr;
+    nad_List *b = nullptr;
+    NAD_TEST_OK(NAD_LIST_NEW(Pair, nad_al_default(), &a));
+    NAD_TEST_OK(NAD_LIST_NEW(Pair, nad_al_default(), &b));
+
+    constexpr Pair from_a[2] = {{1, 100}, {2, 100}};
+    constexpr Pair from_b[2] = {{1, 200}, {2, 200}};
+    for (size_t i = 0; i < 2; ++i) {
+        NAD_TEST_OK(nad_list_push_back(a, &from_a[i]));
+        NAD_TEST_OK(nad_list_push_back(b, &from_b[i]));
+    }
+
+    NAD_TEST_OK(nad_list_merge(a, b, cmp_pair_a));
+
+    constexpr Pair want[4] = {{1, 100}, {1, 200}, {2, 100}, {2, 200}};
+    size_t i = 0;
+    for (const nad_ListNode *node = nad_list_first_node(a); node; node = nad_list_node_next(node)) {
+        const Pair *got = NAD_LIST_NODE_ELEM_AS(Pair, node);
+        TEST_ASSERT_EQUAL_INT64(want[i].a, got->a);
+        TEST_ASSERT_EQUAL_INT64(want[i].b, got->b);
+        ++i;
+    }
+    TEST_ASSERT_EQUAL_size_t(4, i);
+
+    nad_list_drop(a);
+    nad_list_drop(b);
+}
+
+static void test_merge_on_one_allocator_never_allocates() {
+    nad_TestProbe probe;
+    nad_test_probe_reset(&probe);
+    nad_Al al = nad_test_probe_full(&probe);
+
+    nad_List *a = nullptr;
+    nad_List *b = nullptr;
+    NAD_TEST_OK(NAD_LIST_OF(int32_t, &al, &a, 1, 4, 7));
+    NAD_TEST_OK(NAD_LIST_OF(int32_t, &al, &b, 2, 3));
+
+    const size_t requests = nad_test_probe_requests(&probe);
+    NAD_TEST_OK(nad_list_merge(a, b, nad_cmp_i32));
+
+    TEST_ASSERT_EQUAL_size_t(requests, nad_test_probe_requests(&probe));
+
+    constexpr int32_t want[5] = {1, 2, 3, 4, 7};
+    assert_elems(a, want, 5);
+
+    nad_list_drop(a);
+    nad_list_drop(b);
+    TEST_ASSERT_EQUAL_size_t(0, probe.live);
+}
+
+// two allocators: the elems are copied into nodes of 'self' and 'src' is emptied anyway
+static void test_merge_across_allocators_copies_the_elems() {
+    nad_Al *arena = nad_al_arena_new(nad_al_default(), 1024);
+    TEST_ASSERT_NOT_NULL(arena);
+
+    nad_List *a = nullptr;
+    nad_List *b = nullptr;
+    NAD_TEST_OK(NAD_LIST_OF(int32_t, nad_al_default(), &a, 1, 5));
+    NAD_TEST_OK(NAD_LIST_OF(int32_t, arena, &b, 2, 9));
+
+    NAD_TEST_OK(nad_list_merge(a, b, nad_cmp_i32));
+
+    constexpr int32_t want[4] = {1, 2, 5, 9};
+    assert_elems(a, want, 4);
+    assert_empty(b);
+    TEST_ASSERT_EQUAL_PTR(nad_al_default(), nad_list_al(a));
+
+    nad_list_drop(a);
+    nad_list_drop(b);
+    nad_al_arena_drop(arena);
+}
+
+/* ========== copy to span ========== */
+
+static void test_copy_to_span_writes_front_to_back() {
+    nad_List *l = nullptr;
+    NAD_TEST_OK(NAD_LIST_OF(int32_t, nad_al_default(), &l, 5, 1, 9));
+
+    int32_t got[3];
+    nad_list_copy_to_span(l, NAD_SPAN_NEW_MUT(int32_t, got, 3));
+
+    constexpr int32_t want[3] = {5, 1, 9};
+    TEST_ASSERT_EQUAL_INT32_ARRAY(want, got, 3);
+    assert_elems(l, want, 3);
+
+    nad_list_drop(l);
+}
+
+static void test_copy_to_span_of_empty_writes_nothing() {
+    nad_List *l = make_list(0);
+
+    int32_t got[2] = {11, 22};
+    nad_list_copy_to_span(l, NAD_SPAN_NEW_MUT(int32_t, got, 0));
+
+    TEST_ASSERT_EQUAL_INT32(11, got[0]);
+    TEST_ASSERT_EQUAL_INT32(22, got[1]);
+
+    nad_list_drop(l);
+}
+
+static void test_copy_from_span_overwrites_every_elem() {
+    nad_List *l = make_list(3); // 0, 1, 2
+
+    constexpr int32_t src[3] = {7, 8, 9};
+    nad_list_copy_from_span(l, NAD_SPAN_NEW(int32_t, src, 3));
+
+    assert_elems(l, src, 3);
+
+    nad_list_drop(l);
+}
+
+// the pair writes through the nodes rather than rebuilding them, so nothing is allocated
+// and every borrowed node still points at its own list
+static void test_copy_from_span_keeps_the_nodes() {
+    nad_List *l = make_list(3);
+
+    const nad_ListNode *before[3];
+    collect_nodes(l, before, 3);
+
+    constexpr int32_t src[3] = {7, 8, 9};
+    nad_list_copy_from_span(l, NAD_SPAN_NEW(int32_t, src, 3));
+
+    assert_same_nodes(l, before, 3);
+    TEST_ASSERT_EQUAL_INT32(7, *NAD_LIST_NODE_ELEM_AS(int32_t, before[0]));
+
+    nad_list_drop(l);
+}
+
+// the round trip the bridge exists for — and the contrast with nad_list_sort: here the
+// elems move between nodes, so the node that held 9 now holds something else
+static void test_the_copy_reaches_algo_and_comes_back() {
+    nad_List *l = nullptr;
+    NAD_TEST_OK(NAD_LIST_OF(int32_t, nad_al_default(), &l, 5, 1, 9, 3));
+
+    const nad_ListNode *node_of_nine = node_at(l, 2);
+
+    int32_t buf[4];
+    const nad_SpanMut s = NAD_SPAN_NEW_MUT(int32_t, buf, 4);
+    nad_list_copy_to_span(l, s);
+
+    TEST_ASSERT_EQUAL_size_t(2, nad_span_max_elem(nad_span_mut_to_span(s), nad_cmp_i32));
+
+    nad_span_sort(s, nad_cmp_i32);
+    nad_list_copy_from_span(l, nad_span_mut_to_span(s));
+
+    constexpr int32_t want[4] = {1, 3, 5, 9};
+    assert_elems(l, want, 4);
+    TEST_ASSERT_EQUAL_INT32(5, *NAD_LIST_NODE_ELEM_AS(int32_t, node_of_nine));
+
+    nad_list_drop(l);
+}
+
 /* ========== allocation failure ========== */
 
 static void test_new_reports_an_exhausted_arena() {
@@ -989,6 +1560,53 @@ static void test_splice_across_allocators_reports_failure() {
     TEST_ASSERT_EQUAL_size_t(0, probe.live);
 }
 
+// the copy path is the one that can fail: an arena with nothing left refuses the node
+static void test_splice_node_across_allocators_reports_failure() {
+    nad_Al *arena = nad_al_arena_new(nad_al_default(), 256);
+    TEST_ASSERT_NOT_NULL(arena);
+
+    nad_List *a = make_list(3); // default: 0, 1, 2
+    nad_List *b = nullptr;
+    NAD_TEST_OK(NAD_LIST_OF(int32_t, arena, &b, 9));
+    nad_test_arena_leave(arena, 0);
+
+    NAD_TEST_STATUS(
+        NAD_STATUS_OUT_OF_MEMORY,
+        nad_list_splice_node(b, nullptr, a, node_at(a, 1))
+    );
+
+    constexpr int32_t want_a[3] = {0, 1, 2};
+    constexpr int32_t want_b[1] = {9};
+    assert_elems(a, want_a, 3);
+    assert_elems(b, want_b, 1);
+
+    nad_list_drop(a);
+    nad_list_drop(b);
+    nad_al_arena_drop(arena);
+}
+
+static void test_merge_across_allocators_reports_failure() {
+    nad_Al *arena = nad_al_arena_new(nad_al_default(), 256);
+    TEST_ASSERT_NOT_NULL(arena);
+
+    nad_List *a = nullptr;
+    nad_List *b = nullptr;
+    NAD_TEST_OK(NAD_LIST_OF(int32_t, arena, &a, 1, 5));
+    NAD_TEST_OK(NAD_LIST_OF(int32_t, nad_al_default(), &b, 2, 9));
+    nad_test_arena_leave(arena, 0);
+
+    NAD_TEST_STATUS(NAD_STATUS_OUT_OF_MEMORY, nad_list_merge(a, b, nad_cmp_i32));
+
+    constexpr int32_t want_a[2] = {1, 5};
+    constexpr int32_t want_b[2] = {2, 9};
+    assert_elems(a, want_a, 2);
+    assert_elems(b, want_b, 2);
+
+    nad_list_drop(a);
+    nad_list_drop(b);
+    nad_al_arena_drop(arena);
+}
+
 /* ========== macros ========== */
 
 static void test_macro_of_builds_from_a_value_list() {
@@ -1110,6 +1728,42 @@ int main() {
     RUN_TEST(test_swap_self_is_noop);
     RUN_TEST(test_swap_with_an_empty_list_works_both_ways);
 
+    RUN_TEST(test_splice_node_moves_one_node_between_lists);
+    RUN_TEST(test_splice_node_keeps_the_node_address);
+    RUN_TEST(test_splice_node_at_null_appends_to_the_back);
+    RUN_TEST(test_splice_node_within_one_list_moves_the_elem);
+    RUN_TEST(test_splice_node_to_the_front_of_the_same_list);
+    RUN_TEST(test_splice_node_one_step_forward);
+    RUN_TEST(test_splice_node_of_the_only_node_empties_the_source);
+    RUN_TEST(test_splice_node_across_allocators_copies_the_elem);
+
+    RUN_TEST(test_reverse_turns_the_list_around);
+    RUN_TEST(test_reverse_of_empty_and_single_changes_nothing);
+    RUN_TEST(test_reverse_keeps_every_node_address);
+    RUN_TEST(test_reverse_twice_is_the_original);
+
+    RUN_TEST(test_sort_orders_the_elems);
+    RUN_TEST(test_sort_of_empty_and_single_is_a_noop);
+    RUN_TEST(test_sort_handles_duplicates);
+    RUN_TEST(test_sort_takes_a_descending_comparator);
+    RUN_TEST(test_sort_works_at_every_length);
+    RUN_TEST(test_sort_is_stable);
+    RUN_TEST(test_sort_keeps_every_node_and_its_elem);
+    RUN_TEST(test_sort_never_allocates);
+
+    RUN_TEST(test_merge_interleaves_two_sorted_lists);
+    RUN_TEST(test_merge_with_an_empty_source_changes_nothing);
+    RUN_TEST(test_merge_into_an_empty_list_takes_everything);
+    RUN_TEST(test_merge_keeps_equal_elems_of_self_first);
+    RUN_TEST(test_merge_on_one_allocator_never_allocates);
+    RUN_TEST(test_merge_across_allocators_copies_the_elems);
+
+    RUN_TEST(test_copy_to_span_writes_front_to_back);
+    RUN_TEST(test_copy_to_span_of_empty_writes_nothing);
+    RUN_TEST(test_copy_from_span_overwrites_every_elem);
+    RUN_TEST(test_copy_from_span_keeps_the_nodes);
+    RUN_TEST(test_the_copy_reaches_algo_and_comes_back);
+
     RUN_TEST(test_new_reports_an_exhausted_arena);
     RUN_TEST(test_push_back_reports_an_exhausted_arena);
     RUN_TEST(test_push_front_reports_an_exhausted_arena);
@@ -1118,6 +1772,8 @@ int main() {
     RUN_TEST(test_copy_rolls_back_the_partial_clone);
     RUN_TEST(test_copy_assign_leaves_the_target_untouched_on_failure);
     RUN_TEST(test_splice_across_allocators_reports_failure);
+    RUN_TEST(test_splice_node_across_allocators_reports_failure);
+    RUN_TEST(test_merge_across_allocators_reports_failure);
 
     RUN_TEST(test_macro_of_builds_from_a_value_list);
     RUN_TEST(test_macro_of_carries_wide_elems);
