@@ -40,6 +40,7 @@ set(NAD_CORE_SOURCES
 
 set(NAD_DS_SOURCES
         src/ds/arr.c
+        src/ds/deque.c
         src/ds/list.c
         src/ds/pqueue.c
         src/ds/vec.c
