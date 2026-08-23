@@ -1,0 +1,11 @@
+/// @defgroup core core
+/// @brief the vocabulary the rest is written in
+
+/// @defgroup alloc alloc
+/// @brief memory, explicit and swappable
+
+/// @defgroup algo algo
+/// @brief operations over spans, customized only through function pointers
+
+/// @defgroup ds ds
+/// @brief owning containers

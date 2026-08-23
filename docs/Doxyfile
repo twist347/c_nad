@@ -1,0 +1,33 @@
+# doxygen docs/Doxyfile   (from the repo root) -> build-docs/html/index.html
+
+PROJECT_NAME           = nadc
+PROJECT_BRIEF          = "naive algorithms and data structures in C23"
+OUTPUT_DIRECTORY       = build-docs
+
+INPUT                  = include README.md docs/modules.dox
+RECURSIVE              = YES
+USE_MDFILE_AS_MAINPAGE = README.md
+
+OPTIMIZE_OUTPUT_FOR_C  = YES
+JAVADOC_AUTOBRIEF      = YES
+SORT_MEMBER_DOCS       = NO
+
+# the member table is an index of signatures; the prose lives once, below it
+BRIEF_MEMBER_DESC      = NO
+
+# @bigo{n} -> a "Complexity: O(n)" paragraph. ^^ is a newline
+ALIASES                = "bigo{1}=@par Complexity^^O(\1)"
+
+# drop NAD_API from the signatures shown; all three lines are needed for that
+MACRO_EXPANSION        = YES
+EXPAND_ONLY_PREDEF     = YES
+PREDEFINED             = NAD_API=
+
+QUIET                  = YES
+WARN_NO_PARAMDOC       = YES
+
+# the reference is the Topics pages; a Files tab would repeat them verbatim
+SHOW_FILES             = NO
+
+GENERATE_LATEX         = NO
+HAVE_DOT               = NO

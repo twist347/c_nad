@@ -88,9 +88,14 @@ nad_al_arena_drop(arena); // the vec went with it
 | `queue.h` | `nad_Queue` — a deque through a narrower keyhole |
 | `pqueue.h` | `nad_PQueue` — a buffer kept under a heap discipline |
 
-Dependencies run one way — `core` <- `alloc` <- `algo` <- `ds`. A span carries no
-allocator and owns nothing, so it sits in `core` next to the other vocabulary types;
-that is what lets a container reach for an algorithm without the layers looping back.
+
+## What it does not do
+
+- **Elems are bytes.** A container copies `elem_size` bytes in and out, and drops them by
+  releasing the block — it never calls anything of yours. A `nad_Vec` of `strdup`ed
+  `char *` leaks unless the caller frees them first.
+- **Nothing is thread-safe.** No container takes a lock; sharing one across threads is the
+  caller's problem.
 
 ## Build
 
@@ -105,11 +110,17 @@ cmake -S . -B build-asan -DCMAKE_BUILD_TYPE=Debug \
 cmake --build build-asan && ctest --test-dir build-asan
 ```
 
-Requires a C23 toolchain
+Requires a C23 toolchain.
+
+The reference, generated from the same headers:
+
+```sh
+doxygen docs/Doxyfile   # -> build-docs/html/index.html
+```
 
 ## License
 
-MIT — see [LICENSE](LICENSE).
+MIT — see [LICENSE](https://github.com/twist347/c-naive-algorithms-and-data-structures/blob/main/LICENSE).
 
 `thirdparty/Unity-2.7.0` is Unity, the test framework, vendored as is. It is third-party
 code under its own MIT license; its copyright notice lives in
