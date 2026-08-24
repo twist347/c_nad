@@ -37,7 +37,7 @@ drop_a:
 int main() {
     /// [report]
     nad_Arr *a = nullptr;
-    nad_Status st = two_arrs(nad_al_default(), &a);
+    const nad_Status st = two_arrs(nad_al_default(), &a);
 
     printf("%s\n", nad_status_to_str(st)); // NAD_STATUS_OK
     if (NAD_STATUS_IS_ERR(st)) {

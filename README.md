@@ -13,6 +13,16 @@ Two rules shape the whole API:
   result through a trailing `out`; `[[nodiscard]]` makes ignoring it a compile error.
   Broken preconditions are `assert`, not status — those are bugs, not runtime states.
 
+## What it does not do
+
+- **Elems are bytes.** A container copies `elem_size` bytes in and out, and drops them by
+  releasing the block — it never calls anything of yours. A `nad_Vec` of `strdup`ed
+  `char *` leaks unless the caller frees them first.
+- **Nothing is thread-safe.** No container takes a lock; sharing one across threads is the
+  caller's problem.
+
+## Example
+
 ```c
 nad_Al *arena = nad_al_arena_new(nad_al_default(), 1024);
 
@@ -87,15 +97,6 @@ nad_al_arena_drop(arena); // the vec went with it
 | `stack.h` | `nad_Stack` — a vec through a narrower keyhole |
 | `queue.h` | `nad_Queue` — a deque through a narrower keyhole |
 | `pqueue.h` | `nad_PQueue` — a buffer kept under a heap discipline |
-
-
-## What it does not do
-
-- **Elems are bytes.** A container copies `elem_size` bytes in and out, and drops them by
-  releasing the block — it never calls anything of yours. A `nad_Vec` of `strdup`ed
-  `char *` leaks unless the caller frees them first.
-- **Nothing is thread-safe.** No container takes a lock; sharing one across threads is the
-  caller's problem.
 
 ## Build
 

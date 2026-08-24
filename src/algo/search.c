@@ -90,13 +90,14 @@ bool nad_span_find_sub_last(nad_Span s, nad_Span sub, nad_Eq eq, size_t *out_idx
     return false;
 }
 
-bool nad_span_find_run(nad_Span s, const void *key, size_t n, nad_Eq eq, size_t *out_idx) {
+bool nad_span_find_run(nad_Span s, const void *key, size_t count, nad_Eq eq,
+                       size_t *out_idx) {
     NAD_SPAN_ASSERT(s);
     assert(key);
     assert(eq);
     assert(out_idx);
 
-    if (n == 0) {
+    if (count == 0) {
         *out_idx = 0;
         return true;
     }
@@ -105,8 +106,8 @@ bool nad_span_find_run(nad_Span s, const void *key, size_t n, nad_Eq eq, size_t 
     for (size_t i = 0; i < s.len; ++i) {
         run = eq(nad_span_get(s, i), key) ? run + 1 : 0;
 
-        if (run == n) {
-            *out_idx = i + 1 - n;
+        if (run == count) {
+            *out_idx = i + 1 - count;
             return true;
         }
     }

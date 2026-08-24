@@ -9,6 +9,7 @@ function(nad_add_example target_name source_file)
     add_test(NAME ${target_name} COMMAND ${target_name})
 endfunction()
 
+add_subdirectory(algo)
 add_subdirectory(alloc)
 add_subdirectory(core)
 add_subdirectory(ds)

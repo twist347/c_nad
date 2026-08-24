@@ -34,7 +34,7 @@ static void fprint_person(FILE *stream, const void *x) {
 
 int main() {
     /// [ready]
-    nad_SpanMut nums = NAD_SPAN_OF_MUT(int32_t, 5, 3, 1, 4, 2);
+    const nad_SpanMut nums = NAD_SPAN_OF_MUT(int32_t, 5, 3, 1, 4, 2);
 
     nad_span_sort(nums, nad_cmp_i32);
     nad_span_mut_print(nums, nad_fprint_i32); // [1, 2, 3, 4, 5]
@@ -51,7 +51,7 @@ int main() {
     /// [ready]
 
     /// [use]
-    nad_SpanMut people = NAD_SPAN_OF_MUT(Person, { "ann", 31 }, { "bo", 4 }, { "cy", 17 });
+    const nad_SpanMut people = NAD_SPAN_OF_MUT(Person, { "ann", 31 }, { "bo", 4 }, { "cy", 17 });
 
     nad_span_sort(people, cmp_person_by_age);
     nad_span_mut_print(people, fprint_person); // [bo(4), cy(17), ann(31)]

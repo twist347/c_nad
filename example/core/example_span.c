@@ -12,7 +12,7 @@ int main() {
     /// [build]
     // a view borrows: the elems live in 'nums', the span only says where and how many
     int32_t nums[] = {5, 3, 1, 4, 2};
-    nad_SpanMut s = NAD_SPAN_NEW_MUT(int32_t, nums, 5);
+    const nad_SpanMut s = NAD_SPAN_NEW_MUT(int32_t, nums, 5);
 
     // the fields are public — a view owns nothing, so it has no invariant to protect
     printf("%zu elems of %zu bytes, %zu in all\n", s.len, s.elem_size,
@@ -30,7 +30,7 @@ int main() {
 
     /// [sub]
     // a subspan views the same memory, offset and shortened — nothing is copied
-    nad_SpanMut tail = nad_span_sub_mut(s, 1, 4);
+    const nad_SpanMut tail = nad_span_sub_mut(s, 1, 4);
     nad_span_mut_print(tail, nad_fprint_i32); // [3, 1, 4, 9]
     /// [sub]
 

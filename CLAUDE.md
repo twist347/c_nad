@@ -70,7 +70,25 @@ what it describes:
 Rule of thumb: **the marker exists to separate two versions of one operation. Differ by
 result → suffix; differ only by argument → after the slug; only one version → nothing.**
 
-**Macros** are `NAD_UPPER`. Type-generic wrappers over functions:
+**Parameter names go by role, and the role decides.**
+
+- `self` — the receiver of a method on an owned object. A `nad_Span` is `self` in its own
+  ops (`core/span`) and `s` in `algo`, because those are free functions over a span rather
+  than methods on it — the same line the `mut` marker draws.
+- `key` what is looked for or indexed by, `val` any other value passed by address, `data`
+  raw elems to copy in, `ptr` a block from an allocator. Four roles, four names, and no
+  `x`: a value has a job here, not a letter.
+- `lhs`/`rhs` two elems being compared; `a`/`b` two of anything larger — two spans, two
+  hashes.
+- `idx` one index, `i`/`j` a pair of them, `at` a node position.
+- `len` how many elems there are, `cap` how many fit, `count` how many an argument asks
+  for, `nth` an ordinal. `num` only in `nad_calloc`, where the `malloc` family's spelling
+  wins.
+
+**Macros** are `NAD_UPPER` — but the prefix is for what leaves the translation unit. A
+`static` constant or a macro that lives and dies inside one `.c` shares no namespace with
+anyone, so it goes unprefixed: `VEC_GROWTH_BASE`, `INSERTION_THRESHOLD`, `FNV_PRIME_64`.
+Names in `src/internal/*.h` do keep it — those are seen by several `.c` at once. Type-generic wrappers over functions:
 `NAD_ARR_NEW(T, ...)`, `NAD_ALLOC(T, ...)`.
 
 ## API contracts

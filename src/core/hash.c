@@ -7,22 +7,22 @@
 /* ========== internals ========== */
 
 // FNV-1a 64-bit
-static constexpr uint64_t NAD_FNV_OFFSET_BASIS_64 = UINT64_C(14695981039346656037);
-static constexpr uint64_t NAD_FNV_PRIME_64 = UINT64_C(1099511628211);
+static constexpr uint64_t FNV_OFFSET_BASIS_64 = UINT64_C(14695981039346656037);
+static constexpr uint64_t FNV_PRIME_64 = UINT64_C(1099511628211);
 
 // MurmurHash3 fmix64 constants
-static constexpr uint64_t NAD_FMIX64_C1 = UINT64_C(0xff51afd7ed558ccd);
-static constexpr uint64_t NAD_FMIX64_C2 = UINT64_C(0xc4ceb9fe1a85ec53);
+static constexpr uint64_t FMIX64_C1 = UINT64_C(0xff51afd7ed558ccd);
+static constexpr uint64_t FMIX64_C2 = UINT64_C(0xc4ceb9fe1a85ec53);
 
-static constexpr uint64_t NAD_HASH_GOLDEN_64 = UINT64_C(0x9e3779b97f4a7c15);
+static constexpr uint64_t HASH_GOLDEN_64 = UINT64_C(0x9e3779b97f4a7c15);
 
 // the mixer's seed is deliberately not the constant nad_hash_combine folds in: with both
 // being the golden ratio the two cancelled, and combine(0, 0) landed back on 0
-static constexpr uint64_t NAD_HASH_SEED_64 = UINT64_C(0xa0761d6478bd642f);
+static constexpr uint64_t HASH_SEED_64 = UINT64_C(0xa0761d6478bd642f);
 
 // quiet NaN bit patterns
-static constexpr uint32_t NAD_NAN_CANON_32 = UINT32_C(0x7fc00000);
-static constexpr uint64_t NAD_NAN_CANON_64 = UINT64_C(0x7ff8000000000000);
+static constexpr uint32_t NAN_CANON_32 = UINT32_C(0x7fc00000);
+static constexpr uint64_t NAN_CANON_64 = UINT64_C(0x7ff8000000000000);
 
 [[nodiscard]]
 static nad_Hash hash_mix_u64(uint64_t x);
@@ -30,10 +30,10 @@ static nad_Hash hash_mix_u64(uint64_t x);
 // every integer type is the same operation: read it, widen it, mix it. Widening a signed
 // type sign-extends, which is a bijection into uint64_t, so equal values stay equal and
 // different ones stay different — all the mixer needs.
-#define DEFINE_HASH_INT(name, T)                        \
-    nad_Hash nad_hash_##name(const void *x) {           \
-        assert(x);                                      \
-        return hash_mix_u64((uint64_t) *(const T *) x); \
+#define DEFINE_HASH_INT(name, T)                          \
+    nad_Hash nad_hash_##name(const void *val) {           \
+        assert(val);                                      \
+        return hash_mix_u64((uint64_t) *(const T *) val); \
     }
 
 /* ========== int ========== */
@@ -60,39 +60,39 @@ DEFINE_HASH_INT(ptrdiff, ptrdiff_t)
 
 /* ========== floating point ========== */
 
-nad_Hash nad_hash_f32(const void *x) {
-    assert(x);
+nad_Hash nad_hash_f32(const void *val) {
+    assert(val);
 
-    float val = *(const float *) x;
-    if (val == 0.f) {
-        val = 0.f;
+    float f = *(const float *) val;
+    if (f == 0.f) {
+        f = 0.f;
     }
 
     uint32_t bits;
-    memcpy(&bits, &val, sizeof(bits));
+    memcpy(&bits, &f, sizeof(bits));
 
     // every NaN is equal to every other one here, so they must all hash alike — but not
     // alike to zero, which folding them onto 0.f would have done
-    if (isnan(val)) {
-        bits = NAD_NAN_CANON_32;
+    if (isnan(f)) {
+        bits = NAN_CANON_32;
     }
 
     return hash_mix_u64(bits);
 }
 
-nad_Hash nad_hash_f64(const void *x) {
-    assert(x);
+nad_Hash nad_hash_f64(const void *val) {
+    assert(val);
 
-    double val = *(const double *) x;
-    if (val == 0.) {
-        val = 0.;
+    double f = *(const double *) val;
+    if (f == 0.) {
+        f = 0.;
     }
 
     uint64_t bits;
-    memcpy(&bits, &val, sizeof(bits));
+    memcpy(&bits, &f, sizeof(bits));
 
-    if (isnan(val)) {
-        bits = NAD_NAN_CANON_64;
+    if (isnan(f)) {
+        bits = NAN_CANON_64;
     }
 
     return hash_mix_u64(bits);
@@ -115,11 +115,11 @@ nad_Hash nad_hash_bytes(const void *data, size_t len) {
     assert(data || len == 0);
 
     const unsigned char *bytes = data;
-    uint64_t h = NAD_FNV_OFFSET_BASIS_64;
+    uint64_t h = FNV_OFFSET_BASIS_64;
 
     for (size_t i = 0; i < len; ++i) {
         h ^= bytes[i];
-        h *= NAD_FNV_PRIME_64;
+        h *= FNV_PRIME_64;
     }
 
     return hash_mix_u64(h);
@@ -127,10 +127,10 @@ nad_Hash nad_hash_bytes(const void *data, size_t len) {
 
 /* ========== str ========== */
 
-nad_Hash nad_hash_cstr(const void *x) {
-    assert(x);
+nad_Hash nad_hash_cstr(const void *val) {
+    assert(val);
 
-    const char *str = *(const char *const *) x;
+    const char *str = *(const char *const *) val;
 
     // null is a value of its own, not the empty string — nad_eq_cstr keeps them apart,
     // so their hashes must be free to differ too
@@ -143,20 +143,20 @@ nad_Hash nad_hash_cstr(const void *x) {
 
 /* ========== combine ========== */
 
-nad_Hash nad_hash_combine(nad_Hash x, nad_Hash y) {
-    nad_Hash v = x;
-    v ^= y + NAD_HASH_GOLDEN_64 + (v << 6) + (v >> 2);
+nad_Hash nad_hash_combine(nad_Hash a, nad_Hash b) {
+    nad_Hash v = a;
+    v ^= b + HASH_GOLDEN_64 + (v << 6) + (v >> 2);
     return hash_mix_u64(v);
 }
 
 /* ========== internals ========== */
 
 static nad_Hash hash_mix_u64(uint64_t x) {
-    x ^= NAD_HASH_SEED_64; // fmix64 maps 0 to 0, and 0 is the most common key there is
+    x ^= HASH_SEED_64; // fmix64 maps 0 to 0, and 0 is the most common key there is
     x ^= x >> 33;
-    x *= NAD_FMIX64_C1;
+    x *= FMIX64_C1;
     x ^= x >> 33;
-    x *= NAD_FMIX64_C2;
+    x *= FMIX64_C2;
     x ^= x >> 33;
     return x;
 }

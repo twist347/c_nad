@@ -39,26 +39,26 @@ typedef nad_Hash (*nad_Hasher)(const void *);
 /// @{
 
 /// a int8_t
-/// @param x the address of the value
+/// @param val the address of the value
 /// @return its hash
 /// @bigo{1}
 [[nodiscard]] NAD_API
-nad_Hash nad_hash_i8(const void *x);
+nad_Hash nad_hash_i8(const void *val);
 
 /// a int16_t
 /// @copydetails nad_hash_i8
 [[nodiscard]] NAD_API
-nad_Hash nad_hash_i16(const void *x);
+nad_Hash nad_hash_i16(const void *val);
 
 /// a int32_t
 /// @copydetails nad_hash_i8
 [[nodiscard]] NAD_API
-nad_Hash nad_hash_i32(const void *x);
+nad_Hash nad_hash_i32(const void *val);
 
 /// a int64_t
 /// @copydetails nad_hash_i8
 [[nodiscard]] NAD_API
-nad_Hash nad_hash_i64(const void *x);
+nad_Hash nad_hash_i64(const void *val);
 
 
 /// @}
@@ -69,22 +69,22 @@ nad_Hash nad_hash_i64(const void *x);
 /// a uint8_t
 /// @copydetails nad_hash_i8
 [[nodiscard]] NAD_API
-nad_Hash nad_hash_u8(const void *x);
+nad_Hash nad_hash_u8(const void *val);
 
 /// a uint16_t
 /// @copydetails nad_hash_i8
 [[nodiscard]] NAD_API
-nad_Hash nad_hash_u16(const void *x);
+nad_Hash nad_hash_u16(const void *val);
 
 /// a uint32_t
 /// @copydetails nad_hash_i8
 [[nodiscard]] NAD_API
-nad_Hash nad_hash_u32(const void *x);
+nad_Hash nad_hash_u32(const void *val);
 
 /// a uint64_t
 /// @copydetails nad_hash_i8
 [[nodiscard]] NAD_API
-nad_Hash nad_hash_u64(const void *x);
+nad_Hash nad_hash_u64(const void *val);
 
 
 /// @}
@@ -95,7 +95,7 @@ nad_Hash nad_hash_u64(const void *x);
 /// a size_t
 /// @copydetails nad_hash_i8
 [[nodiscard]] NAD_API
-nad_Hash nad_hash_size(const void *x);
+nad_Hash nad_hash_size(const void *val);
 
 
 /// @}
@@ -106,7 +106,7 @@ nad_Hash nad_hash_size(const void *x);
 /// a ptrdiff_t
 /// @copydetails nad_hash_i8
 [[nodiscard]] NAD_API
-nad_Hash nad_hash_ptrdiff(const void *x);
+nad_Hash nad_hash_ptrdiff(const void *val);
 
 
 /// @}
@@ -117,12 +117,12 @@ nad_Hash nad_hash_ptrdiff(const void *x);
 /// a float, canonicalized so the hash agrees with nad_eq_f32
 /// @copydetails nad_hash_i8
 [[nodiscard]] NAD_API
-nad_Hash nad_hash_f32(const void *x);
+nad_Hash nad_hash_f32(const void *val);
 
 /// a double, as nad_hash_f32
 /// @copydetails nad_hash_i8
 [[nodiscard]] NAD_API
-nad_Hash nad_hash_f64(const void *x);
+nad_Hash nad_hash_f64(const void *val);
 
 
 /// @}
@@ -133,7 +133,7 @@ nad_Hash nad_hash_f64(const void *x);
 /// a char
 /// @copydetails nad_hash_i8
 [[nodiscard]] NAD_API
-nad_Hash nad_hash_char(const void *x);
+nad_Hash nad_hash_char(const void *val);
 
 /// @}
 
@@ -157,11 +157,11 @@ nad_Hash nad_hash_bytes(const void *data, size_t len);
 /// @{
 
 /// a string, by its contents; a null pointer hashes as a value of its own, not as ""
-/// @param x the address of the value — a pointer to the const char *, not the string
+/// @param val the address of the value — a pointer to the const char *, not the string
 /// @return its hash
 /// @bigo{n} — n is the length of the string
 [[nodiscard]] NAD_API
-nad_Hash nad_hash_cstr(const void *x);
+nad_Hash nad_hash_cstr(const void *val);
 
 /// @}
 
@@ -169,13 +169,13 @@ nad_Hash nad_hash_cstr(const void *x);
 /// @{
 
 /// folds two hashes into one, order-sensitively
-/// @param x one hash
-/// @param y the other
+/// @param a one hash
+/// @param b the other
 /// @return the folded hash
 /// @warning both operands must already be hashes; fed raw values, it collides badly
 /// @bigo{1}
 [[nodiscard]] NAD_API
-nad_Hash nad_hash_combine(nad_Hash x, nad_Hash y);
+nad_Hash nad_hash_combine(nad_Hash a, nad_Hash b);
 
 /// @}
 

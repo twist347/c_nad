@@ -15,7 +15,7 @@ int main() {
 
     // the block size asked for is a floor: it is rounded up to the alignment and to what
     // the free list needs, and the stats report what the blocks really are
-    nad_AlPoolStats st = nad_al_pool_stats(pool);
+    const nad_AlPoolStats st = nad_al_pool_stats(pool);
     printf("%zu blocks of %zu bytes, %zu free\n", st.block_count, st.block_size,
            st.free); // 3 blocks of 16 bytes, 3 free — asked for 4
     /// [build]

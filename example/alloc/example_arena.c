@@ -21,7 +21,7 @@ int main() {
         goto drop;
     }
 
-    nad_AlArenaStats st = nad_al_arena_stats(arena);
+    const nad_AlArenaStats st = nad_al_arena_stats(arena);
     printf("%zu of %zu used, %zu left\n", st.used, st.cap,
            st.available); // 32 of 1024 used, 992 left — each piece is padded to the alignment
     /// [build]

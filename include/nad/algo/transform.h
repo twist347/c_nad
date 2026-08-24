@@ -4,24 +4,47 @@
 #include "nad/core/export.h"
 #include "nad/core/span.h"
 
-/*
- * Elementwise mapping into a destination span.
- *
- * Only the LENGTHS have to match here — unlike the rest of algo, the elem
- * sizes need not. Mapping is the one place where the elem type is allowed to
- * change: the op knows both types, and each span is walked with its own
- * stride, so a span of Pair maps into a span of int64_t. That is also why
- * these live apart from copy, which moves bytes as they are.
- *
- * A destination that IS a source is allowed — mapping a span onto itself is
- * the common case — but a partial overlap is not: every position is written
- * before the next is read, so a shifted destination would read what it has
- * already overwritten.
- */
+/// @file
 
+/// @defgroup algo_transform algo/transform
+/// @ingroup algo
+/// @brief mapping a span elemwise into another
+///
+/// Only the lengths have to match: unlike the rest of algo the elem sizes need not, since
+/// the op knows both types and each span is walked with its own stride — a span of Pair
+/// maps into a span of int64_t. That is why these live apart from algo/copy, which moves
+/// bytes as they are.
+///
+/// A destination that is a source is fine; a partial overlap is not, since every position
+/// is written before the next is read.
+///
+/// @par Example
+/// @snippet algo/example_transform.c ops
+/// @snippet algo/example_transform.c map
+/// @{
+
+/// @name transform
+/// @{
+
+/// writes op(src[i]) at dst[i]
+/// @param dst where the results go; asserts the same len as 'src'
+/// @param src where the operands come from
+/// @param op what to apply, called once per position
+/// @param ctx handed to 'op'
+/// @bigo{n}
 NAD_API
 void nad_span_transform(nad_SpanMut dst, nad_Span src, nad_UnOp op, void *ctx);
 
-/// two sources walked in step, so dst[i] = op(a[i], b[i])
+/// writes op(a[i], b[i]) at dst[i], the two sources walked in step
+/// @param dst where the results go; asserts the same len as both sources
+/// @param a one source
+/// @param b the other
+/// @param op what to apply, called once per position
+/// @param ctx handed to 'op'
+/// @bigo{n}
 NAD_API
 void nad_span_zip(nad_SpanMut dst, nad_Span a, nad_Span b, nad_BinOp op, void *ctx);
+
+/// @}
+
+/// @}

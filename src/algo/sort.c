@@ -111,25 +111,25 @@ nad_Status nad_span_sort_stable(nad_SpanMut s, nad_Cmp cmp, nad_Al *al) {
     return NAD_STATUS_OK;
 }
 
-void nad_span_partial_sort(nad_SpanMut s, size_t n, nad_Cmp cmp) {
+void nad_span_partial_sort(nad_SpanMut s, size_t count, nad_Cmp cmp) {
     NAD_SPAN_ASSERT(s);
     assert(cmp);
-    assert(n <= s.len);
+    assert(count <= s.len);
 
-    if (n == 0 || s.len < 2) {
+    if (count == 0 || s.len < 2) {
         return;
     }
 
-    if (n >= s.len) {
+    if (count >= s.len) {
         nad_span_sort(s, cmp);
         return;
     }
 
-    // place element that would be at position k in sorted order
-    nad_span_nth_elem(s, n, cmp);
+    // place element that would be at position count in sorted order
+    nad_span_nth_elem(s, count, cmp);
 
-    // now the first k elements are the k smallest (order unspecified) -> sort them
-    nad_span_sort(nad_span_sub_mut(s, 0, n), cmp);
+    // now the first count elems are the count smallest (order unspecified) -> sort them
+    nad_span_sort(nad_span_sub_mut(s, 0, count), cmp);
 }
 
 void nad_span_nth_elem(nad_SpanMut s, size_t nth, nad_Cmp cmp) {

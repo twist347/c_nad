@@ -35,31 +35,31 @@ typedef void (*nad_FPrint)(FILE *, const void *);
 
 /// an int8_t, in decimal
 /// @param stream where to write
-/// @param x the address of the elem
+/// @param val the address of the elem
 /// @bigo{1}
 NAD_API
-void nad_fprint_i8(FILE *stream, const void *x);
+void nad_fprint_i8(FILE *stream, const void *val);
 
 /// an int16_t, in decimal
 /// @param stream where to write
-/// @param x the address of the elem
+/// @param val the address of the elem
 /// @bigo{1}
 NAD_API
-void nad_fprint_i16(FILE *stream, const void *x);
+void nad_fprint_i16(FILE *stream, const void *val);
 
 /// an int32_t, in decimal
 /// @param stream where to write
-/// @param x the address of the elem
+/// @param val the address of the elem
 /// @bigo{1}
 NAD_API
-void nad_fprint_i32(FILE *stream, const void *x);
+void nad_fprint_i32(FILE *stream, const void *val);
 
 /// an int64_t, in decimal
 /// @param stream where to write
-/// @param x the address of the elem
+/// @param val the address of the elem
 /// @bigo{1}
 NAD_API
-void nad_fprint_i64(FILE *stream, const void *x);
+void nad_fprint_i64(FILE *stream, const void *val);
 
 /// @}
 
@@ -68,31 +68,31 @@ void nad_fprint_i64(FILE *stream, const void *x);
 
 /// a uint8_t, in decimal
 /// @param stream where to write
-/// @param x the address of the elem
+/// @param val the address of the elem
 /// @bigo{1}
 NAD_API
-void nad_fprint_u8(FILE *stream, const void *x);
+void nad_fprint_u8(FILE *stream, const void *val);
 
 /// a uint16_t, in decimal
 /// @param stream where to write
-/// @param x the address of the elem
+/// @param val the address of the elem
 /// @bigo{1}
 NAD_API
-void nad_fprint_u16(FILE *stream, const void *x);
+void nad_fprint_u16(FILE *stream, const void *val);
 
 /// a uint32_t, in decimal
 /// @param stream where to write
-/// @param x the address of the elem
+/// @param val the address of the elem
 /// @bigo{1}
 NAD_API
-void nad_fprint_u32(FILE *stream, const void *x);
+void nad_fprint_u32(FILE *stream, const void *val);
 
 /// a uint64_t, in decimal
 /// @param stream where to write
-/// @param x the address of the elem
+/// @param val the address of the elem
 /// @bigo{1}
 NAD_API
-void nad_fprint_u64(FILE *stream, const void *x);
+void nad_fprint_u64(FILE *stream, const void *val);
 
 /// @}
 
@@ -101,17 +101,17 @@ void nad_fprint_u64(FILE *stream, const void *x);
 
 /// a size_t, in decimal
 /// @param stream where to write
-/// @param x the address of the elem
+/// @param val the address of the elem
 /// @bigo{1}
 NAD_API
-void nad_fprint_size(FILE *stream, const void *x);
+void nad_fprint_size(FILE *stream, const void *val);
 
 /// a ptrdiff_t, in decimal
 /// @param stream where to write
-/// @param x the address of the elem
+/// @param val the address of the elem
 /// @bigo{1}
 NAD_API
-void nad_fprint_ptrdiff(FILE *stream, const void *x);
+void nad_fprint_ptrdiff(FILE *stream, const void *val);
 
 /// @}
 
@@ -120,17 +120,17 @@ void nad_fprint_ptrdiff(FILE *stream, const void *x);
 
 /// a float through %g — readable, and deliberately not round-trip
 /// @param stream where to write
-/// @param x the address of the elem
+/// @param val the address of the elem
 /// @bigo{1}
 NAD_API
-void nad_fprint_f32(FILE *stream, const void *x);
+void nad_fprint_f32(FILE *stream, const void *val);
 
 /// a double through %g, as nad_fprint_f32
 /// @param stream where to write
-/// @param x the address of the elem
+/// @param val the address of the elem
 /// @bigo{1}
 NAD_API
-void nad_fprint_f64(FILE *stream, const void *x);
+void nad_fprint_f64(FILE *stream, const void *val);
 
 /// @}
 
@@ -139,10 +139,10 @@ void nad_fprint_f64(FILE *stream, const void *x);
 
 /// true or false, never 1 and 0
 /// @param stream where to write
-/// @param x the address of the elem
+/// @param val the address of the elem
 /// @bigo{1}
 NAD_API
-void nad_fprint_bool(FILE *stream, const void *x);
+void nad_fprint_bool(FILE *stream, const void *val);
 
 /// @}
 
@@ -151,10 +151,10 @@ void nad_fprint_bool(FILE *stream, const void *x);
 
 /// the character when printable, \\xNN when not, so an elem is always one token
 /// @param stream where to write
-/// @param x the address of the elem
+/// @param val the address of the elem
 /// @bigo{1}
 NAD_API
-void nad_fprint_char(FILE *stream, const void *x);
+void nad_fprint_char(FILE *stream, const void *val);
 
 /// @}
 
@@ -164,10 +164,10 @@ void nad_fprint_char(FILE *stream, const void *x);
 /// the string, quoted, so one holding a comma cannot read as two elems; a null pointer
 /// prints as an unquoted null, a value of its own rather than ""
 /// @param stream where to write
-/// @param x the address of the elem — a pointer to the const char *, not the string
+/// @param val the address of the elem — a pointer to the const char *, not the string
 /// @bigo{n} — n is the length of the string
 NAD_API
-void nad_fprint_cstr(FILE *stream, const void *x);
+void nad_fprint_cstr(FILE *stream, const void *val);
 
 /// @}
 

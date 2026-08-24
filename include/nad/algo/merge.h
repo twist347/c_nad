@@ -5,24 +5,44 @@
 #include "nad/core/export.h"
 #include "nad/core/span.h"
 
-/// writes the two sorted spans into 'dst' as one sorted run, in one linear pass.
-/// 'dst' must hold a.len + b.len and must not overlap either source
+/// @file
+
+/// @defgroup algo_merge algo/merge
+/// @ingroup algo
+/// @brief joining two sorted runs into one
+///
+/// Both are stable: equal elems keep the run they came from, the left run first. That is
+/// what makes sorting a partly sorted span a matter of finding the boundary with
+/// nad_span_is_sorted_until and merging.
+///
+/// @par Example
+/// @snippet algo/example_merge.c merge
+/// @{
+
+/// @name merge
+/// @{
+
+/// writes two sorted spans into 'dst' as one sorted run
+/// @param dst where it goes; must hold a.len + b.len and overlap neither source
+/// @param a one sorted run
+/// @param b the other, sorted by the same 'cmp'
+/// @param cmp the order both are in
+/// @bigo{n} — one linear pass
 NAD_API
 void nad_span_merge(nad_SpanMut dst, nad_Span a, nad_Span b, nad_Cmp cmp);
 
-/// merges the two sorted runs 's[0, mid)' and 's[mid, len)' into one, in place.
-///
-/// With an allocator this is a single linear pass: the shorter of the two runs is copied
-/// aside — never more than half the span — and the two are merged back over the original.
-/// With 'al' as nullptr, or when the allocation is refused, it falls back to a
-/// buffer-free path that needs no memory at all and pays O(n log n) for it.
-///
-/// Not getting the buffer is therefore not an error but a slower way to the same answer,
-/// which is why nothing is returned. Pass nullptr deliberately when the span is small or
-/// the memory matters more than the time.
-///
-/// Both paths are stable, as is nad_span_merge — equal elems keep the run they came from
-/// and the left run comes first — so sorting a partly sorted span means finding the
-/// boundary with nad_span_is_sorted_until and calling this
+/// joins the two sorted runs s[0, mid) and s[mid, len) in place
+/// @param s the span; both halves must be sorted by 'cmp'
+/// @param mid where the second run starts
+/// @param cmp the order both are in
+/// @param al where a buffer may come from, or null. Given one, it copies the shorter run
+///           aside — never more than half — and merges back; without one, or on a refusal,
+///           it takes a path that needs no memory
+/// @bigo{n} with a buffer, O(n log n) without — a refusal is a slower way to the same
+///        answer, not an error, which is why nothing is returned
 NAD_API
 void nad_span_inplace_merge(nad_SpanMut s, size_t mid, nad_Cmp cmp, nad_Al *al);
+
+/// @}
+
+/// @}

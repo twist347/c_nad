@@ -24,7 +24,7 @@ static void fprint_person(FILE *stream, const void *x) {
 
 int main() {
     /// [ready]
-    nad_Span nums = NAD_SPAN_OF(int32_t, 5, 3, 1);
+    const nad_Span nums = NAD_SPAN_OF(int32_t, 5, 3, 1);
     nad_span_print(nums, nad_fprint_i32); // [5, 3, 1]
 
     // cstr reads a pointer to a pointer, quotes what it finds, and gives a null pointer a
@@ -32,12 +32,12 @@ int main() {
     // and 'const const char *' is not a type
     typedef const char *Cstr;
 
-    nad_Span names = NAD_SPAN_OF(Cstr, "ann", nullptr, "bo, jr");
+    const nad_Span names = NAD_SPAN_OF(Cstr, "ann", nullptr, "bo, jr");
     nad_span_print(names, nad_fprint_cstr); // ["ann", null, "bo, jr"]
     /// [ready]
 
     /// [use]
-    nad_Span people = NAD_SPAN_OF(Person, { "ann", 31 }, { "bo", 4 });
+    const nad_Span people = NAD_SPAN_OF(Person, { "ann", 31 }, { "bo", 4 });
     nad_span_print(people, fprint_person); // [ann(31), bo(4)]
     /// [use]
 
