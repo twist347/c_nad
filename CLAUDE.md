@@ -94,8 +94,15 @@ is that an error cannot be silently dropped or left un-propagated.
   `nad_alloc`/`nad_calloc`/`nad_realloc` return the pointer (`nullptr` = failure): the
   value and the single error cause share one channel, so `[[nodiscard]]` on the pointer
   already enforces the check — wrapping them as `nad_Status f(..., void **out)` would buy
-  nothing and fight the `malloc` idiom. The `mem` module has no multi-cause op; the `ds`
-  modules do (`get`/`set`/`insert` → OUT_OF_RANGE), so status-return is coherent per module.
+  nothing and fight the `malloc` idiom.
+- **Why everything else keeps the status, now that OOM is all but the only cause.** The
+  status is a *type-level marker* that an op can fail, not a carrier of many causes —
+  seeing `nad_Status` in a signature says it, whatever the op returns by rights. The
+  `malloc` idiom does not generalize past the allocator: under half of the fallible ops
+  hand back a handle that could carry `nullptr`, most have nothing to return at all, and
+  `bool` is not free — it is already the return of `contains`, `is_empty` and
+  `binary_search`, where `true` means *found*, and `hmap`/`hset` `insert` need both
+  meanings at once. A second cause is then one enumerator, not a new signature everywhere.
 - **assert vs status:** `assert` for **programmer errors** (broken preconditions:
   `elem_size > 0`, `alloc != null`, `self != null`, `out != null`) — bugs, not runtime
   states. Return a `nad_Status` for **data-dependent** failures reachable with valid code

@@ -4,20 +4,70 @@
 
 #include <stdint.h>
 
+/// @file
+
+/// @defgroup core_status core/status
+/// @ingroup core
+/// @brief nad_Status — the one way an operation reports that it failed
+///
+/// A fallible op returns a nad_Status and writes its result through a trailing 'out',
+/// which it touches only on NAD_STATUS_OK. The return is [[nodiscard]], so an error
+/// cannot be dropped by forgetting it, and C has no defer, so it is propagated by hand:
+/// a return when nothing is held yet, a goto when something is.
+///
+/// The inverse shape — the value returned, the status written out — is deliberately
+/// absent: a status out-param is ignorable, and that is the model this library rejected.
+/// The alloc wrappers are the one exception, and a principled one: they return the
+/// pointer and say failure with null, so the value and the single cause share one
+/// channel and [[nodiscard]] on the pointer already enforces the check.
+///
+/// A broken precondition is not in here. A null self, an index past the end, an
+/// elem_size of 0 — those are programmer errors, and they assert. A nad_Status is for
+/// what valid code can still meet at runtime, and that is memory: there is no code here
+/// for a bad argument or an index out of range, because nothing ever returns one.
+///
+/// @par Example
+/// @snippet core/example_status.c propagate
+/// @snippet core/example_status.c report
+/// @{
+
+/// How an operation reports its outcome. Fixed at int32_t, so the value crosses an ABI
+/// boundary at a width that does not depend on the compiler.
 typedef enum : int32_t {
-    NAD_STATUS_OK = 0,
-    NAD_STATUS_INVALID_ARG,
-    NAD_STATUS_OUT_OF_RANGE,
-    NAD_STATUS_OUT_OF_MEMORY,
-    NAD_STATUS_UNSUPPORTED,
+    NAD_STATUS_OK = 0,        ///< success — the only value on which an 'out' is written
+    NAD_STATUS_OUT_OF_MEMORY, ///< an allocation failed, or the size asked for overflowed
+                              ///< on the way to it; what every fallible op but one returns
+    NAD_STATUS_UNSUPPORTED,   ///< the op cannot be done for what it was handed; returned
+                              ///< from one place, core/elem_ops on an oversized elem
 } nad_Status;
 
-/* ========== to str ========== */
+/// @name to str
+/// @{
 
+/// the status spelled as it is written in this header
+/// @param st the status
+/// @return a static string — "NAD_STATUS_OK" and so on, or "UNKNOWN_NAD_STATUS" for a
+///         value that is none of the five. Never null, and never the caller's to free
+/// @bigo{1}
 [[nodiscard]] NAD_API
 const char *nad_status_to_str(nad_Status st);
 
-/* ========== macros ========== */
+/// @}
 
+/// @name macros
+/// @{
+
+/// whether the op succeeded
+/// @param st the status, evaluated once
+/// @bigo{1}
 #define NAD_STATUS_IS_OK(st)    ((st) == NAD_STATUS_OK)
+
+/// whether the op failed — the form the library's own call sites use, since a caller
+/// acts on failure and falls through on success
+/// @param st the status, evaluated once
+/// @bigo{1}
 #define NAD_STATUS_IS_ERR(st)   ((st) != NAD_STATUS_OK)
+
+/// @}
+
+/// @}

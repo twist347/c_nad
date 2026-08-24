@@ -34,6 +34,7 @@ set(NAD_CORE_SOURCES
         src/core/cmp.c
         src/core/elem_ops.c
         src/core/hash.c
+        src/core/print.c
         src/core/span.c
         src/core/status.c
 )
@@ -104,6 +105,13 @@ if (NAD_BUILD_TEST)
     add_subdirectory(test)
 endif ()
 
+option(NAD_BUILD_EXAMPLE "Build the examples the reference quotes" ${PROJECT_IS_TOP_LEVEL})
+
+if (NAD_BUILD_EXAMPLE)
+    enable_testing()
+    add_subdirectory(example)
+endif ()
+
 if (BUILD_SHARED_LIBS)
     set(NAD_LIBRARY_TYPE "shared")
 else ()
@@ -117,4 +125,5 @@ message(STATUS "  library        : ${NAD_LIBRARY_TYPE}")
 message(STATUS "  compiler       : ${CMAKE_C_COMPILER_ID} ${CMAKE_C_COMPILER_VERSION}")
 message(STATUS "  C standard     : C${NAD_C_STANDARD}")
 message(STATUS "  tests          : ${NAD_BUILD_TEST}")
+message(STATUS "  examples       : ${NAD_BUILD_EXAMPLE}")
 message(STATUS "")

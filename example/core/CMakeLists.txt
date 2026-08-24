@@ -1,0 +1,6 @@
+nad_add_example(example_core_span example_span.c)
+nad_add_example(example_core_status example_status.c)
+nad_add_example(example_core_print example_print.c)
+nad_add_example(example_core_cmp example_cmp.c)
+nad_add_example(example_core_hash example_hash.c)
+nad_add_example(example_core_util example_util.c)

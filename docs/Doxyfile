@@ -6,6 +6,8 @@ OUTPUT_DIRECTORY       = build-docs
 
 INPUT                  = include README.md docs/modules.dox
 RECURSIVE              = YES
+EXAMPLE_PATH           = example
+EXAMPLE_RECURSIVE      = YES
 USE_MDFILE_AS_MAINPAGE = README.md
 
 OPTIMIZE_OUTPUT_FOR_C  = YES
