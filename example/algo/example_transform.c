@@ -8,8 +8,6 @@
 #include <stdint.h>
 
 /// [ops]
-// the op knows both types, which is what lets the elem type change on the way: an
-// int32_t is read and an int64_t is written
 static void widen_and_square(void *dst, const void *src, void *ctx) {
     NAD_UNUSED(ctx);
 
@@ -22,6 +20,7 @@ static void add(void *dst, const void *a, const void *b, void *ctx) {
 
     *(int32_t *) dst = *(const int32_t *) a + *(const int32_t *) b;
 }
+
 /// [ops]
 
 int main() {

@@ -14,6 +14,7 @@ static bool is_even(const void *elem, void *ctx) {
 
     return *(const int32_t *) elem % 2 == 0;
 }
+
 /// [pred]
 
 int main() {
@@ -35,8 +36,10 @@ int main() {
     // the two spans overlap here, so it is copy_within or nothing: plain copy reads what
     // it has already written
     const nad_SpanMut all = NAD_SPAN_OF_MUT(int32_t, 1, 2, 3, 4, 5);
-    nad_span_copy_within(nad_span_sub_mut(all, 1, 4),
-                         nad_span_sub(nad_span_mut_to_span(all), 0, 4));
+    nad_span_copy_within(
+        nad_span_sub_mut(all, 1, 4),
+        nad_span_sub(nad_span_mut_to_span(all), 0, 4)
+    );
     nad_span_mut_print(all, nad_fprint_i32); // [1, 1, 2, 3, 4]
     /// [copy]
 

@@ -10,8 +10,6 @@
 #include <stdio.h>
 
 /// [ops]
-// the accumulator is the caller's and keeps the caller's type, which is how a span of
-// int32_t folds into an int64_t
 static void add_into(void *acc, const void *elem, void *ctx) {
     NAD_UNUSED(ctx);
 
@@ -29,6 +27,7 @@ static void sub(void *dst, const void *a, const void *b, void *ctx) {
 
     *(int32_t *) dst = *(const int32_t *) a - *(const int32_t *) b;
 }
+
 /// [ops]
 
 int main() {

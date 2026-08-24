@@ -11,7 +11,7 @@
 
 int main() {
     /// [build]
-    int32_t buf[6] = { 5, 3, 1, 4, 2 };
+    int32_t buf[6] = {5, 3, 1, 4, 2};
     const nad_SpanMut s = NAD_SPAN_NEW_MUT(int32_t, buf, 5);
 
     // a max-heap: the largest is at 0, and nothing else is promised about the order
@@ -30,10 +30,12 @@ int main() {
 
     // pop: the largest goes to the back, and the heap closes over what is left
     nad_span_pop_heap(grown, nad_cmp_i32);
-    printf("popped %" PRId32 ", %s\n", buf[5],
-           nad_span_is_heap(nad_span_sub(nad_span_mut_to_span(grown), 0, 5), nad_cmp_i32)
-               ? "the rest is still a heap"
-               : "broken"); // popped 9, the rest is still a heap
+    printf(
+        "popped %" PRId32 ", %s\n", buf[5],
+        nad_span_is_heap(nad_span_sub(nad_span_mut_to_span(grown), 0, 5), nad_cmp_i32)
+            ? "the rest is still a heap"
+            : "broken"
+    ); // popped 9, the rest is still a heap
 
     // heapsort needs no name of its own
     nad_span_sort_heap(s, nad_cmp_i32);

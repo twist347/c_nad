@@ -34,10 +34,11 @@ int main() {
     nad_span_mut_print(u, nad_fprint_i32); // [1, 2, 3, 4, 5, 9, 7, 6, 8]
 
     // asking instead of doing: the prefix is sorted, the span is not
-    printf("%s, in order up to %zu\n",
-           nad_span_is_sorted(nad_span_mut_to_span(u), nad_cmp_i32) ? "sorted" : "not sorted",
-           nad_span_is_sorted_until(nad_span_mut_to_span(u),
-                                    nad_cmp_i32)); // not sorted, in order up to 6
+    printf(
+        "%s, in order up to %zu\n",
+        nad_span_is_sorted(nad_span_mut_to_span(u), nad_cmp_i32) ? "sorted" : "not sorted",
+        nad_span_is_sorted_until(nad_span_mut_to_span(u), nad_cmp_i32)
+    ); // not sorted, in order up to 6
     /// [partial]
 
     return 0;

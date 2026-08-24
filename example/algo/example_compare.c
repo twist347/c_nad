@@ -21,8 +21,10 @@ int main() {
 
     // dictionary order: the first differing pair decides, and a prefix orders first
     const nad_Span shorter = NAD_SPAN_OF(int32_t, 1, 2);
-    printf("%d %d\n", nad_span_cmp(a, b, nad_cmp_i32),
-           nad_span_cmp(shorter, a, nad_cmp_i32)); // -1 -1
+    printf(
+        "%d %d\n", nad_span_cmp(a, b, nad_cmp_i32),
+        nad_span_cmp(shorter, a, nad_cmp_i32)
+    ); // -1 -1
     /// [compare]
 
     return 0;

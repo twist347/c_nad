@@ -15,6 +15,7 @@ static bool is_even(const void *elem, void *ctx) {
 
     return *(const int32_t *) elem % 2 == 0;
 }
+
 /// [pred]
 
 int main() {
@@ -40,8 +41,7 @@ int main() {
     // keeping both orders costs a buffer, so that one takes an allocator and can fail
     const nad_SpanMut u = NAD_SPAN_OF_MUT(int32_t, 1, 2, 3, 4, 5, 6);
     size_t boundary;
-    if (NAD_STATUS_IS_ERR(
-            nad_span_partition_stable(u, is_even, nullptr, nad_al_default(), &boundary))) {
+    if (NAD_STATUS_IS_ERR(nad_span_partition_stable(u, is_even, nullptr, nad_al_default(), &boundary))) {
         return 1;
     }
     printf("%zu even, ", boundary);

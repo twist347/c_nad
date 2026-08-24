@@ -8,7 +8,6 @@
 #include "nad/core/span.h"
 
 #include <stdint.h>
-#include <stdio.h>
 
 int main() {
     /// [merge]
