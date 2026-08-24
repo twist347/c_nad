@@ -30,6 +30,10 @@
 /// An elem is bytes. The arr copies them in and frees them with the block, and never
 /// looks inside: whatever an elem points to is the caller's to release.
 ///
+/// The typed macros write 'const T', so an elem type already spelled with const needs a
+/// typedef of its own: NAD_ARR_OF(const char *, ...) is a duplicate const, and one over a
+/// typedef Cstr is not.
+///
 /// @par Example
 /// @snippet ds/example_arr.c build
 /// @snippet ds/example_arr.c algo

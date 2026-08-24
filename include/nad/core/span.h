@@ -23,6 +23,10 @@
 /// and an index out of range asserts. A view must not outlive what it views, nor survive
 /// an op that moves the source block — nothing checks that.
 ///
+/// The typed macros write 'const T', so an elem type already spelled with const needs a
+/// typedef of its own: NAD_SPAN_OF(const char *, ...) is a duplicate const, and one over
+/// a typedef Cstr is not.
+///
 /// @par Example
 /// @snippet core/example_span.c build
 /// @snippet core/example_span.c access

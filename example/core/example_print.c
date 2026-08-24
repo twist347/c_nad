@@ -28,8 +28,11 @@ int main() {
     nad_span_print(nums, nad_fprint_i32); // [5, 3, 1]
 
     // cstr reads a pointer to a pointer, quotes what it finds, and gives a null pointer a
-    // form of its own
-    nad_Span names = NAD_SPAN_OF(const char *, "ann", nullptr, "bo, jr");
+    // form of its own. It needs a type name of its own too: the macro writes 'const T',
+    // and 'const const char *' is not a type
+    typedef const char *Cstr;
+
+    nad_Span names = NAD_SPAN_OF(Cstr, "ann", nullptr, "bo, jr");
     nad_span_print(names, nad_fprint_cstr); // ["ann", null, "bo, jr"]
     /// [ready]
 
