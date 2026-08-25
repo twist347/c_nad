@@ -101,6 +101,10 @@ static void clear_nodes(nad_HMap *self);
 [[nodiscard]]
 static nad_Status clone_into(const nad_HMap *self, nad_Al *al, nad_HMap **out);
 
+/// the walk both compare doors take, with 'val_eq' null standing for the bytes
+[[nodiscard]]
+static bool eq_impl(const nad_HMap *a, const nad_HMap *b, nad_Eq val_eq);
+
 /* ========== lifetime ========== */
 
 nad_Status nad_hmap_new(size_t key_size, size_t val_size, nad_Hasher hasher, nad_Eq eq, nad_Al *al, nad_HMap **out) {
@@ -133,32 +137,32 @@ nad_Status nad_hmap_new_raw_(size_t cap, size_t key_size, size_t val_size, nad_H
         return NAD_STATUS_OUT_OF_MEMORY;
     }
 
-    nad_HMap *map = nad_alloc(al, sizeof(nad_HMap));
-    if (!map) {
+    nad_HMap *obj = nad_alloc(al, sizeof(nad_HMap));
+    if (!obj) {
         return NAD_STATUS_OUT_OF_MEMORY;
     }
 
-    map->buckets = nullptr;
-    map->bucket_count = 0;
-    map->len = 0;
-    map->key_size = key_size;
-    map->val_size = val_size;
-    map->val_offset = val_offset;
-    map->hasher = hasher;
-    map->eq = eq;
-    map->al = al;
+    obj->buckets = nullptr;
+    obj->bucket_count = 0;
+    obj->len = 0;
+    obj->key_size = key_size;
+    obj->val_size = val_size;
+    obj->val_offset = val_offset;
+    obj->hasher = hasher;
+    obj->eq = eq;
+    obj->al = al;
 
     if (cap > 0) {
-        const nad_Status st = nad_hmap_reserve(map, cap);
+        const nad_Status st = nad_hmap_reserve(obj, cap);
         if (NAD_STATUS_IS_ERR(st)) {
-            nad_dealloc(al, map, sizeof(nad_HMap));
+            nad_dealloc(al, obj, sizeof(nad_HMap));
             return st;
         }
     }
 
-    ASSERT_HMAP(map);
+    ASSERT_HMAP(obj);
 
-    *out = map;
+    *out = obj;
 
     return NAD_STATUS_OK;
 }
@@ -249,10 +253,31 @@ nad_Hasher nad_hmap_hasher(const nad_HMap *self) {
     return self->hasher;
 }
 
-nad_Eq nad_hmap_eq(const nad_HMap *self) {
+nad_Eq nad_hmap_key_eq(const nad_HMap *self) {
     ASSERT_HMAP(self);
 
     return self->eq;
+}
+
+/* ========== compare ========== */
+
+bool nad_hmap_eq(const nad_HMap *a, const nad_HMap *b) {
+    ASSERT_HMAP(a);
+    ASSERT_HMAP(b);
+    assert(a->key_size == b->key_size);
+    assert(a->val_size == b->val_size);
+
+    return eq_impl(a, b, nullptr);
+}
+
+bool nad_hmap_eq_by(const nad_HMap *a, const nad_HMap *b, nad_Eq val_eq) {
+    ASSERT_HMAP(a);
+    ASSERT_HMAP(b);
+    assert(a->key_size == b->key_size);
+    assert(a->val_size == b->val_size);
+    assert(val_eq);
+
+    return eq_impl(a, b, val_eq);
 }
 
 /* ========== lookup ========== */
@@ -743,4 +768,36 @@ static nad_Status clone_into(const nad_HMap *self, nad_Al *al, nad_HMap **out) {
     *out = clone;
 
     return NAD_STATUS_OK;
+}
+
+static bool eq_impl(const nad_HMap *a, const nad_HMap *b, nad_Eq val_eq) {
+    if (a == b) {
+        return true;
+    }
+
+    if (a->len != b->len) {
+        return false;
+    }
+
+    // equal lengths plus every key of 'a' found in 'b' is containment both ways, so there
+    // is no second pass. 'b' answers with its own hasher and equality: the keys are being
+    // looked up in it
+    for (size_t i = 0; i < a->bucket_count; ++i) {
+        for (const nad_HMapNode *node = a->buckets[i]; node; node = node->next) {
+            const void *key = node_key(node);
+            const nad_HMapNode *found = find_node(b, key, b->hasher(key));
+            if (!found) {
+                return false;
+            }
+
+            const void *lhs = node_val(a, node);
+            const void *rhs = node_val(b, found);
+            const bool same = val_eq ? val_eq(lhs, rhs) : memcmp(lhs, rhs, a->val_size) == 0;
+            if (!same) {
+                return false;
+            }
+        }
+    }
+
+    return true;
 }

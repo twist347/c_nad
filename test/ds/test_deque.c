@@ -887,6 +887,109 @@ static void test_the_ends_do_not_allocate_while_the_capacity_holds() {
     TEST_ASSERT_EQUAL_size_t(0, probe.live);
 }
 
+/* ========== compare ========== */
+
+static void test_eq_matches_the_same_elems() {
+    nad_Deque *a = make_deque(4);
+    nad_Deque *b = make_deque(4);
+
+    TEST_ASSERT_TRUE(nad_deque_eq(a, a));
+    TEST_ASSERT_TRUE(nad_deque_eq(a, b));
+    TEST_ASSERT_TRUE(nad_deque_eq(b, a));
+    TEST_ASSERT_TRUE(nad_deque_eq_by(a, b, nad_eq_i32));
+
+    nad_deque_drop(a);
+    nad_deque_drop(b);
+}
+
+static void test_eq_parts_one_differing_elem() {
+    nad_Deque *a = make_deque(4);
+    nad_Deque *b = make_deque(4);
+    NAD_DEQUE_SET(int32_t, b, 3, 99);
+
+    TEST_ASSERT_FALSE(nad_deque_eq(a, b));
+    TEST_ASSERT_FALSE(nad_deque_eq_by(a, b, nad_eq_i32));
+
+    nad_deque_drop(a);
+    nad_deque_drop(b);
+}
+
+static void test_eq_parts_different_lengths() {
+    nad_Deque *a = make_deque(4);
+    nad_Deque *shorter = make_deque(3);
+
+    TEST_ASSERT_FALSE(nad_deque_eq(a, shorter));
+    TEST_ASSERT_FALSE(nad_deque_eq(shorter, a));
+
+    nad_deque_drop(a);
+    nad_deque_drop(shorter);
+}
+
+static void test_eq_of_two_empties() {
+    nad_Deque *a = make_deque(0);
+    nad_Deque *b = make_deque(0);
+    nad_Deque *one = make_deque(1);
+
+    TEST_ASSERT_TRUE(nad_deque_eq(a, b));
+    TEST_ASSERT_TRUE(nad_deque_eq_by(a, b, nad_eq_i32));
+    TEST_ASSERT_FALSE(nad_deque_eq(a, one));
+
+    nad_deque_drop(a);
+    nad_deque_drop(one);
+    nad_deque_drop(b);
+}
+
+// two rings holding the same elems start at different slots, so what is compared is the
+// contents in ring order and never the buffers
+static void test_eq_ignores_where_the_ring_starts() {
+    constexpr int32_t want[4] = {10, 20, 30, 40};
+
+    nad_Deque *straight = nullptr;
+    NAD_TEST_OK(NAD_DEQUE_FROM_DATA(int32_t, want, 4, nad_al_default(), &straight));
+    nad_Deque *wrapped = make_wrapped();
+
+    TEST_ASSERT_TRUE(wraps(wrapped));
+    TEST_ASSERT_FALSE(wraps(straight));
+    TEST_ASSERT_TRUE(nad_deque_eq(straight, wrapped));
+    TEST_ASSERT_TRUE(nad_deque_eq(wrapped, straight));
+    TEST_ASSERT_TRUE(nad_deque_eq_by(wrapped, straight, nad_eq_i32));
+
+    nad_deque_drop(straight);
+    nad_deque_drop(wrapped);
+}
+
+// the same elems rotated by one: equal as multisets, unequal as deques
+static void test_eq_is_order_sensitive() {
+    nad_Deque *a = make_deque(4);
+    nad_Deque *b = make_deque(4);
+
+    const int32_t front = *NAD_DEQUE_FIRST_AS(int32_t, b);
+    nad_deque_pop_front(b);
+    push_back_int(b, front);
+
+    TEST_ASSERT_EQUAL_size_t(nad_deque_len(a), nad_deque_len(b));
+    TEST_ASSERT_FALSE(nad_deque_eq(a, b));
+
+    nad_deque_drop(a);
+    nad_deque_drop(b);
+}
+
+static void test_eq_by_asks_the_equality() {
+    constexpr Pair lhs[2] = {{1, 10}, {2, 20}};
+    constexpr Pair rhs[2] = {{1, 70}, {2, 80}};
+
+    nad_Deque *a = nullptr;
+    nad_Deque *b = nullptr;
+    NAD_TEST_OK(NAD_DEQUE_FROM_DATA(Pair, lhs, 2, nad_al_default(), &a));
+    NAD_TEST_OK(NAD_DEQUE_FROM_DATA(Pair, rhs, 2, nad_al_default(), &b));
+
+    TEST_ASSERT_FALSE(nad_deque_eq(a, b));
+    TEST_ASSERT_TRUE(nad_deque_eq_by(a, b, nad_test_pair_eq_a));
+
+    nad_deque_drop(a);
+    nad_deque_drop(b);
+}
+
 int main() {
     UNITY_BEGIN();
 
@@ -951,6 +1054,15 @@ int main() {
     RUN_TEST(test_insert_reports_a_refused_growth);
     RUN_TEST(test_reserve_reports_a_refused_allocator);
     RUN_TEST(test_the_ends_do_not_allocate_while_the_capacity_holds);
+
+
+    RUN_TEST(test_eq_matches_the_same_elems);
+    RUN_TEST(test_eq_parts_one_differing_elem);
+    RUN_TEST(test_eq_parts_different_lengths);
+    RUN_TEST(test_eq_of_two_empties);
+    RUN_TEST(test_eq_ignores_where_the_ring_starts);
+    RUN_TEST(test_eq_is_order_sensitive);
+    RUN_TEST(test_eq_by_asks_the_equality);
 
     return UNITY_END();
 }

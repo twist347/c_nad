@@ -1,6 +1,7 @@
 #pragma once
 
 #include "nad/alloc/alloc.h"
+#include "nad/core/cmp.h"
 #include "nad/core/export.h"
 #include "nad/core/print.h"
 #include "nad/core/span.h"
@@ -69,6 +70,18 @@ void nad_deque_copy_to_span(const nad_Deque *self, nad_SpanMut dst);
 /// back. Nothing is allocated, so nothing can fail
 NAD_API
 void nad_deque_copy_from_span(nad_Deque *self, nad_Span src);
+
+/* ========== compare ========== */
+
+/// whether the two hold the same elems in ring order, byte for byte. Same elem_size for both —
+/// a mismatch there is a programmer error, not a false; differing lengths are just false
+[[nodiscard]] NAD_API
+bool nad_deque_eq(const nad_Deque *a, const nad_Deque *b);
+
+/// whether the two hold equal elems under 'eq', which is asked of every pair until one
+/// says no
+[[nodiscard]] NAD_API
+bool nad_deque_eq_by(const nad_Deque *a, const nad_Deque *b, nad_Eq eq);
 
 /* ========== info ========== */
 

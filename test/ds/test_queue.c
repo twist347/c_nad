@@ -779,6 +779,115 @@ static void test_a_refused_header_frees_a_filled_deque() {
     TEST_ASSERT_EQUAL_size_t(0, probe.live);
 }
 
+/* ========== compare ========== */
+
+static void test_eq_matches_the_same_elems() {
+    constexpr int32_t src[3] = {7, 8, 9};
+
+    nad_Queue *a = make_queue(src, 3);
+    nad_Queue *b = make_queue_from(src, 3);
+
+    TEST_ASSERT_TRUE(nad_queue_eq(a, a));
+    TEST_ASSERT_TRUE(nad_queue_eq(a, b));
+    TEST_ASSERT_TRUE(nad_queue_eq(b, a));
+    TEST_ASSERT_TRUE(nad_queue_eq_by(a, b, nad_eq_i32));
+
+    nad_queue_drop(a);
+    nad_queue_drop(b);
+}
+
+static void test_eq_parts_one_differing_elem() {
+    constexpr int32_t lhs[3] = {7, 8, 9};
+    constexpr int32_t rhs[3] = {7, 8, 99};
+
+    nad_Queue *a = make_queue(lhs, 3);
+    nad_Queue *b = make_queue(rhs, 3);
+
+    TEST_ASSERT_FALSE(nad_queue_eq(a, b));
+    TEST_ASSERT_FALSE(nad_queue_eq_by(a, b, nad_eq_i32));
+
+    nad_queue_drop(a);
+    nad_queue_drop(b);
+}
+
+static void test_eq_parts_different_lengths() {
+    constexpr int32_t src[3] = {7, 8, 9};
+
+    nad_Queue *a = make_queue(src, 3);
+    nad_Queue *shorter = make_queue(src, 2);
+
+    TEST_ASSERT_FALSE(nad_queue_eq(a, shorter));
+    TEST_ASSERT_FALSE(nad_queue_eq(shorter, a));
+
+    nad_queue_drop(a);
+    nad_queue_drop(shorter);
+}
+
+static void test_eq_of_two_empties() {
+    constexpr int32_t src[1] = {7};
+
+    nad_Queue *a = make_queue(src, 0);
+    nad_Queue *b = make_queue_from(src, 0);
+    nad_Queue *one = make_queue(src, 1);
+
+    TEST_ASSERT_TRUE(nad_queue_eq(a, b));
+    TEST_ASSERT_TRUE(nad_queue_eq_by(a, b, nad_eq_i32));
+    TEST_ASSERT_FALSE(nad_queue_eq(a, one));
+
+    nad_queue_drop(a);
+    nad_queue_drop(b);
+    nad_queue_drop(one);
+}
+
+// the ring under the queue may be split or not; the queue order is what is compared
+static void test_eq_ignores_where_the_ring_starts() {
+    constexpr int32_t want[4] = {10, 20, 30, 40};
+
+    nad_Queue *straight = make_queue_from(want, 4);
+    nad_Queue *wrapped = make_wrapped();
+
+    TEST_ASSERT_TRUE(nad_queue_eq(straight, wrapped));
+    TEST_ASSERT_TRUE(nad_queue_eq(wrapped, straight));
+    TEST_ASSERT_TRUE(nad_queue_eq_by(wrapped, straight, nad_eq_i32));
+
+    nad_queue_drop(straight);
+    nad_queue_drop(wrapped);
+}
+
+// a queue is compared front to back: the same elems in another order are another queue
+static void test_eq_is_order_sensitive() {
+    constexpr int32_t src[3] = {7, 8, 9};
+
+    nad_Queue *a = make_queue(src, 3);
+    nad_Queue *b = make_queue(src, 3);
+
+    const int32_t front = *NAD_QUEUE_FRONT_AS(int32_t, b);
+    nad_queue_pop(b);
+    push_int(b, front);
+
+    TEST_ASSERT_EQUAL_size_t(nad_queue_len(a), nad_queue_len(b));
+    TEST_ASSERT_FALSE(nad_queue_eq(a, b));
+
+    nad_queue_drop(a);
+    nad_queue_drop(b);
+}
+
+static void test_eq_by_asks_the_equality() {
+    constexpr Pair lhs[2] = {{1, 10}, {2, 20}};
+    constexpr Pair rhs[2] = {{1, 70}, {2, 80}};
+
+    nad_Queue *a = nullptr;
+    nad_Queue *b = nullptr;
+    NAD_TEST_OK(NAD_QUEUE_FROM_DATA(Pair, lhs, 2, nad_al_default(), &a));
+    NAD_TEST_OK(NAD_QUEUE_FROM_DATA(Pair, rhs, 2, nad_al_default(), &b));
+
+    TEST_ASSERT_FALSE(nad_queue_eq(a, b));
+    TEST_ASSERT_TRUE(nad_queue_eq_by(a, b, nad_test_pair_eq_a));
+
+    nad_queue_drop(a);
+    nad_queue_drop(b);
+}
+
 int main() {
     UNITY_BEGIN();
 
@@ -837,6 +946,15 @@ int main() {
     RUN_TEST(test_reserve_reports_an_exhausted_arena);
     RUN_TEST(test_a_refused_header_frees_the_deque);
     RUN_TEST(test_a_refused_header_frees_a_filled_deque);
+
+
+    RUN_TEST(test_eq_matches_the_same_elems);
+    RUN_TEST(test_eq_parts_one_differing_elem);
+    RUN_TEST(test_eq_parts_different_lengths);
+    RUN_TEST(test_eq_of_two_empties);
+    RUN_TEST(test_eq_ignores_where_the_ring_starts);
+    RUN_TEST(test_eq_is_order_sensitive);
+    RUN_TEST(test_eq_by_asks_the_equality);
 
     return UNITY_END();
 }

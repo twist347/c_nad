@@ -35,7 +35,7 @@ struct nad_Deque {
 [[nodiscard]]
 static nad_Status new_impl(bool zeroed, size_t len, size_t cap, size_t elem_size, nad_Al *al, nad_Deque **out);
 
-static void set_fields(nad_Deque *self, void *data, size_t len, size_t cap, size_t elem_size, nad_Al *al);
+static void set_fields(nad_Deque *obj, void *data, size_t len, size_t cap, size_t elem_size, nad_Al *al);
 
 [[nodiscard]]
 static size_t next_cap(const nad_Deque *self);
@@ -207,6 +207,55 @@ void nad_deque_copy_from_span(nad_Deque *self, nad_Span src) {
     assert(src.len == self->len);
 
     copy_in(self, src.data);
+}
+
+/* ========== compare ========== */
+
+bool nad_deque_eq(const nad_Deque *a, const nad_Deque *b) {
+    ASSERT_DEQUE(a);
+    ASSERT_DEQUE(b);
+    assert(a->elem_size == b->elem_size);
+
+    if (a == b) {
+        return true;
+    }
+
+    if (a->len != b->len) {
+        return false;
+    }
+
+    // by index and not by memcmp over the buffers: two rings holding the same elems start
+    // at different slots, and the bytes outside the contents are not contents
+    for (size_t i = 0; i < a->len; ++i) {
+        if (memcmp(elem_at(a, i), elem_at(b, i), a->elem_size) != 0) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+bool nad_deque_eq_by(const nad_Deque *a, const nad_Deque *b, nad_Eq eq) {
+    ASSERT_DEQUE(a);
+    ASSERT_DEQUE(b);
+    assert(a->elem_size == b->elem_size);
+    assert(eq);
+
+    if (a == b) {
+        return true;
+    }
+
+    if (a->len != b->len) {
+        return false;
+    }
+
+    for (size_t i = 0; i < a->len; ++i) {
+        if (!eq(elem_at(a, i), elem_at(b, i))) {
+            return false;
+        }
+    }
+
+    return true;
 }
 
 /* ========== info ========== */
@@ -613,8 +662,8 @@ static nad_Status new_impl(bool zeroed, size_t len, size_t cap, size_t elem_size
     assert(al);
     assert(out);
 
-    nad_Deque *deque = nad_alloc(al, sizeof(nad_Deque));
-    if (!deque) {
+    nad_Deque *obj = nad_alloc(al, sizeof(nad_Deque));
+    if (!obj) {
         return NAD_STATUS_OUT_OF_MEMORY;
     }
 
@@ -634,25 +683,25 @@ static nad_Status new_impl(bool zeroed, size_t len, size_t cap, size_t elem_size
         }
     }
 
-    set_fields(deque, data, len, cap, elem_size, al);
+    set_fields(obj, data, len, cap, elem_size, al);
 
-    ASSERT_DEQUE(deque);
+    ASSERT_DEQUE(obj);
 
-    *out = deque;
+    *out = obj;
     return NAD_STATUS_OK;
 
 fail:
-    nad_dealloc(al, deque, sizeof(nad_Deque));
+    nad_dealloc(al, obj, sizeof(nad_Deque));
     return NAD_STATUS_OUT_OF_MEMORY;
 }
 
-static void set_fields(nad_Deque *self, void *data, size_t len, size_t cap, size_t elem_size, nad_Al *al) {
-    self->data = data;
-    self->len = len;
-    self->cap = cap;
-    self->head = 0;
-    self->elem_size = elem_size;
-    self->al = al;
+static void set_fields(nad_Deque *obj, void *data, size_t len, size_t cap, size_t elem_size, nad_Al *al) {
+    obj->data = data;
+    obj->len = len;
+    obj->cap = cap;
+    obj->head = 0;
+    obj->elem_size = elem_size;
+    obj->al = al;
 }
 
 static size_t next_cap(const nad_Deque *self) {

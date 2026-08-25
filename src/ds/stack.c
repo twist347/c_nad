@@ -112,6 +112,22 @@ nad_Status nad_stack_copy_assign(const nad_Stack *self, nad_Stack *other) {
     return nad_vec_copy_assign(self->vec, other->vec);
 }
 
+/* ========== compare ========== */
+
+bool nad_stack_eq(const nad_Stack *a, const nad_Stack *b) {
+    ASSERT_STACK(a);
+    ASSERT_STACK(b);
+
+    return nad_vec_eq(a->vec, b->vec);
+}
+
+bool nad_stack_eq_by(const nad_Stack *a, const nad_Stack *b, nad_Eq eq) {
+    ASSERT_STACK(a);
+    ASSERT_STACK(b);
+
+    return nad_vec_eq_by(a->vec, b->vec, eq);
+}
+
 /* ========== info ========== */
 
 size_t nad_stack_len(const nad_Stack *self) {
@@ -225,15 +241,15 @@ static nad_Status wrap(nad_Vec *vec, nad_Stack **out) {
     assert(vec);
     assert(out);
 
-    nad_Stack *self = nad_alloc(nad_vec_al(vec), sizeof(nad_Stack));
-    if (!self) {
+    nad_Stack *obj = nad_alloc(nad_vec_al(vec), sizeof(nad_Stack));
+    if (!obj) {
         nad_vec_drop(vec);
         return NAD_STATUS_OUT_OF_MEMORY;
     }
 
-    self->vec = vec;
+    obj->vec = vec;
 
-    *out = self;
+    *out = obj;
 
     return NAD_STATUS_OK;
 }

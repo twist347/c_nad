@@ -1,6 +1,7 @@
 #pragma once
 
 #include "nad/alloc/alloc.h"
+#include "nad/core/cmp.h"
 #include "nad/core/export.h"
 #include "nad/core/print.h"
 #include "nad/core/span.h"
@@ -59,6 +60,18 @@ nad_Status nad_queue_copy_assign(const nad_Queue *self, nad_Queue *other);
 /// and it is read only by design — see the note on the type
 NAD_API
 void nad_queue_copy_to_span(const nad_Queue *self, nad_SpanMut dst);
+
+/* ========== compare ========== */
+
+/// whether the two hold the same elems in queue order, front to back, byte for byte. Same elem_size for both —
+/// a mismatch there is a programmer error, not a false; differing lengths are just false
+[[nodiscard]] NAD_API
+bool nad_queue_eq(const nad_Queue *a, const nad_Queue *b);
+
+/// whether the two hold equal elems under 'eq', which is asked of every pair until one
+/// says no
+[[nodiscard]] NAD_API
+bool nad_queue_eq_by(const nad_Queue *a, const nad_Queue *b, nad_Eq eq);
 
 /* ========== info ========== */
 

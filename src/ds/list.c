@@ -87,20 +87,20 @@ nad_Status nad_list_new(size_t elem_size, nad_Al *al, nad_List **out) {
     assert(al);
     assert(out);
 
-    nad_List *list = nad_alloc(al, sizeof(nad_List));
-    if (!list) {
+    nad_List *obj = nad_alloc(al, sizeof(nad_List));
+    if (!obj) {
         return NAD_STATUS_OUT_OF_MEMORY;
     }
 
-    list->head = nullptr;
-    list->tail = nullptr;
-    list->len = 0;
-    list->elem_size = elem_size;
-    list->al = al;
+    obj->head = nullptr;
+    obj->tail = nullptr;
+    obj->len = 0;
+    obj->elem_size = elem_size;
+    obj->al = al;
 
-    ASSERT_LIST(list);
+    ASSERT_LIST(obj);
 
-    *out = list;
+    *out = obj;
 
     return NAD_STATUS_OK;
 }
@@ -211,6 +211,61 @@ nad_Status nad_list_copy_assign(const nad_List *self, nad_List *other) {
     ASSERT_LIST(other);
 
     return NAD_STATUS_OK;
+}
+
+/* ========== compare ========== */
+
+bool nad_list_eq(const nad_List *a, const nad_List *b) {
+    ASSERT_LIST(a);
+    ASSERT_LIST(b);
+    assert(a->elem_size == b->elem_size);
+
+    if (a == b) {
+        return true;
+    }
+
+    if (a->len != b->len) {
+        return false;
+    }
+
+    const nad_ListNode *x = a->head;
+    const nad_ListNode *y = b->head;
+    while (x) {
+        if (memcmp(x->elem, y->elem, a->elem_size) != 0) {
+            return false;
+        }
+        x = x->next;
+        y = y->next;
+    }
+
+    return true;
+}
+
+bool nad_list_eq_by(const nad_List *a, const nad_List *b, nad_Eq eq) {
+    ASSERT_LIST(a);
+    ASSERT_LIST(b);
+    assert(a->elem_size == b->elem_size);
+    assert(eq);
+
+    if (a == b) {
+        return true;
+    }
+
+    if (a->len != b->len) {
+        return false;
+    }
+
+    const nad_ListNode *x = a->head;
+    const nad_ListNode *y = b->head;
+    while (x) {
+        if (!eq(x->elem, y->elem)) {
+            return false;
+        }
+        x = x->next;
+        y = y->next;
+    }
+
+    return true;
 }
 
 /* ========== info ========== */

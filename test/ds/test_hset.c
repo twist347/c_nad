@@ -128,7 +128,7 @@ static void test_new_starts_empty() {
     TEST_ASSERT_EQUAL_size_t(sizeof(int32_t), nad_hset_key_size(s));
     TEST_ASSERT_EQUAL_PTR(nad_al_default(), nad_hset_al(s));
     TEST_ASSERT_EQUAL_PTR(nad_hash_i32, nad_hset_hasher(s));
-    TEST_ASSERT_EQUAL_PTR(nad_eq_i32, nad_hset_eq(s));
+    TEST_ASSERT_EQUAL_PTR(nad_eq_i32, nad_hset_key_eq(s));
     TEST_ASSERT_NULL(nad_hset_first_node(s));
 
     nad_hset_drop(s);
@@ -768,6 +768,106 @@ static void test_copy_assign_leaves_the_target_untouched_on_failure() {
     nad_al_arena_drop(arena);
 }
 
+/* ========== compare ========== */
+
+static void test_eq_ignores_insertion_order_and_bucket_count() {
+    nad_HSet *a = make_filled(nad_hash_i32, 40);
+
+    nad_HSet *b = nullptr;
+    NAD_TEST_OK(NAD_HSET_NEW_CAP(int32_t, 256, nad_hash_i32, nad_eq_i32, nad_al_default(), &b));
+    for (int32_t i = 39; i >= 0; --i) {
+        put(b, i);
+    }
+
+    TEST_ASSERT_TRUE(nad_hset_bucket_count(a) != nad_hset_bucket_count(b));
+    TEST_ASSERT_TRUE(nad_hset_eq(a, a));
+    TEST_ASSERT_TRUE(nad_hset_eq(a, b));
+    TEST_ASSERT_TRUE(nad_hset_eq(b, a));
+
+    nad_hset_drop(a);
+    nad_hset_drop(b);
+}
+
+// the keys of 'a' are looked up in 'b', so the hasher that answers is the one of 'b'
+static void test_eq_looks_the_keys_up_with_the_hasher_of_the_other() {
+    nad_HSet *a = make_filled(nad_hash_i32, 12);
+    nad_HSet *b = make_filled(hash_all_alike, 12);
+
+    TEST_ASSERT_TRUE(nad_hset_eq(a, b));
+    TEST_ASSERT_TRUE(nad_hset_eq(b, a));
+
+    nad_hset_drop(a);
+    nad_hset_drop(b);
+}
+
+// the same number of keys, one in place of another
+static void test_eq_parts_a_differing_key() {
+    nad_HSet *a = make_filled(nad_hash_i32, 8);
+    nad_HSet *b = make_filled(nad_hash_i32, 8);
+    TEST_ASSERT_TRUE(NAD_HSET_REMOVE(int32_t, b, 3));
+    put(b, 100);
+
+    TEST_ASSERT_EQUAL_size_t(nad_hset_len(a), nad_hset_len(b));
+    TEST_ASSERT_FALSE(nad_hset_eq(a, b));
+    TEST_ASSERT_FALSE(nad_hset_eq(b, a));
+
+    nad_hset_drop(a);
+    nad_hset_drop(b);
+}
+
+// one is a proper subset of the other, so only the length says no
+static void test_eq_parts_different_lengths() {
+    nad_HSet *a = make_filled(nad_hash_i32, 8);
+    nad_HSet *smaller = make_filled(nad_hash_i32, 7);
+
+    TEST_ASSERT_FALSE(nad_hset_eq(a, smaller));
+    TEST_ASSERT_FALSE(nad_hset_eq(smaller, a));
+
+    nad_hset_drop(a);
+    nad_hset_drop(smaller);
+}
+
+static void test_eq_of_two_empties() {
+    nad_HSet *a = make_set(nad_hash_i32);
+    nad_HSet *b = make_filled(nad_hash_i32, 8);
+    nad_HSet *one = make_filled(nad_hash_i32, 1);
+
+    nad_hset_clear(b);
+
+    TEST_ASSERT_TRUE(nad_hset_eq(a, b));
+    TEST_ASSERT_TRUE(nad_hset_eq(b, a));
+    TEST_ASSERT_FALSE(nad_hset_eq(a, one));
+
+    nad_hset_drop(a);
+    nad_hset_drop(b);
+    nad_hset_drop(one);
+}
+
+static void test_eq_walks_whole_chains() {
+    nad_HSet *a = make_filled(hash_all_alike, 16);
+    nad_HSet *b = make_filled(hash_all_alike, 16);
+    TEST_ASSERT_TRUE(NAD_HSET_REMOVE(int32_t, b, 15));
+    put(b, 100);
+
+    TEST_ASSERT_TRUE(nad_hset_eq(a, a));
+    TEST_ASSERT_FALSE(nad_hset_eq(a, b));
+
+    nad_hset_drop(a);
+    nad_hset_drop(b);
+}
+
+static void test_eq_matches_a_copy() {
+    nad_HSet *a = make_filled(nad_hash_i32, 24);
+
+    nad_HSet *copy = nullptr;
+    NAD_TEST_OK(nad_hset_copy(a, &copy));
+
+    TEST_ASSERT_TRUE(nad_hset_eq(a, copy));
+
+    nad_hset_drop(a);
+    nad_hset_drop(copy);
+}
+
 int main() {
     UNITY_BEGIN();
 
@@ -823,6 +923,15 @@ int main() {
     RUN_TEST(test_reserve_reports_an_exhausted_arena);
     RUN_TEST(test_copy_reports_an_exhausted_arena);
     RUN_TEST(test_copy_assign_leaves_the_target_untouched_on_failure);
+
+
+    RUN_TEST(test_eq_ignores_insertion_order_and_bucket_count);
+    RUN_TEST(test_eq_looks_the_keys_up_with_the_hasher_of_the_other);
+    RUN_TEST(test_eq_parts_a_differing_key);
+    RUN_TEST(test_eq_parts_different_lengths);
+    RUN_TEST(test_eq_of_two_empties);
+    RUN_TEST(test_eq_walks_whole_chains);
+    RUN_TEST(test_eq_matches_a_copy);
 
     return UNITY_END();
 }

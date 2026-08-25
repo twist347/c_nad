@@ -30,3 +30,11 @@ static inline bool nad_test_pair_a_is_negative(const void *elem, void *ctx) {
 
     return ((const Pair *) elem)->a < 0;
 }
+
+/* ========== equalities ========== */
+
+/// nad_Eq over Pair, reading the first field alone. Two Pairs equal under it can still
+/// differ byte for byte, which is exactly what parts an _eq_by from an _eq
+static inline bool nad_test_pair_eq_a(const void *lhs, const void *rhs) {
+    return ((const Pair *) lhs)->a == ((const Pair *) rhs)->a;
+}

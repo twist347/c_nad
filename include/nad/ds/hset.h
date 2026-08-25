@@ -68,7 +68,14 @@ nad_Al *nad_hset_al(const nad_HSet *self);
 nad_Hasher nad_hset_hasher(const nad_HSet *self);
 
 [[nodiscard]] NAD_API
-nad_Eq nad_hset_eq(const nad_HSet *self);
+nad_Eq nad_hset_key_eq(const nad_HSet *self);
+
+/* ========== compare ========== */
+
+/// whether the two hold the same keys, matched by the hasher and the equality of 'b'.
+/// Same key_size for both; differing lengths are just false
+[[nodiscard]] NAD_API
+bool nad_hset_eq(const nad_HSet *a, const nad_HSet *b);
 
 /* ========== lookup ========== */
 

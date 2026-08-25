@@ -10,6 +10,15 @@
 #include <inttypes.h>
 #include <stdio.h>
 
+// an equality that sees less than the bytes do: two elems equal under it can still
+// differ byte for byte
+static bool eq_abs_i32(const void *lhs, const void *rhs) {
+    const int32_t a = *(const int32_t *) lhs;
+    const int32_t b = *(const int32_t *) rhs;
+
+    return (a < 0 ? -a : a) == (b < 0 ? -b : b);
+}
+
 int main() {
     /// [build]
     // the handle comes back through 'out', and the status cannot be ignored
@@ -20,6 +29,22 @@ int main() {
         return 1;
     }
     /// [build]
+
+    /// [compare]
+    // two arrs are equal when they hold the same elems: the same length, the same bytes
+    nad_Arr *twin = nullptr;
+    if (NAD_STATUS_IS_ERR(NAD_ARR_OF(int32_t, al, &twin, 5, 3, 1, 4, 2))) {
+        nad_arr_drop(a);
+        return 1;
+    }
+    printf("%d\n", nad_arr_eq(a, twin)); // 1
+
+    // an elem whose equality is not its bytes needs the other form, which asks a nad_Eq
+    NAD_ARR_SET(int32_t, twin, 0, -5);
+    printf("%d %d\n", nad_arr_eq(a, twin), nad_arr_eq_by(a, twin, eq_abs_i32)); // 0 1
+
+    nad_arr_drop(twin);
+    /// [compare]
 
     /// [algo]
     // an arr has no order of its own to protect, so algo rearranges the elems in place

@@ -1,5 +1,7 @@
 #include "nad/ds/vec.h"
 
+#include "nad/algo/compare.h"
+
 #include "internal/ptr.h"
 
 #include <assert.h>
@@ -30,7 +32,7 @@ struct nad_Vec {
 [[nodiscard]]
 static nad_Status new_impl(bool zeroed, size_t len, size_t cap, size_t elem_size, nad_Al *al, nad_Vec **out);
 
-static void set_fields(nad_Vec *self, void *data, size_t len, size_t cap, size_t elem_size, nad_Al *al);
+static void set_fields(nad_Vec *obj, void *data, size_t len, size_t cap, size_t elem_size, nad_Al *al);
 
 [[nodiscard]]
 static size_t next_cap(const nad_Vec *self);
@@ -154,6 +156,23 @@ nad_Status nad_vec_copy_assign(const nad_Vec *self, nad_Vec *other) {
     ASSERT_VEC(other);
 
     return NAD_STATUS_OK;
+}
+
+/* ========== compare ========== */
+
+bool nad_vec_eq(const nad_Vec *a, const nad_Vec *b) {
+    ASSERT_VEC(a);
+    ASSERT_VEC(b);
+
+    return nad_span_eq(nad_vec_to_span(a), nad_vec_to_span(b));
+}
+
+bool nad_vec_eq_by(const nad_Vec *a, const nad_Vec *b, nad_Eq eq) {
+    ASSERT_VEC(a);
+    ASSERT_VEC(b);
+    assert(eq);
+
+    return nad_span_eq_by(nad_vec_to_span(a), nad_vec_to_span(b), eq);
 }
 
 /* ========== info ========== */
@@ -564,8 +583,8 @@ static nad_Status new_impl(bool zeroed, size_t len, size_t cap, size_t elem_size
     assert(al);
     assert(out);
 
-    nad_Vec *vec = nad_alloc(al, sizeof(nad_Vec));
-    if (!vec) {
+    nad_Vec *obj = nad_alloc(al, sizeof(nad_Vec));
+    if (!obj) {
         return NAD_STATUS_OUT_OF_MEMORY;
     }
 
@@ -585,24 +604,24 @@ static nad_Status new_impl(bool zeroed, size_t len, size_t cap, size_t elem_size
         }
     }
 
-    set_fields(vec, data, len, cap, elem_size, al);
+    set_fields(obj, data, len, cap, elem_size, al);
 
-    ASSERT_VEC(vec);
+    ASSERT_VEC(obj);
 
-    *out = vec;
+    *out = obj;
     return NAD_STATUS_OK;
 
 fail:
-    nad_dealloc(al, vec, sizeof(nad_Vec));
+    nad_dealloc(al, obj, sizeof(nad_Vec));
     return NAD_STATUS_OUT_OF_MEMORY;
 }
 
-static void set_fields(nad_Vec *self, void *data, size_t len, size_t cap, size_t elem_size, nad_Al *al) {
-    self->data = data;
-    self->len = len;
-    self->cap = cap;
-    self->elem_size = elem_size;
-    self->al = al;
+static void set_fields(nad_Vec *obj, void *data, size_t len, size_t cap, size_t elem_size, nad_Al *al) {
+    obj->data = data;
+    obj->len = len;
+    obj->cap = cap;
+    obj->elem_size = elem_size;
+    obj->al = al;
 }
 
 static size_t next_cap(const nad_Vec *self) {

@@ -119,6 +119,22 @@ void nad_queue_copy_to_span(const nad_Queue *self, nad_SpanMut dst) {
     nad_deque_copy_to_span(self->deque, dst);
 }
 
+/* ========== compare ========== */
+
+bool nad_queue_eq(const nad_Queue *a, const nad_Queue *b) {
+    ASSERT_QUEUE(a);
+    ASSERT_QUEUE(b);
+
+    return nad_deque_eq(a->deque, b->deque);
+}
+
+bool nad_queue_eq_by(const nad_Queue *a, const nad_Queue *b, nad_Eq eq) {
+    ASSERT_QUEUE(a);
+    ASSERT_QUEUE(b);
+
+    return nad_deque_eq_by(a->deque, b->deque, eq);
+}
+
 /* ========== info ========== */
 
 size_t nad_queue_len(const nad_Queue *self) {
@@ -238,15 +254,15 @@ static nad_Status wrap(nad_Deque *deque, nad_Queue **out) {
     assert(deque);
     assert(out);
 
-    nad_Queue *self = nad_alloc(nad_deque_al(deque), sizeof(nad_Queue));
-    if (!self) {
+    nad_Queue *obj = nad_alloc(nad_deque_al(deque), sizeof(nad_Queue));
+    if (!obj) {
         nad_deque_drop(deque);
         return NAD_STATUS_OUT_OF_MEMORY;
     }
 
-    self->deque = deque;
+    obj->deque = deque;
 
-    *out = self;
+    *out = obj;
 
     return NAD_STATUS_OK;
 }

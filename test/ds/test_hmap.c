@@ -134,7 +134,7 @@ static void test_new_starts_empty() {
     TEST_ASSERT_EQUAL_size_t(sizeof(int32_t), nad_hmap_val_size(m));
     TEST_ASSERT_EQUAL_PTR(nad_al_default(), nad_hmap_al(m));
     TEST_ASSERT_EQUAL_PTR(nad_hash_i32, nad_hmap_hasher(m));
-    TEST_ASSERT_EQUAL_PTR(nad_eq_i32, nad_hmap_eq(m));
+    TEST_ASSERT_EQUAL_PTR(nad_eq_i32, nad_hmap_key_eq(m));
     TEST_ASSERT_NULL(nad_hmap_first_node(m));
 
     nad_hmap_drop(m);
@@ -922,7 +922,7 @@ static void test_copy_carries_the_hasher_and_the_equality() {
     NAD_TEST_OK(nad_hmap_copy(src, &dst));
 
     TEST_ASSERT_EQUAL_PTR(hash_all_alike, nad_hmap_hasher(dst));
-    TEST_ASSERT_EQUAL_PTR(nad_eq_i32, nad_hmap_eq(dst));
+    TEST_ASSERT_EQUAL_PTR(nad_eq_i32, nad_hmap_key_eq(dst));
     TEST_ASSERT_EQUAL_PTR(arena, nad_hmap_al(dst));
     assert_has(dst, 1, 10);
 
@@ -1264,6 +1264,171 @@ static void test_get_or_insert_of_a_present_key_needs_no_allocator() {
     nad_al_arena_drop(arena);
 }
 
+/* ========== compare ========== */
+
+// an equality over the value side that sees less than the bytes do, to show that what
+// counts as an equal value is the caller's call and not the map's
+static bool eq_i32_abs(const void *lhs, const void *rhs) {
+    const int32_t a = *(const int32_t *) lhs;
+    const int32_t b = *(const int32_t *) rhs;
+
+    return (a < 0 ? -a : a) == (b < 0 ? -b : b);
+}
+
+// neither the order the entries went in nor the number of buckets they landed in is part
+// of what a map holds
+static void test_eq_ignores_insertion_order_and_bucket_count() {
+    nad_HMap *a = make_filled(nad_hash_i32, 40);
+
+    nad_HMap *b = nullptr;
+    NAD_TEST_OK(NAD_HMAP_NEW_CAP(int32_t, int32_t, 256, nad_hash_i32, nad_eq_i32, nad_al_default(), &b));
+    for (int32_t i = 39; i >= 0; --i) {
+        put(b, i, i * 10);
+    }
+
+    TEST_ASSERT_TRUE(nad_hmap_bucket_count(a) != nad_hmap_bucket_count(b));
+    TEST_ASSERT_TRUE(nad_hmap_eq(a, a));
+    TEST_ASSERT_TRUE(nad_hmap_eq(a, b));
+    TEST_ASSERT_TRUE(nad_hmap_eq(b, a));
+
+    nad_hmap_drop(a);
+    nad_hmap_drop(b);
+}
+
+// the keys of 'a' are looked up in 'b', so it is the hasher of 'b' that has to answer:
+// a hash taken from 'a' would point at the wrong bucket of a differently hashed table
+static void test_eq_looks_the_keys_up_with_the_hasher_of_the_other() {
+    nad_HMap *a = make_filled(nad_hash_i32, 12);
+    nad_HMap *b = make_filled(hash_all_alike, 12);
+
+    TEST_ASSERT_TRUE(nad_hmap_eq(a, b));
+    TEST_ASSERT_TRUE(nad_hmap_eq(b, a));
+
+    nad_hmap_drop(a);
+    nad_hmap_drop(b);
+}
+
+static void test_eq_parts_a_differing_value() {
+    nad_HMap *a = make_filled(nad_hash_i32, 8);
+    nad_HMap *b = make_filled(nad_hash_i32, 8);
+    put(b, 3, -30);
+
+    TEST_ASSERT_EQUAL_size_t(nad_hmap_len(a), nad_hmap_len(b));
+    TEST_ASSERT_FALSE(nad_hmap_eq(a, b));
+    TEST_ASSERT_FALSE(nad_hmap_eq(b, a));
+
+    // ... unless the equality the caller names forgives the difference
+    TEST_ASSERT_TRUE(nad_hmap_eq_by(a, b, eq_i32_abs));
+    TEST_ASSERT_TRUE(nad_hmap_eq_by(b, a, eq_i32_abs));
+
+    nad_hmap_drop(a);
+    nad_hmap_drop(b);
+}
+
+// the same number of entries, one key in place of another
+static void test_eq_parts_a_differing_key() {
+    nad_HMap *a = make_filled(nad_hash_i32, 8);
+    nad_HMap *b = make_filled(nad_hash_i32, 8);
+    TEST_ASSERT_TRUE(NAD_HMAP_REMOVE(int32_t, b, 3));
+    put(b, 100, 30);
+
+    TEST_ASSERT_EQUAL_size_t(nad_hmap_len(a), nad_hmap_len(b));
+    TEST_ASSERT_FALSE(nad_hmap_eq(a, b));
+    TEST_ASSERT_FALSE(nad_hmap_eq(b, a));
+
+    nad_hmap_drop(a);
+    nad_hmap_drop(b);
+}
+
+// one is a proper subset of the other, so only the length says no
+static void test_eq_parts_different_lengths() {
+    nad_HMap *a = make_filled(nad_hash_i32, 8);
+    nad_HMap *smaller = make_filled(nad_hash_i32, 7);
+
+    TEST_ASSERT_FALSE(nad_hmap_eq(a, smaller));
+    TEST_ASSERT_FALSE(nad_hmap_eq(smaller, a));
+
+    nad_hmap_drop(a);
+    nad_hmap_drop(smaller);
+}
+
+static void test_eq_of_two_empties() {
+    nad_HMap *a = make_map(nad_hash_i32);
+    nad_HMap *b = make_filled(nad_hash_i32, 8);
+    nad_HMap *one = make_filled(nad_hash_i32, 1);
+
+    nad_hmap_clear(b);
+
+    TEST_ASSERT_TRUE(nad_hmap_eq(a, b));
+    TEST_ASSERT_TRUE(nad_hmap_eq(b, a));
+    TEST_ASSERT_FALSE(nad_hmap_eq(a, one));
+
+    nad_hmap_drop(a);
+    nad_hmap_drop(b);
+    nad_hmap_drop(one);
+}
+
+static void test_eq_walks_whole_chains() {
+    nad_HMap *a = make_filled(hash_all_alike, 16);
+    nad_HMap *b = make_filled(hash_all_alike, 16);
+    put(b, 15, -150);
+
+    TEST_ASSERT_TRUE(nad_hmap_eq(a, a));
+    TEST_ASSERT_FALSE(nad_hmap_eq(a, b));
+
+    nad_hmap_drop(a);
+    nad_hmap_drop(b);
+}
+
+// a value with a field that does not count is what the second door is for: these Pairs
+// agree in the first field and differ in the second
+static void test_eq_by_asks_the_equality_for_the_value_side() {
+    nad_HMap *a = nullptr;
+    nad_HMap *b = nullptr;
+    NAD_TEST_OK(NAD_HMAP_NEW(int32_t, Pair, nad_hash_i32, nad_eq_i32, nad_al_default(), &a));
+    NAD_TEST_OK(NAD_HMAP_NEW(int32_t, Pair, nad_hash_i32, nad_eq_i32, nad_al_default(), &b));
+
+    for (int32_t i = 0; i < 8; ++i) {
+        NAD_TEST_OK(nad_hmap_insert(a, &i, &(Pair){i, 10}, nullptr));
+        NAD_TEST_OK(nad_hmap_insert(b, &i, &(Pair){i, 70}, nullptr));
+    }
+
+    TEST_ASSERT_FALSE(nad_hmap_eq(a, b));
+    TEST_ASSERT_TRUE(nad_hmap_eq_by(a, b, nad_test_pair_eq_a));
+
+    nad_hmap_drop(a);
+    nad_hmap_drop(b);
+}
+
+// the two doors are one walk: wherever the equality IS the bytes they answer alike
+static void test_eq_and_eq_by_agree_on_plain_values() {
+    nad_HMap *a = make_filled(nad_hash_i32, 16);
+    nad_HMap *b = make_filled(nad_hash_i32, 16);
+    nad_HMap *smaller = make_filled(nad_hash_i32, 15);
+
+    TEST_ASSERT_EQUAL(nad_hmap_eq(a, b), nad_hmap_eq_by(a, b, nad_eq_i32));
+    TEST_ASSERT_EQUAL(nad_hmap_eq(a, smaller), nad_hmap_eq_by(a, smaller, nad_eq_i32));
+
+    put(b, 7, -70);
+    TEST_ASSERT_EQUAL(nad_hmap_eq(a, b), nad_hmap_eq_by(a, b, nad_eq_i32));
+
+    nad_hmap_drop(a);
+    nad_hmap_drop(b);
+    nad_hmap_drop(smaller);
+}
+
+static void test_eq_matches_a_copy() {
+    nad_HMap *a = make_filled(nad_hash_i32, 24);
+
+    nad_HMap *copy = nullptr;
+    NAD_TEST_OK(nad_hmap_copy(a, &copy));
+
+    TEST_ASSERT_TRUE(nad_hmap_eq(a, copy));
+
+    nad_hmap_drop(a);
+    nad_hmap_drop(copy);
+}
+
 int main() {
     UNITY_BEGIN();
 
@@ -1347,6 +1512,18 @@ int main() {
     RUN_TEST(test_a_refused_node_leaves_nothing_behind);
     RUN_TEST(test_get_or_insert_reports_an_exhausted_arena);
     RUN_TEST(test_get_or_insert_of_a_present_key_needs_no_allocator);
+
+
+    RUN_TEST(test_eq_ignores_insertion_order_and_bucket_count);
+    RUN_TEST(test_eq_looks_the_keys_up_with_the_hasher_of_the_other);
+    RUN_TEST(test_eq_parts_a_differing_value);
+    RUN_TEST(test_eq_parts_a_differing_key);
+    RUN_TEST(test_eq_parts_different_lengths);
+    RUN_TEST(test_eq_of_two_empties);
+    RUN_TEST(test_eq_walks_whole_chains);
+    RUN_TEST(test_eq_by_asks_the_equality_for_the_value_side);
+    RUN_TEST(test_eq_and_eq_by_agree_on_plain_values);
+    RUN_TEST(test_eq_matches_a_copy);
 
     return UNITY_END();
 }

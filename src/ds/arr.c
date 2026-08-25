@@ -1,5 +1,6 @@
 #include "nad/ds/arr.h"
 
+#include "nad/algo/compare.h"
 #include "nad/core/util.h"
 #include "internal/ptr.h"
 
@@ -26,7 +27,7 @@ struct nad_Arr {
 [[nodiscard]]
 static nad_Status new_impl(bool zeroed, size_t len, size_t elem_size, nad_Al *al, nad_Arr **out);
 
-static void set_fields(nad_Arr *arr, void *data, size_t len, size_t elem_size, nad_Al *al);
+static void set_fields(nad_Arr *obj, void *data, size_t len, size_t elem_size, nad_Al *al);
 
 [[nodiscard]]
 static size_t len_bytes(const nad_Arr *self);
@@ -125,6 +126,23 @@ nad_Status nad_arr_copy_assign(const nad_Arr *self, nad_Arr *other) {
     ASSERT_ARR(other);
 
     return NAD_STATUS_OK;
+}
+
+/* ========== compare ========== */
+
+bool nad_arr_eq(const nad_Arr *a, const nad_Arr *b) {
+    ASSERT_ARR(a);
+    ASSERT_ARR(b);
+
+    return nad_span_eq(nad_arr_to_span(a), nad_arr_to_span(b));
+}
+
+bool nad_arr_eq_by(const nad_Arr *a, const nad_Arr *b, nad_Eq eq) {
+    ASSERT_ARR(a);
+    ASSERT_ARR(b);
+    assert(eq);
+
+    return nad_span_eq_by(nad_arr_to_span(a), nad_arr_to_span(b), eq);
 }
 
 /* ========== info ========== */
@@ -319,8 +337,8 @@ static nad_Status new_impl(bool zeroed, size_t len, size_t elem_size, nad_Al *al
     assert(al);
     assert(out);
 
-    nad_Arr *arr = nad_alloc(al, sizeof(nad_Arr));
-    if (!arr) {
+    nad_Arr *obj = nad_alloc(al, sizeof(nad_Arr));
+    if (!obj) {
         return NAD_STATUS_OUT_OF_MEMORY;
     }
 
@@ -337,23 +355,23 @@ static nad_Status new_impl(bool zeroed, size_t len, size_t elem_size, nad_Al *al
         }
     }
 
-    set_fields(arr, data, len, elem_size, al);
+    set_fields(obj, data, len, elem_size, al);
 
-    ASSERT_ARR(arr);
+    ASSERT_ARR(obj);
 
-    *out = arr;
+    *out = obj;
     return NAD_STATUS_OK;
 
 fail:
-    nad_dealloc(al, arr, sizeof(nad_Arr));
+    nad_dealloc(al, obj, sizeof(nad_Arr));
     return NAD_STATUS_OUT_OF_MEMORY;
 }
 
-static void set_fields(nad_Arr *arr, void *data, size_t len, size_t elem_size, nad_Al *al) {
-    arr->data = data;
-    arr->len = len;
-    arr->elem_size = elem_size;
-    arr->al = al;
+static void set_fields(nad_Arr *obj, void *data, size_t len, size_t elem_size, nad_Al *al) {
+    obj->data = data;
+    obj->len = len;
+    obj->elem_size = elem_size;
+    obj->al = al;
 }
 
 static size_t len_bytes(const nad_Arr *self) {

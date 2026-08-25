@@ -1,6 +1,7 @@
 #pragma once
 
 #include "nad/alloc/alloc.h"
+#include "nad/core/cmp.h"
 #include "nad/core/export.h"
 #include "nad/core/print.h"
 #include "nad/core/span.h"
@@ -36,6 +37,7 @@
 ///
 /// @par Example
 /// @snippet ds/example_arr.c build
+/// @snippet ds/example_arr.c compare
 /// @snippet ds/example_arr.c algo
 /// @snippet ds/example_arr.c access
 /// @snippet ds/example_arr.c copy
@@ -117,6 +119,29 @@ nad_Status nad_arr_copy(const nad_Arr *self, nad_Arr **out);
 /// @bigo{n}
 [[nodiscard]] NAD_API
 nad_Status nad_arr_copy_assign(const nad_Arr *self, nad_Arr *other);
+
+/// @}
+
+/// @name compare
+/// @{
+
+/// whether the two hold the same elems, byte for byte
+/// @param a one arr
+/// @param b the other; must have the same elem_size as 'a'
+/// @return whether the lengths match and the bytes do — being memcmp, it parts -0.0 from
+///         +0.0 where nad_eq_f32 would not, and a struct's padding counts
+/// @bigo{n}
+[[nodiscard]] NAD_API
+bool nad_arr_eq(const nad_Arr *a, const nad_Arr *b);
+
+/// whether the two hold equal elems under 'eq'
+/// @param a one arr
+/// @param b the other; must have the same elem_size as 'a'
+/// @param eq the equality every pair is asked of
+/// @return whether the lengths match and every pair does
+/// @bigo{n} — it stops at the first pair that does not
+[[nodiscard]] NAD_API
+bool nad_arr_eq_by(const nad_Arr *a, const nad_Arr *b, nad_Eq eq);
 
 /// @}
 

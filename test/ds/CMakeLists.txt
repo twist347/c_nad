@@ -1,4 +1,5 @@
 nad_add_test(test_ds_arr test_arr.c)
+nad_add_test(test_ds_bitset test_bitset.c)
 nad_add_test(test_ds_deque test_deque.c)
 nad_add_test(test_ds_hmap test_hmap.c)
 nad_add_test(test_ds_hset test_hset.c)

@@ -269,16 +269,16 @@ static nad_Status wrap(nad_Vec *vec, nad_Cmp cmp, nad_PQueue **out) {
     assert(cmp);
     assert(out);
 
-    nad_PQueue *self = nad_alloc(nad_vec_al(vec), sizeof(nad_PQueue));
-    if (!self) {
+    nad_PQueue *obj = nad_alloc(nad_vec_al(vec), sizeof(nad_PQueue));
+    if (!obj) {
         nad_vec_drop(vec);
         return NAD_STATUS_OUT_OF_MEMORY;
     }
 
-    self->vec = vec;
-    self->cmp = cmp;
+    obj->vec = vec;
+    obj->cmp = cmp;
 
-    *out = self;
+    *out = obj;
 
     return NAD_STATUS_OK;
 }

@@ -18,6 +18,12 @@
 /// and travels with the elems through copy and swap, since a heap means nothing without
 /// the order it was built under.
 ///
+/// There is deliberately no nad_pqueue_eq. Equal contents do not make equal heaps: the
+/// same elems pushed in another order lie in another arrangement, so a byte-for-byte
+/// answer would be wrong and an honest one would have to sort a copy — an allocation, a
+/// status and a comparison the caller never asked for. Two queues are compared by
+/// draining them, or through the container they were built from.
+///
 /// Nothing here hands out a mutable elem — no top_mut, no get, no to_span_mut. A write
 /// through such a pointer would break the heap invariant with no way for the queue to
 /// notice, so the only way in is push and the only way out is pop.

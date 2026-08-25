@@ -1,6 +1,7 @@
 #pragma once
 
 #include "nad/alloc/alloc.h"
+#include "nad/core/cmp.h"
 #include "nad/core/export.h"
 #include "nad/core/span.h"
 #include "nad/core/status.h"
@@ -59,6 +60,18 @@ nad_Status nad_vec_copy(const nad_Vec *self, nad_Vec **out);
 
 [[nodiscard]] NAD_API
 nad_Status nad_vec_copy_assign(const nad_Vec *self, nad_Vec *other);
+
+/* ========== compare ========== */
+
+/// whether the two hold the same elems, byte for byte. Same elem_size for both —
+/// a mismatch there is a programmer error, not a false; differing lengths are just false
+[[nodiscard]] NAD_API
+bool nad_vec_eq(const nad_Vec *a, const nad_Vec *b);
+
+/// whether the two hold equal elems under 'eq', which is asked of every pair until one
+/// says no
+[[nodiscard]] NAD_API
+bool nad_vec_eq_by(const nad_Vec *a, const nad_Vec *b, nad_Eq eq);
 
 /* ========== info ========== */
 

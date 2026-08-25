@@ -57,6 +57,18 @@ nad_Status nad_list_copy(const nad_List *self, nad_List **out);
 [[nodiscard]] NAD_API
 nad_Status nad_list_copy_assign(const nad_List *self, nad_List *other);
 
+/* ========== compare ========== */
+
+/// whether the two hold the same elems, byte for byte. Same elem_size for both —
+/// a mismatch there is a programmer error, not a false; differing lengths are just false
+[[nodiscard]] NAD_API
+bool nad_list_eq(const nad_List *a, const nad_List *b);
+
+/// whether the two hold equal elems under 'eq', which is asked of every pair until one
+/// says no
+[[nodiscard]] NAD_API
+bool nad_list_eq_by(const nad_List *a, const nad_List *b, nad_Eq eq);
+
 /* ========== info ========== */
 
 [[nodiscard]] NAD_API

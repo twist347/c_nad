@@ -852,6 +852,80 @@ static void test_bytes_agrees_with_the_span() {
     nad_arr_drop(a);
 }
 
+/* ========== compare ========== */
+
+static void test_eq_matches_the_same_elems() {
+    nad_Arr *a = make_arr(4);
+    nad_Arr *b = make_arr(4);
+
+    TEST_ASSERT_TRUE(nad_arr_eq(a, a));
+    TEST_ASSERT_TRUE(nad_arr_eq(a, b));
+    TEST_ASSERT_TRUE(nad_arr_eq(b, a));
+    TEST_ASSERT_TRUE(nad_arr_eq_by(a, b, nad_eq_i32));
+
+    nad_arr_drop(a);
+    nad_arr_drop(b);
+}
+
+static void test_eq_parts_one_differing_elem() {
+    nad_Arr *a = make_arr(4);
+    nad_Arr *b = make_arr(4);
+    NAD_ARR_SET(int32_t, b, 3, 99);
+
+    TEST_ASSERT_FALSE(nad_arr_eq(a, b));
+    TEST_ASSERT_FALSE(nad_arr_eq(b, a));
+    TEST_ASSERT_FALSE(nad_arr_eq_by(a, b, nad_eq_i32));
+
+    nad_arr_drop(a);
+    nad_arr_drop(b);
+}
+
+// a prefix of the other, so nothing but the length tells the two apart
+static void test_eq_parts_different_lengths() {
+    nad_Arr *a = make_arr(4);
+    nad_Arr *shorter = make_arr(3);
+
+    TEST_ASSERT_FALSE(nad_arr_eq(a, shorter));
+    TEST_ASSERT_FALSE(nad_arr_eq(shorter, a));
+    TEST_ASSERT_FALSE(nad_arr_eq_by(a, shorter, nad_eq_i32));
+
+    nad_arr_drop(a);
+    nad_arr_drop(shorter);
+}
+
+static void test_eq_of_two_empties() {
+    nad_Arr *a = make_arr(0);
+    nad_Arr *b = make_arr(0);
+    nad_Arr *one = make_arr(1);
+
+    TEST_ASSERT_TRUE(nad_arr_eq(a, b));
+    TEST_ASSERT_TRUE(nad_arr_eq_by(a, b, nad_eq_i32));
+    TEST_ASSERT_FALSE(nad_arr_eq(a, one));
+    TEST_ASSERT_FALSE(nad_arr_eq(one, a));
+
+    nad_arr_drop(a);
+    nad_arr_drop(b);
+    nad_arr_drop(one);
+}
+
+// the equality decides, and it can see less than the bytes do: these Pairs agree in the
+// first field and differ in the second
+static void test_eq_by_asks_the_equality() {
+    constexpr Pair lhs[2] = {{1, 10}, {2, 20}};
+    constexpr Pair rhs[2] = {{1, 70}, {2, 80}};
+
+    nad_Arr *a = nullptr;
+    nad_Arr *b = nullptr;
+    NAD_TEST_OK(NAD_ARR_FROM_DATA(Pair, lhs, 2, nad_al_default(), &a));
+    NAD_TEST_OK(NAD_ARR_FROM_DATA(Pair, rhs, 2, nad_al_default(), &b));
+
+    TEST_ASSERT_FALSE(nad_arr_eq(a, b));
+    TEST_ASSERT_TRUE(nad_arr_eq_by(a, b, nad_test_pair_eq_a));
+
+    nad_arr_drop(a);
+    nad_arr_drop(b);
+}
+
 int main() {
     UNITY_BEGIN();
 
@@ -922,6 +996,13 @@ int main() {
     RUN_TEST(test_bytes_of_empty_is_zero);
     RUN_TEST(test_bytes_tracks_elem_size);
     RUN_TEST(test_bytes_agrees_with_the_span);
+
+
+    RUN_TEST(test_eq_matches_the_same_elems);
+    RUN_TEST(test_eq_parts_one_differing_elem);
+    RUN_TEST(test_eq_parts_different_lengths);
+    RUN_TEST(test_eq_of_two_empties);
+    RUN_TEST(test_eq_by_asks_the_equality);
 
     return UNITY_END();
 }

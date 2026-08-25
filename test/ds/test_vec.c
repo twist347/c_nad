@@ -1618,6 +1618,103 @@ static void test_macro_insert_span_places_a_literal_list() {
     nad_vec_drop(v);
 }
 
+/* ========== compare ========== */
+
+static void test_eq_matches_the_same_elems() {
+    nad_Vec *a = make_vec(4);
+    nad_Vec *b = make_vec(4);
+
+    TEST_ASSERT_TRUE(nad_vec_eq(a, a));
+    TEST_ASSERT_TRUE(nad_vec_eq(a, b));
+    TEST_ASSERT_TRUE(nad_vec_eq(b, a));
+    TEST_ASSERT_TRUE(nad_vec_eq_by(a, b, nad_eq_i32));
+
+    nad_vec_drop(a);
+    nad_vec_drop(b);
+}
+
+static void test_eq_parts_one_differing_elem() {
+    nad_Vec *a = make_vec(4);
+    nad_Vec *b = make_vec(4);
+    NAD_VEC_SET(int32_t, b, 3, 99);
+
+    TEST_ASSERT_FALSE(nad_vec_eq(a, b));
+    TEST_ASSERT_FALSE(nad_vec_eq_by(a, b, nad_eq_i32));
+
+    nad_vec_drop(a);
+    nad_vec_drop(b);
+}
+
+static void test_eq_parts_different_lengths() {
+    nad_Vec *a = make_vec(4);
+    nad_Vec *shorter = make_vec(3);
+
+    TEST_ASSERT_FALSE(nad_vec_eq(a, shorter));
+    TEST_ASSERT_FALSE(nad_vec_eq(shorter, a));
+
+    nad_vec_drop(a);
+    nad_vec_drop(shorter);
+}
+
+static void test_eq_of_two_empties() {
+    nad_Vec *a = make_vec(0);
+    nad_Vec *b = make_vec_cap(8);
+    nad_Vec *one = make_vec(1);
+
+    TEST_ASSERT_TRUE(nad_vec_eq(a, b));
+    TEST_ASSERT_TRUE(nad_vec_eq_by(a, b, nad_eq_i32));
+    TEST_ASSERT_FALSE(nad_vec_eq(a, one));
+
+    nad_vec_drop(a);
+    nad_vec_drop(b);
+    nad_vec_drop(one);
+}
+
+// room is not contents: the two hold the same elems in blocks of different sizes
+static void test_eq_ignores_capacity() {
+    nad_Vec *a = make_vec(3);
+    nad_Vec *b = make_vec_cap(64);
+    for (int32_t i = 0; i < 3; ++i) {
+        push_int(b, i);
+    }
+
+    TEST_ASSERT_TRUE(nad_vec_cap(a) != nad_vec_cap(b));
+    TEST_ASSERT_TRUE(nad_vec_eq(a, b));
+    TEST_ASSERT_TRUE(nad_vec_eq_by(a, b, nad_eq_i32));
+
+    nad_vec_drop(a);
+    nad_vec_drop(b);
+}
+
+// a popped elem is gone even though its bytes are still in the block
+static void test_eq_forgets_a_popped_elem() {
+    nad_Vec *a = make_vec(3);
+    nad_Vec *b = make_vec(4);
+
+    TEST_ASSERT_FALSE(nad_vec_eq(a, b));
+    nad_vec_pop(b);
+    TEST_ASSERT_TRUE(nad_vec_eq(a, b));
+
+    nad_vec_drop(a);
+    nad_vec_drop(b);
+}
+
+static void test_eq_by_asks_the_equality() {
+    constexpr Pair lhs[2] = {{1, 10}, {2, 20}};
+    constexpr Pair rhs[2] = {{1, 70}, {2, 80}};
+
+    nad_Vec *a = nullptr;
+    nad_Vec *b = nullptr;
+    NAD_TEST_OK(NAD_VEC_FROM_DATA(Pair, lhs, 2, nad_al_default(), &a));
+    NAD_TEST_OK(NAD_VEC_FROM_DATA(Pair, rhs, 2, nad_al_default(), &b));
+
+    TEST_ASSERT_FALSE(nad_vec_eq(a, b));
+    TEST_ASSERT_TRUE(nad_vec_eq_by(a, b, nad_test_pair_eq_a));
+
+    nad_vec_drop(a);
+    nad_vec_drop(b);
+}
+
 int main() {
     UNITY_BEGIN();
 
@@ -1741,6 +1838,15 @@ int main() {
     RUN_TEST(test_macro_from_data_infers_elem_size);
     RUN_TEST(test_macro_extend_appends_a_literal_list);
     RUN_TEST(test_macro_insert_span_places_a_literal_list);
+
+
+    RUN_TEST(test_eq_matches_the_same_elems);
+    RUN_TEST(test_eq_parts_one_differing_elem);
+    RUN_TEST(test_eq_parts_different_lengths);
+    RUN_TEST(test_eq_of_two_empties);
+    RUN_TEST(test_eq_ignores_capacity);
+    RUN_TEST(test_eq_forgets_a_popped_elem);
+    RUN_TEST(test_eq_by_asks_the_equality);
 
     return UNITY_END();
 }

@@ -115,10 +115,37 @@ nad_Hasher nad_hset_hasher(const nad_HSet *self) {
     return nad_hmap_hasher(self->map);
 }
 
-nad_Eq nad_hset_eq(const nad_HSet *self) {
+nad_Eq nad_hset_key_eq(const nad_HSet *self) {
     ASSERT_HSET(self);
 
-    return nad_hmap_eq(self->map);
+    return nad_hmap_key_eq(self->map);
+}
+
+/* ========== compare ========== */
+
+bool nad_hset_eq(const nad_HSet *a, const nad_HSet *b) {
+    ASSERT_HSET(a);
+    ASSERT_HSET(b);
+    assert(nad_hmap_key_size(a->map) == nad_hmap_key_size(b->map));
+
+    if (a == b) {
+        return true;
+    }
+
+    if (nad_hmap_len(a->map) != nad_hmap_len(b->map)) {
+        return false;
+    }
+
+    // not nad_hmap_eq: the map under a set carries val_size 0, so it has no value side to
+    // compare and node_val would point one past the key
+    for (const nad_HMapNode *node = nad_hmap_first_node(a->map); node;
+         node = nad_hmap_node_next(a->map, node)) {
+        if (!nad_hmap_contains(b->map, nad_hmap_node_key(node))) {
+            return false;
+        }
+    }
+
+    return true;
 }
 
 /* ========== lookup ========== */
@@ -256,15 +283,15 @@ static nad_Status wrap(nad_HMap *map, nad_HSet **out) {
     assert(map);
     assert(out);
 
-    nad_HSet *self = nad_alloc(nad_hmap_al(map), sizeof(nad_HSet));
-    if (!self) {
+    nad_HSet *obj = nad_alloc(nad_hmap_al(map), sizeof(nad_HSet));
+    if (!obj) {
         nad_hmap_drop(map);
         return NAD_STATUS_OUT_OF_MEMORY;
     }
 
-    self->map = map;
+    obj->map = map;
 
-    *out = self;
+    *out = obj;
 
     return NAD_STATUS_OK;
 }

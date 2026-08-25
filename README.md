@@ -89,6 +89,7 @@ nad_al_arena_drop(arena); // the vec went with it
 | | |
 |---|---|
 | `arr.h` | `nad_Arr` — a length fixed at construction |
+| `bitset.h` | `nad_BitSet` — a set of indices, one bit each, over a fixed universe |
 | `vec.h` | `nad_Vec` — growable, one contiguous block |
 | `deque.h` | `nad_Deque` — a ring, both ends O(1) amortized |
 | `list.h` | `nad_List` — doubly linked; a position stays valid |

@@ -1655,6 +1655,91 @@ static void test_macro_node_elem_as_reads_and_writes() {
     nad_list_drop(l);
 }
 
+/* ========== compare ========== */
+
+static void test_eq_matches_the_same_elems() {
+    nad_List *a = make_list(4);
+    nad_List *b = make_list(4);
+
+    TEST_ASSERT_TRUE(nad_list_eq(a, a));
+    TEST_ASSERT_TRUE(nad_list_eq(a, b));
+    TEST_ASSERT_TRUE(nad_list_eq(b, a));
+    TEST_ASSERT_TRUE(nad_list_eq_by(a, b, nad_eq_i32));
+
+    nad_list_drop(a);
+    nad_list_drop(b);
+}
+
+static void test_eq_parts_one_differing_elem() {
+    nad_List *a = make_list(4);
+    nad_List *b = make_list(4);
+    NAD_TEST_OK(NAD_LIST_PUSH_BACK(int32_t, b, 99));
+    nad_list_pop_front(b);
+
+    TEST_ASSERT_FALSE(nad_list_eq(a, b));
+    TEST_ASSERT_FALSE(nad_list_eq_by(a, b, nad_eq_i32));
+
+    nad_list_drop(a);
+    nad_list_drop(b);
+}
+
+static void test_eq_parts_different_lengths() {
+    nad_List *a = make_list(4);
+    nad_List *shorter = make_list(3);
+
+    TEST_ASSERT_FALSE(nad_list_eq(a, shorter));
+    TEST_ASSERT_FALSE(nad_list_eq(shorter, a));
+
+    nad_list_drop(a);
+    nad_list_drop(shorter);
+}
+
+static void test_eq_of_two_empties() {
+    nad_List *a = make_list(0);
+    nad_List *b = make_list(0);
+    nad_List *one = make_list(1);
+
+    TEST_ASSERT_TRUE(nad_list_eq(a, b));
+    TEST_ASSERT_TRUE(nad_list_eq_by(a, b, nad_eq_i32));
+    TEST_ASSERT_FALSE(nad_list_eq(a, one));
+
+    nad_list_drop(a);
+    nad_list_drop(b);
+    nad_list_drop(one);
+}
+
+// the same elems in the other order are other contents, so the walk has to run front to
+// back and not just count what it meets
+static void test_eq_is_order_sensitive() {
+    nad_List *a = make_list(4);
+    nad_List *b = make_list(4);
+
+    nad_list_reverse(b);
+    TEST_ASSERT_FALSE(nad_list_eq(a, b));
+
+    nad_list_reverse(b);
+    TEST_ASSERT_TRUE(nad_list_eq(a, b));
+
+    nad_list_drop(a);
+    nad_list_drop(b);
+}
+
+static void test_eq_by_asks_the_equality() {
+    constexpr Pair lhs[2] = {{1, 10}, {2, 20}};
+    constexpr Pair rhs[2] = {{1, 70}, {2, 80}};
+
+    nad_List *a = nullptr;
+    nad_List *b = nullptr;
+    NAD_TEST_OK(NAD_LIST_FROM_DATA(Pair, lhs, 2, nad_al_default(), &a));
+    NAD_TEST_OK(NAD_LIST_FROM_DATA(Pair, rhs, 2, nad_al_default(), &b));
+
+    TEST_ASSERT_FALSE(nad_list_eq(a, b));
+    TEST_ASSERT_TRUE(nad_list_eq_by(a, b, nad_test_pair_eq_a));
+
+    nad_list_drop(a);
+    nad_list_drop(b);
+}
+
 int main() {
     UNITY_BEGIN();
 
@@ -1779,6 +1864,14 @@ int main() {
     RUN_TEST(test_macro_of_carries_wide_elems);
     RUN_TEST(test_macro_push_evaluates_its_value_once);
     RUN_TEST(test_macro_node_elem_as_reads_and_writes);
+
+
+    RUN_TEST(test_eq_matches_the_same_elems);
+    RUN_TEST(test_eq_parts_one_differing_elem);
+    RUN_TEST(test_eq_parts_different_lengths);
+    RUN_TEST(test_eq_of_two_empties);
+    RUN_TEST(test_eq_is_order_sensitive);
+    RUN_TEST(test_eq_by_asks_the_equality);
 
     return UNITY_END();
 }

@@ -77,7 +77,22 @@ nad_Al *nad_hmap_al(const nad_HMap *self);
 nad_Hasher nad_hmap_hasher(const nad_HMap *self);
 
 [[nodiscard]] NAD_API
-nad_Eq nad_hmap_eq(const nad_HMap *self);
+nad_Eq nad_hmap_key_eq(const nad_HMap *self);
+
+/* ========== compare ========== */
+
+/// whether the two hold the same entries: the same keys, each with an equal value. Keys
+/// are matched by the hasher and the equality of 'b'; values byte for byte, which is the
+/// one comparison the caller cannot hand over as a nad_Eq — that takes two pointers and
+/// no size. Same key_size and val_size for both; differing lengths are just false
+[[nodiscard]] NAD_API
+bool nad_hmap_eq(const nad_HMap *a, const nad_HMap *b);
+
+/// the same, with 'val_eq' deciding what an equal value is. A map carries no equality for
+/// its value side — the keys have one and the values never did — so this is the caller's
+/// to name, and it is what a value with padding or a field that does not count needs
+[[nodiscard]] NAD_API
+bool nad_hmap_eq_by(const nad_HMap *a, const nad_HMap *b, nad_Eq val_eq);
 
 /* ========== lookup ========== */
 

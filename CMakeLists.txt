@@ -41,6 +41,7 @@ set(NAD_CORE_SOURCES
 
 set(NAD_DS_SOURCES
         src/ds/arr.c
+        src/ds/bitset.c
         src/ds/deque.c
         src/ds/hmap.c
         src/ds/hset.c

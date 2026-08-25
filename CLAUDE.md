@@ -75,6 +75,9 @@ result → suffix; differ only by argument → after the slug; only one version 
 - `self` — the receiver of a method on an owned object. A `nad_Span` is `self` in its own
   ops (`core/span`) and `s` in `algo`, because those are free functions over a span rather
   than methods on it — the same line the `mut` marker draws.
+- `obj` — the object under construction, from its allocation until its invariant holds;
+  `self` is only ever the one that arrived ready. Where the new object has a truer job in
+  that function it takes that name instead: `copy`, `clone`.
 - `key` what is looked for or indexed by, `val` any other value passed by address, `data`
   raw elems to copy in, `ptr` a block from an allocator. Four roles, four names, and no
   `x`: a value has a job here, not a letter.

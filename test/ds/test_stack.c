@@ -719,6 +719,98 @@ static void test_a_refused_header_frees_a_filled_vec() {
     TEST_ASSERT_EQUAL_size_t(0, probe.live);
 }
 
+/* ========== compare ========== */
+
+static void test_eq_matches_the_same_elems() {
+    constexpr int32_t src[3] = {7, 8, 9};
+
+    nad_Stack *a = make_stack(src, 3);
+    nad_Stack *b = make_stack_from(src, 3);
+
+    TEST_ASSERT_TRUE(nad_stack_eq(a, a));
+    TEST_ASSERT_TRUE(nad_stack_eq(a, b));
+    TEST_ASSERT_TRUE(nad_stack_eq(b, a));
+    TEST_ASSERT_TRUE(nad_stack_eq_by(a, b, nad_eq_i32));
+
+    nad_stack_drop(a);
+    nad_stack_drop(b);
+}
+
+static void test_eq_parts_one_differing_elem() {
+    constexpr int32_t lhs[3] = {7, 8, 9};
+    constexpr int32_t rhs[3] = {7, 8, 99};
+
+    nad_Stack *a = make_stack(lhs, 3);
+    nad_Stack *b = make_stack(rhs, 3);
+
+    TEST_ASSERT_FALSE(nad_stack_eq(a, b));
+    TEST_ASSERT_FALSE(nad_stack_eq_by(a, b, nad_eq_i32));
+
+    nad_stack_drop(a);
+    nad_stack_drop(b);
+}
+
+static void test_eq_parts_different_lengths() {
+    constexpr int32_t src[3] = {7, 8, 9};
+
+    nad_Stack *a = make_stack(src, 3);
+    nad_Stack *shorter = make_stack(src, 2);
+
+    TEST_ASSERT_FALSE(nad_stack_eq(a, shorter));
+    TEST_ASSERT_FALSE(nad_stack_eq(shorter, a));
+
+    nad_stack_drop(a);
+    nad_stack_drop(shorter);
+}
+
+static void test_eq_of_two_empties() {
+    constexpr int32_t src[1] = {7};
+
+    nad_Stack *a = make_stack(src, 0);
+    nad_Stack *b = make_stack_from(src, 0);
+    nad_Stack *one = make_stack(src, 1);
+
+    TEST_ASSERT_TRUE(nad_stack_eq(a, b));
+    TEST_ASSERT_TRUE(nad_stack_eq_by(a, b, nad_eq_i32));
+    TEST_ASSERT_FALSE(nad_stack_eq(a, one));
+
+    nad_stack_drop(a);
+    nad_stack_drop(b);
+    nad_stack_drop(one);
+}
+
+// a popped elem is gone even though its bytes are still in the vec underneath
+static void test_eq_forgets_a_popped_elem() {
+    constexpr int32_t lhs[2] = {7, 8};
+    constexpr int32_t rhs[3] = {7, 8, 9};
+
+    nad_Stack *a = make_stack(lhs, 2);
+    nad_Stack *b = make_stack(rhs, 3);
+
+    TEST_ASSERT_FALSE(nad_stack_eq(a, b));
+    nad_stack_pop(b);
+    TEST_ASSERT_TRUE(nad_stack_eq(a, b));
+
+    nad_stack_drop(a);
+    nad_stack_drop(b);
+}
+
+static void test_eq_by_asks_the_equality() {
+    constexpr Pair lhs[2] = {{1, 10}, {2, 20}};
+    constexpr Pair rhs[2] = {{1, 70}, {2, 80}};
+
+    nad_Stack *a = nullptr;
+    nad_Stack *b = nullptr;
+    NAD_TEST_OK(NAD_STACK_FROM_DATA(Pair, lhs, 2, nad_al_default(), &a));
+    NAD_TEST_OK(NAD_STACK_FROM_DATA(Pair, rhs, 2, nad_al_default(), &b));
+
+    TEST_ASSERT_FALSE(nad_stack_eq(a, b));
+    TEST_ASSERT_TRUE(nad_stack_eq_by(a, b, nad_test_pair_eq_a));
+
+    nad_stack_drop(a);
+    nad_stack_drop(b);
+}
+
 int main() {
     UNITY_BEGIN();
 
@@ -776,6 +868,14 @@ int main() {
     RUN_TEST(test_reserve_reports_an_exhausted_arena);
     RUN_TEST(test_a_refused_header_frees_the_vec);
     RUN_TEST(test_a_refused_header_frees_a_filled_vec);
+
+
+    RUN_TEST(test_eq_matches_the_same_elems);
+    RUN_TEST(test_eq_parts_one_differing_elem);
+    RUN_TEST(test_eq_parts_different_lengths);
+    RUN_TEST(test_eq_of_two_empties);
+    RUN_TEST(test_eq_forgets_a_popped_elem);
+    RUN_TEST(test_eq_by_asks_the_equality);
 
     return UNITY_END();
 }
