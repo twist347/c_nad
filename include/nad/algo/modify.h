@@ -20,8 +20,7 @@
 ///     const size_t kept = nad_span_unique(nad_vec_to_span_mut(v), nad_eq_i32);
 ///     nad_Status st = nad_vec_resize(v, kept);
 ///
-/// [[nodiscard]] keeps that honest: dropping the new length, the classic mistake with
-/// this family, does not compile.
+/// [[nodiscard]] makes dropping that length a compile error.
 ///
 /// @par Example
 /// @snippet algo/example_modify.c drop

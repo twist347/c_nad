@@ -9,8 +9,8 @@
 /// @brief the function-pointer types algo is customized through
 ///
 /// The only knobs algo has. Each takes its elems by address and a 'ctx' the caller owns
-/// and the algo never reads — that is what parameterizes one without a global. Ordering
-/// and equality live apart in core/cmp, having ready-made values where these cannot.
+/// and the algo never reads — parameterizing an algo without a global. Ordering and
+/// equality live apart in core/cmp, which has ready-made values where these cannot.
 ///
 /// @{
 

@@ -6,9 +6,9 @@
 /// @ingroup core
 /// @brief the few macros that exist because a function cannot do the job
 ///
-/// A macro earns a place here only when a function principally cannot take its place:
-/// working on the type itself through typeof, keeping lvalue semantics, or reaching the
-/// token rather than the value. Everything a function can do stays a function.
+/// A macro earns a place here only when a function cannot take its place: working on the
+/// type itself through typeof, keeping lvalue semantics, or reaching the token rather
+/// than the value.
 ///
 /// @par Example
 /// @snippet core/example_util.c swap

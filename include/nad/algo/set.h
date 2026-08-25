@@ -13,7 +13,7 @@
 /// @brief set operations over two spans already sorted by the same cmp
 ///
 /// Sortedness is what makes them linear: each walks both spans once and comes out sorted
-/// by the same cmp, so they compose with each other and with nad_span_merge unsorted.
+/// by the same cmp, so they compose with each other and with nad_span_merge.
 ///
 /// These are multiset ops — equal elems are counted, not collapsed. Where 'a' holds m
 /// copies of a value and 'b' holds n, the result holds:

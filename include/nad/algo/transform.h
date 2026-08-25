@@ -12,8 +12,8 @@
 ///
 /// Only the lengths have to match: unlike the rest of algo the elem sizes need not, since
 /// the op knows both types and each span is walked with its own stride — a span of Pair
-/// maps into a span of int64_t. That is why these live apart from algo/copy, which moves
-/// bytes as they are.
+/// maps into a span of int64_t. algo/copy, which moves bytes as they are, is the other
+/// half of that line.
 ///
 /// A destination that is a source is fine; a partial overlap is not, since every position
 /// is written before the next is read.

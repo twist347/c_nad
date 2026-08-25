@@ -15,25 +15,22 @@
 /// @ingroup ds
 /// @brief nad_Arr — an owning array whose length is set when it is built
 ///
-/// The elems live in one block, allocated once, and no operation over the arr changes
-/// how many there are.
+/// The elems live in one block, allocated once, and no operation changes how many there
+/// are. This is ds/vec minus the growth.
 ///
-/// This is ds/vec minus the growth: no capacity, nothing to push to or remove from. The
-/// length moves only when the whole arr is replaced — nad_arr_copy_assign overwrites one,
-/// nad_arr_swap exchanges two. Those are also the two ops that move a block, and so the
-/// two that invalidate what nad_arr_get_mut, nad_arr_data and nad_arr_to_span_mut handed
-/// out; otherwise those stay good for the life of the arr.
+/// The length moves only when the whole arr is replaced: nad_arr_copy_assign overwrites
+/// one, nad_arr_swap exchanges two. Those are also the only two ops that move the block,
+/// and so the only two that invalidate what nad_arr_get_mut, nad_arr_data and
+/// nad_arr_to_span_mut handed out.
 ///
-/// The view is writable, so algo sorts, partitions and fills in place through it — an arr
-/// keeps no order of its own to protect, unlike ds/stack and ds/queue. An index out of
+/// The view is writable, so algo sorts and fills in place through it. An index out of
 /// range asserts; the ops that return a nad_Status are the ones that allocate.
 ///
-/// An elem is bytes. The arr copies them in and frees them with the block, and never
-/// looks inside: whatever an elem points to is the caller's to release.
+/// An elem is bytes: the arr copies them in and frees them with the block. Whatever an
+/// elem points to is the caller's to release.
 ///
 /// The typed macros write 'const T', so an elem type already spelled with const needs a
-/// typedef of its own: NAD_ARR_OF(const char *, ...) is a duplicate const, and one over a
-/// typedef Cstr is not.
+/// typedef of its own.
 ///
 /// @par Example
 /// @snippet ds/example_arr.c build
@@ -52,44 +49,42 @@ typedef struct nad_Arr nad_Arr;
 
 /// a new arr of 'len' zeroed elems
 /// @param len how many elems the arr will hold; 0 gives an arr that owns no block
-/// @param elem_size the size of one elem in bytes, greater than 0
-/// @param al the allocator to build on, kept and used for everything after
+/// @param elem_size the size of one elem, asserted greater than 0
+/// @param al the allocator, kept for everything after
 /// @param[out] out the new arr, written only on success
 /// @retval NAD_STATUS_OK on success
-/// @retval NAD_STATUS_OUT_OF_MEMORY when the header or the block cannot be allocated,
-///         or when len * elem_size overflows
+/// @retval NAD_STATUS_OUT_OF_MEMORY when the header or the block cannot be allocated, or
+///         len * elem_size overflows
 /// @bigo{n} — the block is zeroed
 [[nodiscard]] NAD_API
 nad_Status nad_arr_new_len(size_t len, size_t elem_size, nad_Al *al, nad_Arr **out);
 
-/// a new arr holding a copy of the elems read from 'data'
-/// @param data the elems to copy in; may be null only when 'len' is 0
-/// @param len how many elems to read from 'data'
-/// @param elem_size the size of one elem in bytes, greater than 0
-/// @param al the allocator to build on, kept and used for everything after
+/// a new arr holding a copy of 'len' elems read from 'data'
+/// @param data the elems to copy in; may be null only when len is 0
+/// @param len how many elems to read
+/// @param elem_size the size of one elem, asserted greater than 0
+/// @param al the allocator
 /// @param[out] out the new arr, written only on success
 /// @retval NAD_STATUS_OK on success
-/// @retval NAD_STATUS_OUT_OF_MEMORY when the header or the block cannot be allocated,
-///         or when len * elem_size overflows
+/// @retval NAD_STATUS_OUT_OF_MEMORY when the header or the block cannot be allocated, or
+///         len * elem_size overflows
 /// @bigo{n}
 [[nodiscard]] NAD_API
 nad_Status nad_arr_from_data(const void *data, size_t len, size_t elem_size, nad_Al *al, nad_Arr **out);
 
-/// a new arr holding a copy of what 's' views
-/// @param s the elems to copy in; it also names the len and the elem_size
-/// @param al the allocator to build on — it has nothing to do with where 's' points,
-///           the elems are copied out of it
+/// a new arr holding a copy of what 's' views, taking its len and elem_size
+/// @param s the view to copy
+/// @param al the allocator; unrelated to where 's' points, the elems are copied out of it
 /// @param[out] out the new arr, written only on success
 /// @retval NAD_STATUS_OK on success
-/// @retval NAD_STATUS_OUT_OF_MEMORY when the header or the block cannot be allocated,
-///         or when len * elem_size overflows
+/// @retval NAD_STATUS_OUT_OF_MEMORY when the header or the block cannot be allocated
 /// @bigo{n}
 [[nodiscard]] NAD_API
 nad_Status nad_arr_from_span(nad_Span s, nad_Al *al, nad_Arr **out);
 
-/// releases the block and the arr itself through the allocator it was built with
-/// @param self the arr; null is a no-op, so this can be called on a partly built
-///             object. What the elems point to is not released — see the module note
+/// releases the block and the arr through the allocator it was built with
+/// @param self null is a no-op, so this is safe on a partly built object; what the elems
+///             point to is not released
 /// @bigo{1}
 NAD_API
 void nad_arr_drop(nad_Arr *self);
@@ -99,7 +94,7 @@ void nad_arr_drop(nad_Arr *self);
 /// @name copy
 /// @{
 
-/// a new arr with the same elems, built on the same allocator as 'self'
+/// a new arr with the same elems, on the same allocator
 /// @param self the arr to copy
 /// @param[out] out the new arr, written only on success
 /// @retval NAD_STATUS_OK on success
@@ -111,11 +106,11 @@ nad_Status nad_arr_copy(const nad_Arr *self, nad_Arr **out);
 /// overwrites the elems of 'other' with those of 'self', resizing its block when the two
 /// lengths differ
 /// @param self the arr to copy from
-/// @param[in,out] other the arr written into; must have the same elem_size as 'self',
-///                      and 'self' == 'other' is a no-op
+/// @param[in,out] other must have the same elem_size; keeps its own allocator, and
+///                      'self' == 'other' is a no-op
 /// @retval NAD_STATUS_OK on success
-/// @retval NAD_STATUS_OUT_OF_MEMORY when the block of 'other' cannot be resized; on
-///         failure 'other' is left exactly as it was
+/// @retval NAD_STATUS_OUT_OF_MEMORY when the block cannot be resized, leaving 'other' as
+///         it was
 /// @bigo{n}
 [[nodiscard]] NAD_API
 nad_Status nad_arr_copy_assign(const nad_Arr *self, nad_Arr *other);
@@ -127,19 +122,20 @@ nad_Status nad_arr_copy_assign(const nad_Arr *self, nad_Arr *other);
 
 /// whether the two hold the same elems, byte for byte
 /// @param a one arr
-/// @param b the other; must have the same elem_size as 'a'
-/// @return whether the lengths match and the bytes do — being memcmp, it parts -0.0 from
-///         +0.0 where nad_eq_f32 would not, and a struct's padding counts
+/// @param b must have the same elem_size — a mismatch there is a programmer error, not a
+///          false; a differing length is just false
+/// @return whether the lengths match and the bytes do; being memcmp, it parts -0.0 from
+///         +0.0 and counts a struct's padding
 /// @bigo{n}
 [[nodiscard]] NAD_API
 bool nad_arr_eq(const nad_Arr *a, const nad_Arr *b);
 
 /// whether the two hold equal elems under 'eq'
 /// @param a one arr
-/// @param b the other; must have the same elem_size as 'a'
-/// @param eq the equality every pair is asked of
+/// @param b must have the same elem_size as 'a'
+/// @param eq asked of every pair until one says no
 /// @return whether the lengths match and every pair does
-/// @bigo{n} — it stops at the first pair that does not
+/// @bigo{n}
 [[nodiscard]] NAD_API
 bool nad_arr_eq_by(const nad_Arr *a, const nad_Arr *b, nad_Eq eq);
 
@@ -155,9 +151,9 @@ bool nad_arr_eq_by(const nad_Arr *a, const nad_Arr *b, nad_Eq eq);
 [[nodiscard]] NAD_API
 size_t nad_arr_len(const nad_Arr *self);
 
-/// the size of one elem in bytes, as named at construction
+/// the size of one elem, as named at construction
 /// @param self the arr
-/// @return the elem size
+/// @return elem_size, which never moves
 /// @bigo{1}
 [[nodiscard]] NAD_API
 size_t nad_arr_elem_size(const nad_Arr *self);
@@ -169,9 +165,9 @@ size_t nad_arr_elem_size(const nad_Arr *self);
 [[nodiscard]] NAD_API
 size_t nad_arr_bytes(const nad_Arr *self);
 
-/// the allocator the arr was built with and uses for everything
+/// the allocator the arr was built with
 /// @param self the arr
-/// @return the allocator, borrowed — the arr does not own it
+/// @return the allocator, borrowed
 /// @bigo{1}
 [[nodiscard]] NAD_API
 nad_Al *nad_arr_al(const nad_Arr *self);
@@ -182,69 +178,60 @@ nad_Al *nad_arr_al(const nad_Arr *self);
 /// @{
 
 /// the first elem
-/// @param self the arr; asserts it is not empty
-/// @return a pointer to the elem at 0
+/// @param self asserts the arr is not empty
+/// @return a pointer into the block, good until the arr is dropped, swapped or
+///         copy-assigned into
 /// @bigo{1}
 [[nodiscard]] NAD_API
 const void *nad_arr_first(const nad_Arr *self);
 
 /// the first elem, to write through
-/// @param self the arr; asserts it is not empty
-/// @return a pointer to the elem at 0
-/// @bigo{1}
+/// @copydetails nad_arr_first
 [[nodiscard]] NAD_API
 void *nad_arr_first_mut(nad_Arr *self);
 
 /// the last elem
-/// @param self the arr; asserts it is not empty
-/// @return a pointer to the elem at len - 1
-/// @bigo{1}
+/// @copydetails nad_arr_first
 [[nodiscard]] NAD_API
 const void *nad_arr_last(const nad_Arr *self);
 
 /// the last elem, to write through
-/// @param self the arr; asserts it is not empty
-/// @return a pointer to the elem at len - 1
-/// @bigo{1}
+/// @copydetails nad_arr_first
 [[nodiscard]] NAD_API
 void *nad_arr_last_mut(nad_Arr *self);
 
 /// the elem at 'idx'
 /// @param self the arr
-/// @param idx the index; asserts idx < len — out of range is a programmer error, not a
-///            status
-/// @return a pointer to the elem
+/// @param idx asserts idx < len — out of range is a programmer error, not a status
+/// @return a pointer into the block, good until the arr is dropped, swapped or
+///         copy-assigned into
 /// @bigo{1}
 [[nodiscard]] NAD_API
 const void *nad_arr_get(const nad_Arr *self, size_t idx);
 
 /// the elem at 'idx', to write through
-/// @param self the arr
-/// @param idx the index; asserts idx < len
-/// @return a pointer to the elem
-/// @bigo{1}
+/// @copydetails nad_arr_get
 [[nodiscard]] NAD_API
 void *nad_arr_get_mut(nad_Arr *self, size_t idx);
 
-/// writes one elem over the elem at 'idx'
+/// overwrites the elem at 'idx' with a copy of 'val'
 /// @param self the arr
-/// @param idx the index; asserts idx < len
-/// @param val the address of the value to copy in — elem_size bytes are read from it
+/// @param idx asserts idx < len
+/// @param val the elem to copy in
 /// @bigo{1}
 NAD_API
 void nad_arr_set(nad_Arr *self, size_t idx, const void *val);
 
-/// the block itself, for handing to code that wants a plain pointer
+/// the block itself
 /// @param self the arr
-/// @return the block, or null while the arr is empty
+/// @return the block, or null while the arr is empty; good until the arr is dropped,
+///         swapped or copy-assigned into
 /// @bigo{1}
 [[nodiscard]] NAD_API
 const void *nad_arr_data(const nad_Arr *self);
 
 /// the block itself, to write through
-/// @param self the arr
-/// @return the block, or null while the arr is empty
-/// @bigo{1}
+/// @copydetails nad_arr_data
 [[nodiscard]] NAD_API
 void *nad_arr_data_mut(nad_Arr *self);
 
@@ -255,20 +242,19 @@ void *nad_arr_data_mut(nad_Arr *self);
 
 /// exchanges the two arrs whole, lengths and all
 /// @param[in,out] self one arr
-/// @param[in,out] other the other; must have the same elem_size, and 'self' == 'other'
-///                      is a no-op
-/// @retval NAD_STATUS_OK on success — on one allocator this only swaps the two headers
-///         and cannot fail
-/// @retval NAD_STATUS_OUT_OF_MEMORY when the two are on different allocators and the
-///         elems cannot be moved; on failure neither arr is touched
-/// @bigo{1} on one allocator, O(n) across two
+/// @param[in,out] other must have the same elem_size; 'self' == 'other' is a no-op
+/// @retval NAD_STATUS_OK on success; on one allocator this swaps the two headers and
+///         cannot fail
+/// @retval NAD_STATUS_OUT_OF_MEMORY when the two sit on different allocators and the
+///         elems cannot be moved, leaving both as they were
+/// @bigo{1} on one allocator, n on two
 [[nodiscard]] NAD_API
 nad_Status nad_arr_swap(nad_Arr *self, nad_Arr *other);
 
 /// exchanges two elems in place
 /// @param self the arr
-/// @param i one index; asserts it is in range
-/// @param j the other index; asserts it is in range
+/// @param i asserts i < len
+/// @param j asserts j < len; i == j is a no-op
 /// @bigo{1}
 NAD_API
 void nad_arr_swap_elems(nad_Arr *self, size_t i, size_t j);
@@ -278,18 +264,15 @@ void nad_arr_swap_elems(nad_Arr *self, size_t i, size_t j);
 /// @name to span
 /// @{
 
-/// a writable view over the elems: the bridge to algo, which sorts, partitions and fills
-/// through it
+/// a writable view of the elems, the way in to algo
 /// @param self the arr
-/// @return the view, good until the arr is dropped, swapped, or copy-assigned into
+/// @return a view good until the arr is dropped, swapped or copy-assigned into
 /// @bigo{1}
 [[nodiscard]] NAD_API
 nad_SpanMut nad_arr_to_span_mut(nad_Arr *self);
 
-/// a read-only view over the elems
-/// @param self the arr
-/// @return the view, good until the arr is dropped, swapped, or copy-assigned into
-/// @bigo{1}
+/// a read-only view of the elems
+/// @copydetails nad_arr_to_span_mut
 [[nodiscard]] NAD_API
 nad_Span nad_arr_to_span(const nad_Arr *self);
 
@@ -306,7 +289,7 @@ nad_Span nad_arr_to_span(const nad_Arr *self);
 NAD_API
 void nad_arr_fprint(const nad_Arr *self, FILE *stream, nad_FPrint fprint);
 
-/// nad_arr_fprint to stdout: [a, b, c] and a newline
+/// nad_arr_fprint to stdout
 /// @param self the arr
 /// @param fprint the printer, called once per elem
 /// @bigo{n}
@@ -357,23 +340,17 @@ void nad_arr_print(const nad_Arr *self, nad_FPrint fprint);
     ((const T *) nad_arr_first((self)))
 
 /// nad_arr_first_mut as a T *
-/// @param T the elem type
-/// @param self the arr
-/// @bigo{1}
+/// @copydetails NAD_ARR_FIRST_AS
 #define NAD_ARR_FIRST_MUT_AS(T, self) \
     ((T *) nad_arr_first_mut((self)))
 
 /// nad_arr_last as a const T *
-/// @param T the elem type
-/// @param self the arr
-/// @bigo{1}
+/// @copydetails NAD_ARR_FIRST_AS
 #define NAD_ARR_LAST_AS(T, self) \
     ((const T *) nad_arr_last((self)))
 
 /// nad_arr_last_mut as a T *
-/// @param T the elem type
-/// @param self the arr
-/// @bigo{1}
+/// @copydetails NAD_ARR_FIRST_AS
 #define NAD_ARR_LAST_MUT_AS(T, self) \
     ((T *) nad_arr_last_mut((self)))
 
@@ -386,16 +363,12 @@ void nad_arr_print(const nad_Arr *self, nad_FPrint fprint);
     ((const T *) nad_arr_get((self), (idx)))
 
 /// nad_arr_get_mut as a T *
-/// @param T the elem type
-/// @param self the arr
-/// @param idx the index
-/// @bigo{1}
+/// @copydetails NAD_ARR_GET_AS
 #define NAD_ARR_GET_MUT_AS(T, self, idx) \
     ((T *) nad_arr_get_mut((self), (idx)))
 
-/// nad_arr_set from a value rather than its address
-/// @param T the elem type — scalars only, a struct or an array cannot be written as
-///          (T){ val }
+/// nad_arr_set from a value rather than an address
+/// @param T the elem type; a scalar, since 'val' becomes a compound literal
 /// @param self the arr
 /// @param idx the index
 /// @param val the value to copy in

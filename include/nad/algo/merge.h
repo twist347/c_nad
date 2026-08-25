@@ -11,9 +11,9 @@
 /// @ingroup algo
 /// @brief joining two sorted runs into one
 ///
-/// Both are stable: equal elems keep the run they came from, the left run first. That is
-/// what makes sorting a partly sorted span a matter of finding the boundary with
-/// nad_span_is_sorted_until and merging.
+/// Both are stable: equal elems keep the run they came from, the left run first. A partly
+/// sorted span is therefore sorted by finding the boundary with nad_span_is_sorted_until
+/// and merging.
 ///
 /// @par Example
 /// @snippet algo/example_merge.c merge

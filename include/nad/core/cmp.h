@@ -18,7 +18,7 @@
 ///
 /// Float order is total, which the naive (a > b) - (a < b) is not: NaN after every
 /// non-NaN, NaN equal to NaN, -0.0 equal to +0.0. Without that a span holding a NaN has
-/// no strict weak ordering, and sorting it is undefined.
+/// no strict weak ordering, and sorting it is undefined behaviour.
 ///
 /// @par Example
 /// @snippet core/example_cmp.c struct

@@ -14,10 +14,10 @@
 /// for the verb and take the allocator first: nad_alloc(al, n), the way fprintf takes its
 /// FILE. Only ops about the allocator itself carry a slug, as nad_al_default does.
 ///
-/// The wrappers return the pointer and say failure with null — the one place here a
-/// fallible op returns no nad_Status, since value and cause share one channel and
-/// [[nodiscard]] already enforces the check. Null is not always failure: asking for
-/// nothing gives nothing. Each wrapper says which of its nulls mean what.
+/// The wrappers return the pointer and say failure with null — the one place a fallible
+/// op returns no nad_Status, since [[nodiscard]] on the pointer enforces the same check.
+/// Null is not always failure: asking for nothing gives nothing, and each wrapper says
+/// which of its nulls mean what.
 ///
 /// A table must fill in alloc and dealloc and may leave calloc and realloc null — the
 /// wrapper builds those out of the other two, which is how the arena and the pool live.

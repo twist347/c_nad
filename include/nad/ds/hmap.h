@@ -9,236 +9,501 @@
 
 #include <stddef.h>
 
-/// owning hash map from type-erased keys to type-erased values, built on separate
-/// chaining: an array of buckets, each holding a chain of nodes that hashed to it.
+/// @file
+
+/// @defgroup ds_hmap ds/hmap
+/// @ingroup ds
+/// @brief nad_HMap — an owning hash map from keys to values
 ///
-/// The hasher and the equality are properties of the map, not of a call: they are fixed
-/// at construction and travel with the entries through copy and swap, since a bucket
-/// means nothing without the hash that chose it. They must agree — keys equal under 'eq'
-/// must hash alike, which is the contract nad_Hasher states.
+/// Built on separate chaining: an array of buckets, each holding a chain of nodes that
+/// hashed to it.
+///
+/// The hasher and the equality are fixed at construction and travel with the entries
+/// through copy and swap — a bucket means nothing without the hash that chose it. They
+/// must agree: keys equal under 'eq' must hash alike.
 ///
 /// An entry never moves. Growing reallocates the bucket array and RELINKS the nodes into
-/// it; the nodes themselves stay where they were, so a borrowed node survives every
-/// operation but the removal of that very entry. That is what chaining buys over the flat
-/// alternative, and it is why a position here is a node rather than a slot index.
+/// it, so a borrowed node survives every operation but the removal of that very entry.
+/// That is why a position here is a node rather than a slot index.
 ///
-/// The iteration order is unspecified and may change on any insert that grows: it follows
-/// the buckets, and which bucket a key lands in is the hash's business.
+/// The iteration order is unspecified and may change on any insert that grows.
+///
+/// @par Example
+/// @snippet ds/example_hmap.c build
+/// @snippet ds/example_hmap.c lookup
+/// @snippet ds/example_hmap.c count
+/// @snippet ds/example_hmap.c walk
+/// @{
+
+/// Owning hash map from type-erased keys to type-erased values.
+/// An opaque handle: it comes from a constructor and goes back to nad_hmap_drop
 typedef struct nad_HMap nad_HMap;
 
-/// a position in the map; borrowed from it and invalidated only by removing that very
-/// entry. Its key is readable but never writable — a written key would belong to a bucket
-/// the map no longer chose for it, with no way for the map to notice
+/// A position in the map.
+/// Borrowed from it and invalidated only by removing that very entry. Its key is readable
+/// but never writable — a written key would belong to a bucket the map no longer chose
+/// for it, with no way for the map to notice
 typedef struct nad_HMapNode nad_HMapNode;
 
-/* ========== lifetime ========== */
+/// @name lifetime
+/// @{
 
+/// an empty map that owns no buckets yet
+/// @param key_size the size of one key, asserted greater than 0
+/// @param val_size the size of one value, asserted greater than 0 — a map with nothing on
+///                 the value side is ds/hset
+/// @param hasher the hash the keys are placed by, fixed for the life of the map
+/// @param eq the equality the keys are matched by; must agree with 'hasher'
+/// @param al the allocator, kept for everything after
+/// @param[out] out the new map, written only on success
+/// @retval NAD_STATUS_OK on success
+/// @retval NAD_STATUS_OUT_OF_MEMORY when the header cannot be allocated
+/// @bigo{1}
 [[nodiscard]] NAD_API
 nad_Status nad_hmap_new(size_t key_size, size_t val_size, nad_Hasher hasher, nad_Eq eq, nad_Al *al, nad_HMap **out);
 
-/// room for 'cap' entries before the first growth
+/// an empty map with room for 'cap' entries before the first growth
+/// @param cap how many entries to make room for
+/// @param key_size the size of one key, asserted greater than 0
+/// @param val_size the size of one value, asserted greater than 0
+/// @param hasher the hash the keys are placed by
+/// @param eq the equality the keys are matched by
+/// @param al the allocator
+/// @param[out] out the new map, written only on success
+/// @retval NAD_STATUS_OK on success
+/// @retval NAD_STATUS_OUT_OF_MEMORY when the buckets cannot be allocated
+/// @bigo{n}
 [[nodiscard]] NAD_API
 nad_Status nad_hmap_new_cap(size_t cap, size_t key_size, size_t val_size, nad_Hasher hasher, nad_Eq eq, nad_Al *al,
                             nad_HMap **out);
 
+/// releases every node, the buckets and the map through the allocator it was built with
+/// @param self null is a no-op, so this is safe on a partly built object
+/// @bigo{n}
 NAD_API
 void nad_hmap_drop(nad_HMap *self);
 
-/* ========== copy ========== */
+/// @}
 
+/// @name copy
+/// @{
+
+/// a new map with the same entries, hasher and equality, on the same allocator
+/// @param self the map to copy
+/// @param[out] out the new map, written only on success
+/// @retval NAD_STATUS_OK on success
+/// @retval NAD_STATUS_OUT_OF_MEMORY when the buckets or any node cannot be allocated
+/// @bigo{n}
 [[nodiscard]] NAD_API
 nad_Status nad_hmap_copy(const nad_HMap *self, nad_HMap **out);
 
-/// 'other' receives the hasher and the equality along with the entries, overwriting its
-/// own — as in pqueue, where the comparator travels with the elems
+/// overwrites the entries of 'other' with those of 'self'
+/// @param self the map to copy from
+/// @param[in,out] other must have the same key_size and val_size; receives the hasher and
+///                      the equality along with the entries, overwriting its own, and
+///                      keeps its own allocator. 'self' == 'other' is a no-op
+/// @retval NAD_STATUS_OK on success
+/// @retval NAD_STATUS_OUT_OF_MEMORY when a node cannot be allocated, leaving 'other' as
+///         it was
+/// @bigo{n}
 [[nodiscard]] NAD_API
 nad_Status nad_hmap_copy_assign(const nad_HMap *self, nad_HMap *other);
 
-/* ========== info ========== */
+/// @}
 
+/// @name info
+/// @{
+
+/// how many entries the map holds
+/// @param self the map
+/// @return the count of entries, not of buckets
+/// @bigo{1}
 [[nodiscard]] NAD_API
 size_t nad_hmap_len(const nad_HMap *self);
 
-/// how many buckets the entries are spread over; always a power of two, and 0 while the
-/// map has never held anything
+/// how many buckets the entries are spread over
+/// @param self the map
+/// @return the bucket count, always a power of two, and 0 while the map has never held
+///         anything
+/// @bigo{1}
 [[nodiscard]] NAD_API
 size_t nad_hmap_bucket_count(const nad_HMap *self);
 
+/// the size of one key, as named at construction
+/// @param self the map
+/// @return key_size, which never moves
+/// @bigo{1}
 [[nodiscard]] NAD_API
 size_t nad_hmap_key_size(const nad_HMap *self);
 
+/// the size of one value, as named at construction
+/// @param self the map
+/// @return val_size, which never moves
+/// @bigo{1}
 [[nodiscard]] NAD_API
 size_t nad_hmap_val_size(const nad_HMap *self);
 
+/// the allocator the map was built with
+/// @param self the map
+/// @return the allocator, borrowed
+/// @bigo{1}
 [[nodiscard]] NAD_API
 nad_Al *nad_hmap_al(const nad_HMap *self);
 
+/// the hash the keys are placed by
+/// @param self the map
+/// @return the hasher, as given at construction
+/// @bigo{1}
 [[nodiscard]] NAD_API
 nad_Hasher nad_hmap_hasher(const nad_HMap *self);
 
+/// the equality the keys are matched by
+/// @param self the map
+/// @return the equality, as given at construction. Named key_eq because nad_hmap_eq
+///         compares two whole maps, and because the value side has no equality of its own
+/// @bigo{1}
 [[nodiscard]] NAD_API
 nad_Eq nad_hmap_key_eq(const nad_HMap *self);
 
-/* ========== compare ========== */
+/// @}
 
-/// whether the two hold the same entries: the same keys, each with an equal value. Keys
-/// are matched by the hasher and the equality of 'b'; values byte for byte, which is the
-/// one comparison the caller cannot hand over as a nad_Eq — that takes two pointers and
-/// no size. Same key_size and val_size for both; differing lengths are just false
+/// @name compare
+/// @{
+
+/// whether the two hold the same entries: the same keys, each with an equal value
+/// @param a one map
+/// @param b must have the same key_size and val_size; a differing length is just false.
+///          Keys are matched by the hasher and the equality of 'b'
+/// @return whether the lengths agree and every entry of 'a' is in 'b' with the same value
+///         byte for byte — the one comparison the caller cannot hand over as a nad_Eq,
+///         which takes two pointers and no size
+/// @bigo{n}
 [[nodiscard]] NAD_API
 bool nad_hmap_eq(const nad_HMap *a, const nad_HMap *b);
 
-/// the same, with 'val_eq' deciding what an equal value is. A map carries no equality for
-/// its value side — the keys have one and the values never did — so this is the caller's
-/// to name, and it is what a value with padding or a field that does not count needs
+/// the same, with 'val_eq' deciding what an equal value is
+/// @param a one map
+/// @param b must have the same key_size and val_size
+/// @param val_eq the caller's to name: a map carries no equality for its value side, and
+///               this is what a value with padding or a field that does not count needs
+/// @return whether the lengths agree and every entry of 'a' is in 'b' with an equal value
+/// @bigo{n}
 [[nodiscard]] NAD_API
 bool nad_hmap_eq_by(const nad_HMap *a, const nad_HMap *b, nad_Eq val_eq);
 
-/* ========== lookup ========== */
+/// @}
 
-/// the value stored under 'key', or null when the map holds no such key. A miss is not an
-/// error and has exactly one cause, so it needs no status of its own — the same reading
-/// nad_span_find takes of "not found"
+/// @name lookup
+/// @{
+
+/// the value stored under 'key'
+/// @param self the map
+/// @param key the key to look for
+/// @return a pointer to the value, or null when the map holds no such key. A miss is not
+///         an error and has exactly one cause, so it needs no status of its own
+/// @bigo{1} expected
 [[nodiscard]] NAD_API
 const void *nad_hmap_get(const nad_HMap *self, const void *key);
 
+/// the value stored under 'key', to write through
+/// @copydetails nad_hmap_get
 [[nodiscard]] NAD_API
 void *nad_hmap_get_mut(nad_HMap *self, const void *key);
 
+/// whether the map holds an entry under 'key'
+/// @param self the map
+/// @param key the key to look for
+/// @return whether an entry matched it
+/// @bigo{1} expected
 [[nodiscard]] NAD_API
 bool nad_hmap_contains(const nad_HMap *self, const void *key);
 
-/// the entry under 'key' as a position, or null when there is none. Hold it to reach the
-/// key and the value together, or to remove the entry without hashing it again
+/// the entry under 'key' as a position
+/// @param self the map
+/// @param key the key to look for
+/// @return the node, or null when there is none. Hold it to reach the key and the value
+///         together, or to remove the entry without hashing it again
+/// @bigo{1} expected
 [[nodiscard]] NAD_API
 const nad_HMapNode *nad_hmap_find(const nad_HMap *self, const void *key);
 
+/// the entry under 'key' as a position to write or remove through
+/// @copydetails nad_hmap_find
 [[nodiscard]] NAD_API
 nad_HMapNode *nad_hmap_find_mut(nad_HMap *self, const void *key);
 
-/* ========== nodes ========== */
+/// @}
 
-/// the first entry in bucket order, or null on an empty map
+/// @name nodes
+/// @{
+
+/// the first entry of a walk
+/// @param self the map
+/// @return a node, or null on an empty map. The order is the buckets' and is unspecified
+/// @bigo{n} in the bucket count
 [[nodiscard]] NAD_API
 const nad_HMapNode *nad_hmap_first_node(const nad_HMap *self);
 
+/// the first entry of a walk, to write or remove through
+/// @copydetails nad_hmap_first_node
 [[nodiscard]] NAD_API
 nad_HMapNode *nad_hmap_first_node_mut(nad_HMap *self);
 
-/// the entry after 'node', or null at the end. The map is needed because a chain ends
-/// long before the buckets do — unlike a list node, which knows its own successor
+/// the entry after 'node'
+/// @param self the map, needed because a chain ends long before the buckets do — unlike a
+///             list node, which knows its own successor
+/// @param node the position to step from
+/// @return the next node, or null at the end
+/// @bigo{1} amortized over a whole walk
 [[nodiscard]] NAD_API
 const nad_HMapNode *nad_hmap_node_next(const nad_HMap *self, const nad_HMapNode *node);
 
+/// the entry after 'node', to write or remove through
+/// @copydetails nad_hmap_node_next
 [[nodiscard]] NAD_API
 nad_HMapNode *nad_hmap_node_next_mut(nad_HMap *self, nad_HMapNode *node);
 
-/// the key sits at the front of the node, so this one needs nothing else
+/// the key at 'node'
+/// @param node the position; the key sits at the front of it, so this one needs nothing
+///             else
+/// @return a read-only pointer to the key. There is no node_key_mut to match node_val_mut:
+///         the value is the map's to hand over, the key is not
+/// @bigo{1}
 [[nodiscard]] NAD_API
 const void *nad_hmap_node_key(const nad_HMapNode *node);
 
-/// the map is needed again here, for a different reason than in node_next: the value sits
-/// behind the key, and how far behind is a property of the map's key size rather than of
-/// the node
+/// the value at 'node'
+/// @param self the map, needed for a different reason than in node_next: the value sits
+///             behind the key, and how far behind is a property of the map's key size
+///             rather than of the node
+/// @param node the position
+/// @return a pointer to the value
+/// @bigo{1}
 [[nodiscard]] NAD_API
 const void *nad_hmap_node_val(const nad_HMap *self, const nad_HMapNode *node);
 
-/// there is no node_key_mut to match this: the value is the map's to hand over, the key
-/// is not
+/// the value at 'node', to write through
+/// @copydetails nad_hmap_node_val
 [[nodiscard]] NAD_API
 void *nad_hmap_node_val_mut(const nad_HMap *self, nad_HMapNode *node);
 
-/* ========== mods ========== */
+/// @}
 
-/// stores 'val' under 'key', overwriting the value already there if the key is present.
-/// 'out_is_new' says whether the key was absent and may be null when the caller does not
-/// care — it reports an observation rather than the operation's result, which is the map
-/// itself. Written only on NAD_STATUS_OK, as every out is
+/// @name mods
+/// @{
+
+/// stores 'val' under 'key', overwriting the value already there when the key is present
+/// @param self the map
+/// @param key the key to copy in
+/// @param val the value to copy in
+/// @param[out] out_is_new whether the key was absent; may be null when the caller does
+///                        not care, and written only on NAD_STATUS_OK. It reports an
+///                        observation rather than the operation's result, which is the
+///                        map itself
+/// @retval NAD_STATUS_OK on success
+/// @retval NAD_STATUS_OUT_OF_MEMORY when the node or the wider bucket array cannot be
+///         allocated
+/// @bigo{1} expected, plus the amortized cost of growing
 [[nodiscard]] NAD_API
 nad_Status nad_hmap_insert(nad_HMap *self, const void *key, const void *val, bool *out_is_new);
 
-/// drops the entry under 'key' and says whether there was one. Nothing is allocated, so
-/// nothing can fail
+/// drops the entry under 'key' if there is one
+/// @param self the map
+/// @param key the key to drop
+/// @return whether there was an entry. Nothing is allocated, so nothing can fail
+/// @bigo{1} expected
 NAD_API
 bool nad_hmap_remove(nad_HMap *self, const void *key);
 
-/// drops the entry 'node' names, which must belong to this map. The bucket is found from
-/// the hash the node carries, so the key is never hashed again
+/// drops the entry 'node' names
+/// @param self the map
+/// @param node a position, asserted to be one of this map's own; every pointer into it
+///             dies here, and no other entry is touched. The bucket is found from the
+///             hash the node carries, so the key is never hashed again
+/// @bigo{1}
 NAD_API
 void nad_hmap_remove_node(nad_HMap *self, nad_HMapNode *node);
 
 /// hands back the entry for 'key', putting 'val_if_absent' there first when the key was
-/// missing. One hash and one walk of the bucket either way, which is what a lookup
-/// followed by an insert cannot be: that pair hashes twice and walks twice whenever the
-/// key turns out to be absent. This is the counter idiom's operation
+/// missing. This is the counter idiom's operation
+/// @param self the map
+/// @param key the key to look for or copy in
+/// @param val_if_absent the value to start from when the key is not there; ignored when
+///                      it is
+/// @param[out] out_node the entry either way, written only on NAD_STATUS_OK
+/// @retval NAD_STATUS_OK on success
+/// @retval NAD_STATUS_OUT_OF_MEMORY when the node or the wider bucket array cannot be
+///         allocated
+/// @bigo{1} expected — one hash and one walk of the bucket either way, which a lookup
+///          followed by an insert cannot be: that pair hashes twice and walks twice
+///          whenever the key turns out to be absent
 [[nodiscard]] NAD_API
 nad_Status nad_hmap_get_or_insert(nad_HMap *self, const void *key, const void *val_if_absent,
                                   nad_HMapNode **out_node);
 
-/// drops every entry and keeps the buckets
+/// drops every entry, keeping the buckets
+/// @param self the map
+/// @bigo{n}
 NAD_API
 void nad_hmap_clear(nad_HMap *self);
 
-/// room for 'cap' entries without a growth in between
+/// makes room for 'cap' entries without a growth in between
+/// @param self the map
+/// @param cap a capacity at or below the one it has is a no-op
+/// @retval NAD_STATUS_OK on success
+/// @retval NAD_STATUS_OUT_OF_MEMORY when the bucket array cannot be allocated, leaving
+///         the map as it was
+/// @bigo{n} — only the bucket array is reallocated, the entries are relinked where they
+///            lie, so a borrowed node survives this
 [[nodiscard]] NAD_API
 nad_Status nad_hmap_reserve(nad_HMap *self, size_t cap);
 
 /// gives back the buckets the entries no longer need, down to the smallest power of two
-/// that still holds them and never below the count a fresh map takes; an empty map is
-/// left owning nothing at all. Only the bucket
-/// array is reallocated — the entries are relinked where they lie, so a borrowed node
-/// survives this as it survives a growth
+/// that still holds them and never below the count a fresh map takes
+/// @param self an empty map is left owning nothing at all
+/// @retval NAD_STATUS_OK on success, and when there was nothing to give back
+/// @retval NAD_STATUS_OUT_OF_MEMORY when the smaller bucket array cannot be allocated,
+///         leaving the map as it was
+/// @bigo{n} — the entries are relinked, not rebuilt, so a borrowed node survives this as
+///            it survives a growth
 [[nodiscard]] NAD_API
 nad_Status nad_hmap_shrink_to_fit(nad_HMap *self);
 
-/// both maps must share an allocator: the nodes change map without moving, so every
-/// borrowed node stays valid — the same trade ds/list makes. The hasher and the equality
-/// change sides with the entries, so two maps built under different ones stay valid maps
+/// exchanges the contents of the two, hashers and equalities included
+/// @param self one map
+/// @param other must have the same key_size and val_size and the same allocator: the
+///              nodes change map without moving, so every borrowed node stays valid — the
+///              same trade ds/list makes. Two maps built under different hashers stay
+///              valid maps afterwards, since each order travels with its entries
+/// @bigo{1}
 NAD_API
 void nad_hmap_swap(nad_HMap *self, nad_HMap *other);
 
-/* ========== print ========== */
+/// @}
 
+/// @name print
+/// @{
+
+/// writes the entries to a stream as {a: 1, b: 2}, followed by a newline, in the walk's
+/// order
+/// @param self the map
+/// @param stream where to write
+/// @param key_fprint the printer for a key
+/// @param val_fprint the printer for a value
+/// @bigo{n}
 NAD_API
 void nad_hmap_fprint(const nad_HMap *self, FILE *stream, nad_FPrint key_fprint, nad_FPrint val_fprint);
 
+/// nad_hmap_fprint to stdout
+/// @param self the map
+/// @param key_fprint the printer for a key
+/// @param val_fprint the printer for a value
+/// @bigo{n}
 NAD_API
 void nad_hmap_print(const nad_HMap *self, nad_FPrint key_fprint, nad_FPrint val_fprint);
 
-/* ========== macros ========== */
+/// @}
 
+/// @name macros
+/// @{
+
+/// nad_hmap_new with sizeof(K) and sizeof(V)
+/// @param K the key type
+/// @param V the value type
+/// @param hasher the hash the keys are placed by
+/// @param eq the equality the keys are matched by
+/// @param al the allocator
+/// @param[out] out where the new map is written
+/// @bigo{1}
 #define NAD_HMAP_NEW(K, V, hasher, eq, al, out) \
     nad_hmap_new(sizeof(K), sizeof(V), (hasher), (eq), (al), (out))
 
+/// nad_hmap_new_cap with sizeof(K) and sizeof(V)
+/// @param K the key type
+/// @param V the value type
+/// @param cap how many entries to make room for
+/// @param hasher the hash the keys are placed by
+/// @param eq the equality the keys are matched by
+/// @param al the allocator
+/// @param[out] out where the new map is written
+/// @bigo{n}
 #define NAD_HMAP_NEW_CAP(K, V, cap, hasher, eq, al, out) \
     nad_hmap_new_cap((cap), sizeof(K), sizeof(V), (hasher), (eq), (al), (out))
 
+/// nad_hmap_get as a const V *, from a key value rather than an address
+/// @param K the key type; a scalar, since 'key' becomes a compound literal
+/// @param V the value type
+/// @param self the map
+/// @param key the value to look for
+/// @bigo{1} expected
 #define NAD_HMAP_GET_AS(K, V, self, key) \
     ((const V *) nad_hmap_get((self), &(K){ (key) }))
 
+/// nad_hmap_get_mut as a V *
+/// @copydetails NAD_HMAP_GET_AS
 #define NAD_HMAP_GET_MUT_AS(K, V, self, key) \
     ((V *) nad_hmap_get_mut((self), &(K){ (key) }))
 
+/// nad_hmap_contains from a key value rather than an address
+/// @param K the key type; a scalar, since 'key' becomes a compound literal
+/// @param self the map
+/// @param key the value to look for
+/// @bigo{1} expected
 #define NAD_HMAP_CONTAINS(K, self, key) \
     nad_hmap_contains((self), &(K){ (key) })
 
+/// nad_hmap_find from a key value rather than an address
+/// @copydetails NAD_HMAP_CONTAINS
 #define NAD_HMAP_FIND(K, self, key) \
     nad_hmap_find((self), &(K){ (key) })
 
+/// nad_hmap_insert from values rather than addresses
+/// @param K the key type; a scalar, since 'key' becomes a compound literal
+/// @param V the value type; a scalar, for the same reason
+/// @param self the map
+/// @param key the key value to copy in
+/// @param val the value to copy in
+/// @param[out] out_is_new whether the key was absent; may be null
+/// @bigo{1} expected
 #define NAD_HMAP_INSERT(K, V, self, key, val, out_is_new) \
     nad_hmap_insert((self), &(K){ (key) }, &(V){ (val) }, (out_is_new))
 
+/// nad_hmap_get_or_insert from values rather than addresses
+/// @param K the key type; a scalar, since 'key' becomes a compound literal
+/// @param V the value type; a scalar, for the same reason
+/// @param self the map
+/// @param key the key value to look for or copy in
+/// @param val the value to start from when the key is absent
+/// @param[out] out_node the entry either way
+/// @bigo{1} expected
 #define NAD_HMAP_GET_OR_INSERT(K, V, self, key, val, out_node) \
     nad_hmap_get_or_insert((self), &(K){ (key) }, &(V){ (val) }, (out_node))
 
+/// nad_hmap_remove from a key value rather than an address
+/// @copydetails NAD_HMAP_CONTAINS
 #define NAD_HMAP_REMOVE(K, self, key) \
     nad_hmap_remove((self), &(K){ (key) })
 
+/// nad_hmap_node_key as a const K *
+/// @param K the key type
+/// @param node the position
+/// @bigo{1}
 #define NAD_HMAP_NODE_KEY_AS(K, node) \
     ((const K *) nad_hmap_node_key((node)))
 
+/// nad_hmap_node_val as a const V *
+/// @param V the value type
+/// @param self the map
+/// @param node the position
+/// @bigo{1}
 #define NAD_HMAP_NODE_VAL_AS(V, self, node) \
     ((const V *) nad_hmap_node_val((self), (node)))
 
+/// nad_hmap_node_val_mut as a V *
+/// @copydetails NAD_HMAP_NODE_VAL_AS
 #define NAD_HMAP_NODE_VAL_MUT_AS(V, self, node) \
     ((V *) nad_hmap_node_val_mut((self), (node)))
+
+/// @}
+
+/// @}

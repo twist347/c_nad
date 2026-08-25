@@ -11,20 +11,17 @@
 /// @brief nad_Status — the one way an operation reports that it failed
 ///
 /// A fallible op returns a nad_Status and writes its result through a trailing 'out',
-/// which it touches only on NAD_STATUS_OK. The return is [[nodiscard]], so an error
-/// cannot be dropped by forgetting it, and C has no defer, so it is propagated by hand:
-/// a return when nothing is held yet, a goto when something is.
+/// which it touches only on NAD_STATUS_OK. The return is [[nodiscard]], and C has no
+/// defer, so an error is propagated by hand: a return when nothing is held yet, a goto
+/// when something is.
 ///
 /// The inverse shape — the value returned, the status written out — is deliberately
-/// absent: a status out-param is ignorable, and that is the model this library rejected.
-/// The alloc wrappers are the one exception, and a principled one: they return the
-/// pointer and say failure with null, so the value and the single cause share one
-/// channel and [[nodiscard]] on the pointer already enforces the check.
+/// absent: a status out-param is ignorable. The alloc wrappers are the one exception,
+/// saying failure with a null pointer.
 ///
-/// A broken precondition is not in here. A null self, an index past the end, an
-/// elem_size of 0 — those are programmer errors, and they assert. A nad_Status is for
-/// what valid code can still meet at runtime, and that is memory: there is no code here
-/// for a bad argument or an index out of range, because nothing ever returns one.
+/// A broken precondition asserts instead: a null self, an index past the end, an
+/// elem_size of 0. A nad_Status is for what valid code can still meet at runtime, and
+/// that is memory — there is no enumerator for a bad argument.
 ///
 /// @par Example
 /// @snippet core/example_status.c propagate

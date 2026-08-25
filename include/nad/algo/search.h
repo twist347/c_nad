@@ -11,13 +11,12 @@
 /// @ingroup algo
 /// @brief looking for something in a span, and answering where it is
 ///
-/// Two verbs, and the choice is not taste: a find scans and is valid over any span, a
-/// search descends and needs the span sorted by the same cmp — so nad_span_binary_search
-/// is the only search here. The suffix says what is looked for, never from which end:
-/// backwards is _last, not another verb.
+/// Two verbs: a find scans and is valid over any span, a search descends and needs the
+/// span sorted by the same cmp — so nad_span_binary_search is the only search here. The
+/// suffix says what is looked for, never from which end: backwards is _last.
 ///
-/// The boundary ops descend too but carry neither verb: they answer where, not whether. A
-/// find answers through 'out_idx' and returns whether it hit — a miss is an answer, not
+/// The boundary ops descend too but carry neither verb: they answer where, not whether.
+/// A find answers through 'out_idx' and returns whether it hit; a miss is an answer, not
 /// an error, and leaves 'out_idx' alone.
 ///
 /// @par Example

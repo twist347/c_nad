@@ -12,8 +12,8 @@
 /// @brief an allocator that hands out blocks of one fixed size
 ///
 /// One block, cut into equal pieces on a free list, so alloc and dealloc are both a
-/// pointer move. That cost and the absence of fragmentation are what it buys; that every
-/// request must fit one block is what it costs.
+/// pointer move and nothing fragments. The price is that every request must fit one
+/// piece.
 ///
 /// No realloc of its own, so nad_realloc falls back to alloc and copy — which fails as
 /// soon as the new size is over a block. The parent is borrowed and has to outlive it.

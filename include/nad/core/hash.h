@@ -12,10 +12,9 @@
 /// @brief nad_Hasher, and ready-made hashers for the built-in types
 ///
 /// A hasher takes one value by address and returns a nad_Hash. It travels paired with a
-/// nad_Eq, under one law: what the equality calls equal must hash alike. Everything odd
-/// here follows from keeping it.
+/// nad_Eq, under one law: what the equality calls equal must hash alike.
 ///
-/// Three values would break the law if hashed as raw bytes, so they are canonicalized:
+/// Three values would break that law if hashed as raw bytes, so they are canonicalized:
 /// -0.0 hashes as +0.0, every NaN hashes as one quiet NaN, and a null string hashes as a
 /// value of its own rather than as "" — the three distinctions core/cmp keeps.
 ///

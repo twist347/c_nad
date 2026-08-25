@@ -8,7 +8,7 @@
 /// @ingroup alloc
 /// @brief the allocator that is just malloc
 ///
-/// What to reach for absent a reason not to, and the usual parent of an arena or a pool.
+/// The default choice, and the usual parent of an arena or a pool.
 ///
 /// @{
 

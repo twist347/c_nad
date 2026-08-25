@@ -10,15 +10,15 @@
 /// @ingroup core
 /// @brief nad_FPrint — how a container is told to show one elem
 ///
-/// A printer writes one elem, handed by address, and nothing around it — the brackets
-/// and the commas belong to the container printing through it.
+/// A printer writes one elem, handed by address, and nothing around it: the brackets and
+/// the commas belong to the container printing through it.
 ///
-/// The type set is core/cmp's, earned on the same terms: a printer sees a width and a
-/// signedness, not a type identity, so long long is served by nad_fprint_i64, and char,
-/// size and ptrdiff have entries because theirs are not fixed. bool is the one entry only
-/// here — u8 carries its value whole, but a bool reads as a word, not a digit.
+/// The type set is core/cmp's — a printer sees a width and a signedness, not a type
+/// identity, so long long is served by nad_fprint_i64, while char, size and ptrdiff have
+/// entries of their own because their widths are not fixed. bool is the one entry only
+/// here, reading as a word rather than a digit.
 ///
-/// The formats are for a human reading the output, not for a parser reading it back.
+/// The formats are for a human, not for a parser reading them back.
 ///
 /// @par Example
 /// @snippet core/example_print.c custom

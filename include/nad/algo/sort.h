@@ -12,12 +12,12 @@
 /// @ingroup algo
 /// @brief putting a span in order, and asking whether it already is
 ///
-/// nad_span_sort is the one to reach for: a quicksort, ninther pivot, three-way split, in
-/// place and allocating nothing. It is not stable — that costs a buffer, so it is a
-/// separate name saying so, by taking an allocator and returning a nad_Status.
+/// nad_span_sort is the default: a quicksort, ninther pivot, three-way split, in place
+/// and allocating nothing. It is not stable — stability costs a buffer, so it is a
+/// separate name that says so by taking an allocator and returning a nad_Status.
 ///
 /// The rest answer less: partial_sort when only the first few matter, nth_elem when only
-/// one position does, the predicates for asking instead of doing.
+/// one position does, and the predicates that ask instead of doing.
 ///
 /// @par Example
 /// @snippet algo/example_sort.c sort

@@ -12,8 +12,8 @@
 /// @brief an allocator that only ever bumps a pointer forward
 ///
 /// One block, taken from the parent at construction and handed out in pieces. There is no
-/// per-block free — dealloc is a no-op, and everything returns at once through
-/// nad_al_arena_reset, which is the point: a phase of work is dropped in O(1).
+/// per-block free: dealloc is a no-op, and everything returns at once through
+/// nad_al_arena_reset, which drops a whole phase of work in O(1).
 ///
 /// No realloc of its own, so nad_realloc falls back to alloc and copy. The parent is
 /// borrowed and has to outlive it.

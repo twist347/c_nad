@@ -14,8 +14,8 @@
 /// Every call goes through to the wrapped allocator and is printed on the way, and
 /// nothing else happens: put it under a container to see when the container grows.
 ///
-/// The plainest case of the borrowing rule — its own two blocks come from the wrapped
-/// allocator and go back to it on drop, so that one has to outlive the log.
+/// Its own two blocks come from the wrapped allocator and go back to it on drop, so that
+/// one has to outlive the log.
 ///
 /// @par Example
 /// @snippet alloc/example_log.c wrap

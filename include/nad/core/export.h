@@ -10,8 +10,7 @@
 /// carrying this. Everything else stays inside, which is what lets the internals move
 /// without breaking a caller.
 ///
-/// The reference does not show it: doxygen is told to expand it away, since the marker
-/// says nothing about what a function does.
+/// The reference does not show it: doxygen is told to expand it away.
 ///
 /// @{
 
