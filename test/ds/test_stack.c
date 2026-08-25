@@ -811,6 +811,67 @@ static void test_eq_by_asks_the_equality() {
     nad_stack_drop(b);
 }
 
+/* ========== into ========== */
+
+// the vec was there all along: taking it copies nothing and leaves the elems where they
+// were, bottom to top
+static void test_into_vec_hands_the_elems_over() {
+    constexpr int32_t src[3] = {7, 8, 9};
+    nad_Stack *s = make_stack(src, 3);
+
+    const void *before = nad_stack_to_span(s).data;
+    const size_t cap = nad_stack_cap(s);
+
+    nad_Vec *v = nad_stack_into_vec(s);
+
+    TEST_ASSERT_EQUAL_PTR(before, nad_vec_data(v));
+    TEST_ASSERT_EQUAL_size_t(3, nad_vec_len(v));
+    TEST_ASSERT_EQUAL_size_t(cap, nad_vec_cap(v));
+    TEST_ASSERT_EQUAL_PTR(nad_al_default(), nad_vec_al(v));
+
+    for (size_t i = 0; i < 3; ++i) {
+        TEST_ASSERT_EQUAL_INT32(src[i], *NAD_VEC_GET_AS(int32_t, v, i));
+    }
+
+    nad_vec_drop(v);
+}
+
+static void test_into_vec_of_an_empty_stack() {
+    constexpr int32_t src[1] = {7};
+    nad_Stack *s = make_stack(src, 0);
+
+    nad_Vec *v = nad_stack_into_vec(s);
+
+    TEST_ASSERT_EQUAL_size_t(0, nad_vec_len(v));
+
+    nad_vec_drop(v);
+}
+
+// only the adapter's own header goes back; dropping the vec afterwards squares the books
+static void test_into_vec_releases_the_header_alone() {
+    nad_TestProbe probe;
+    nad_test_probe_reset(&probe);
+    nad_Al al = nad_test_probe_full(&probe);
+
+    nad_Stack *s = nullptr;
+    NAD_TEST_OK(NAD_STACK_NEW(int32_t, &al, &s));
+
+    // the last block the constructor took is the adapter's own header, so this is what
+    // into has to hand back, and with the size it was taken as
+    const size_t header = probe.last_alloc_size;
+
+    NAD_TEST_OK(NAD_STACK_PUSH(int32_t, s, 1));
+    const size_t live = probe.live;
+
+    nad_Vec *v = nad_stack_into_vec(s);
+
+    TEST_ASSERT_EQUAL_size_t(live - 1, probe.live);
+    TEST_ASSERT_EQUAL_size_t(header, probe.last_dealloc_size);
+
+    nad_vec_drop(v);
+    TEST_ASSERT_EQUAL_size_t(0, probe.live);
+}
+
 int main() {
     UNITY_BEGIN();
 
@@ -876,6 +937,11 @@ int main() {
     RUN_TEST(test_eq_of_two_empties);
     RUN_TEST(test_eq_forgets_a_popped_elem);
     RUN_TEST(test_eq_by_asks_the_equality);
+
+
+    RUN_TEST(test_into_vec_hands_the_elems_over);
+    RUN_TEST(test_into_vec_of_an_empty_stack);
+    RUN_TEST(test_into_vec_releases_the_header_alone);
 
     return UNITY_END();
 }

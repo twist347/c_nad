@@ -96,6 +96,15 @@ void nad_pqueue_drop(nad_PQueue *self) {
     nad_dealloc(al_copy, self, sizeof(nad_PQueue));
 }
 
+nad_Vec *nad_pqueue_into_vec(nad_PQueue *self) {
+    ASSERT_PQUEUE(self);
+
+    nad_Vec *vec = self->vec;
+    nad_dealloc(nad_vec_al(vec), self, sizeof(nad_PQueue));
+
+    return vec;
+}
+
 /* ========== copy ========== */
 
 nad_Status nad_pqueue_copy(const nad_PQueue *self, nad_PQueue **out) {

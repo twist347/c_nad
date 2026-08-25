@@ -6,6 +6,7 @@
 #include "nad/core/print.h"
 #include "nad/core/span.h"
 #include "nad/core/status.h"
+#include "nad/ds/vec.h"
 
 #include <stddef.h>
 
@@ -34,6 +35,7 @@
 /// @snippet ds/example_pqueue.c build
 /// @snippet ds/example_pqueue.c serve
 /// @snippet ds/example_pqueue.c order
+/// @snippet ds/example_pqueue.c into
 /// @{
 
 /// Owning queue that serves the greatest elem first.
@@ -79,7 +81,8 @@ nad_Status nad_pqueue_new_cap(size_t cap, size_t elem_size, nad_Cmp cmp, nad_Al 
 ///         len * elem_size overflows
 /// @bigo{n} — heapifying in one pass is cheaper than 'len' pushes, which cost O(n log n)
 [[nodiscard]] NAD_API
-nad_Status nad_pqueue_from_data(const void *data, size_t len, size_t elem_size, nad_Cmp cmp, nad_Al *al, nad_PQueue **out);
+nad_Status nad_pqueue_from_data(const void *data, size_t len, size_t elem_size, nad_Cmp cmp, nad_Al *al,
+                                nad_PQueue **out);
 
 /// a queue over a copy of what 's' views, taking its elem_size
 /// @param s the view to copy, in any order
@@ -97,6 +100,18 @@ nad_Status nad_pqueue_from_span(nad_Span s, nad_Cmp cmp, nad_Al *al, nad_PQueue 
 /// @bigo{1}
 NAD_API
 void nad_pqueue_drop(nad_PQueue *self);
+
+/// hands the elems over to the vec that held them and releases the queue around it
+/// @param self consumed: its header goes back to the allocator, and the handle must not
+///             be used again. Null is not allowed — there would be nothing to hand back
+/// @return the vec, holding the elems in HEAP order rather than sorted, with the capacity
+///         and the allocator they already had. The comparator does not travel with them,
+///         being the queue's rather than the elems'; nad_span_sort_heap over
+///         nad_vec_to_span_mut finishes the sort in place. Nothing is copied, so nothing
+///         can fail
+/// @bigo{1}
+[[nodiscard]] NAD_API
+nad_Vec *nad_pqueue_into_vec(nad_PQueue *self);
 
 /// @}
 

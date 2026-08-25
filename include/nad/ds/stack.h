@@ -6,6 +6,7 @@
 #include "nad/core/print.h"
 #include "nad/core/span.h"
 #include "nad/core/status.h"
+#include "nad/ds/vec.h"
 
 #include <stddef.h>
 
@@ -31,6 +32,7 @@
 /// @snippet ds/example_stack.c build
 /// @snippet ds/example_stack.c lifo
 /// @snippet ds/example_stack.c read
+/// @snippet ds/example_stack.c into
 /// @{
 
 /// Owning last in first out stack.
@@ -91,6 +93,15 @@ nad_Status nad_stack_from_span(nad_Span s, nad_Al *al, nad_Stack **out);
 /// @bigo{1}
 NAD_API
 void nad_stack_drop(nad_Stack *self);
+
+/// hands the elems over to the vec that held them and releases the stack around it
+/// @param self consumed: its header goes back to the allocator, and the handle must not
+///             be used again. Null is not allowed — there would be nothing to hand back
+/// @return the vec, holding the elems bottom to top with the capacity and the allocator
+///         they already had. Nothing is copied, so nothing can fail
+/// @bigo{1}
+[[nodiscard]] NAD_API
+nad_Vec *nad_stack_into_vec(nad_Stack *self);
 
 /// @}
 

@@ -87,6 +87,15 @@ void nad_queue_drop(nad_Queue *self) {
     nad_dealloc(al_copy, self, sizeof(nad_Queue));
 }
 
+nad_Deque *nad_queue_into_deque(nad_Queue *self) {
+    ASSERT_QUEUE(self);
+
+    nad_Deque *deque = self->deque;
+    nad_dealloc(nad_deque_al(deque), self, sizeof(nad_Queue));
+
+    return deque;
+}
+
 /* ========== copy ========== */
 
 nad_Status nad_queue_copy(const nad_Queue *self, nad_Queue **out) {

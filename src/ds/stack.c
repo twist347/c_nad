@@ -87,6 +87,15 @@ void nad_stack_drop(nad_Stack *self) {
     nad_dealloc(al_copy, self, sizeof(nad_Stack));
 }
 
+nad_Vec *nad_stack_into_vec(nad_Stack *self) {
+    ASSERT_STACK(self);
+
+    nad_Vec *vec = self->vec;
+    nad_dealloc(nad_vec_al(vec), self, sizeof(nad_Stack));
+
+    return vec;
+}
+
 /* ========== copy ========== */
 
 nad_Status nad_stack_copy(const nad_Stack *self, nad_Stack **out) {

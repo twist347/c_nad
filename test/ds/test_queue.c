@@ -888,6 +888,63 @@ static void test_eq_by_asks_the_equality() {
     nad_queue_drop(b);
 }
 
+/* ========== into ========== */
+
+// the deque was there all along, ring and all: taking it copies nothing
+static void test_into_deque_hands_the_elems_over() {
+    constexpr int32_t want[4] = {10, 20, 30, 40};
+    nad_Queue *q = make_wrapped();
+
+    const size_t cap = nad_queue_cap(q);
+    nad_Deque *d = nad_queue_into_deque(q);
+
+    TEST_ASSERT_EQUAL_size_t(4, nad_deque_len(d));
+    TEST_ASSERT_EQUAL_size_t(cap, nad_deque_cap(d));
+    TEST_ASSERT_EQUAL_PTR(nad_al_default(), nad_deque_al(d));
+
+    // the elems keep their queue order even though the ring underneath is split
+    for (size_t i = 0; i < 4; ++i) {
+        TEST_ASSERT_EQUAL_INT32(want[i], *NAD_DEQUE_GET_AS(int32_t, d, i));
+    }
+
+    nad_deque_drop(d);
+}
+
+static void test_into_deque_of_an_empty_queue() {
+    constexpr int32_t src[1] = {7};
+    nad_Queue *q = make_queue(src, 0);
+
+    nad_Deque *d = nad_queue_into_deque(q);
+
+    TEST_ASSERT_EQUAL_size_t(0, nad_deque_len(d));
+
+    nad_deque_drop(d);
+}
+
+static void test_into_deque_releases_the_header_alone() {
+    nad_TestProbe probe;
+    nad_test_probe_reset(&probe);
+    nad_Al al = nad_test_probe_full(&probe);
+
+    nad_Queue *q = nullptr;
+    NAD_TEST_OK(NAD_QUEUE_NEW(int32_t, &al, &q));
+
+    // the last block the constructor took is the adapter's own header, so this is what
+    // into has to hand back, and with the size it was taken as
+    const size_t header = probe.last_alloc_size;
+
+    NAD_TEST_OK(NAD_QUEUE_PUSH(int32_t, q, 1));
+    const size_t live = probe.live;
+
+    nad_Deque *d = nad_queue_into_deque(q);
+
+    TEST_ASSERT_EQUAL_size_t(live - 1, probe.live);
+    TEST_ASSERT_EQUAL_size_t(header, probe.last_dealloc_size);
+
+    nad_deque_drop(d);
+    TEST_ASSERT_EQUAL_size_t(0, probe.live);
+}
+
 int main() {
     UNITY_BEGIN();
 
@@ -955,6 +1012,11 @@ int main() {
     RUN_TEST(test_eq_ignores_where_the_ring_starts);
     RUN_TEST(test_eq_is_order_sensitive);
     RUN_TEST(test_eq_by_asks_the_equality);
+
+
+    RUN_TEST(test_into_deque_hands_the_elems_over);
+    RUN_TEST(test_into_deque_of_an_empty_queue);
+    RUN_TEST(test_into_deque_releases_the_header_alone);
 
     return UNITY_END();
 }

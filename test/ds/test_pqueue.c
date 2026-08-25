@@ -1,4 +1,5 @@
 #include "nad/ds/pqueue.h"
+#include "nad/ds/vec.h"
 #include "nad/algo/heap.h"
 #include "nad/algo/permute.h"
 #include "nad/algo/sort.h"
@@ -682,6 +683,82 @@ static void test_a_refused_header_frees_a_filled_buffer() {
     TEST_ASSERT_EQUAL_size_t(0, probe.live);
 }
 
+/* ========== into ========== */
+
+// the vec was there all along: taking it copies nothing and hands the elems over in heap
+// order, which is not sorted order
+static void test_into_vec_hands_the_elems_over() {
+    constexpr int32_t src[6] = {3, 1, 4, 1, 5, 9};
+    nad_PQueue *q = make_queue_from(src, 6);
+
+    const void *before = nad_pqueue_to_span(q).data;
+    const size_t cap = nad_pqueue_cap(q);
+
+    nad_Vec *v = nad_pqueue_into_vec(q);
+
+    TEST_ASSERT_EQUAL_PTR(before, nad_vec_data(v));
+    TEST_ASSERT_EQUAL_size_t(6, nad_vec_len(v));
+    TEST_ASSERT_EQUAL_size_t(cap, nad_vec_cap(v));
+    TEST_ASSERT_EQUAL_PTR(nad_al_default(), nad_vec_al(v));
+
+    // still a heap, so the greatest is at the front and the rest are not sorted yet
+    TEST_ASSERT_TRUE(nad_span_is_heap(nad_vec_to_span(v), nad_cmp_i32));
+    TEST_ASSERT_EQUAL_INT32(9, *NAD_VEC_GET_AS(int32_t, v, 0));
+
+    nad_vec_drop(v);
+}
+
+// the whole point of handing the vec over: sort_heap finishes the job in place, which is
+// heapsort's second half
+static void test_into_vec_then_sort_heap() {
+    constexpr int32_t src[6] = {3, 1, 4, 1, 5, 9};
+    constexpr int32_t want[6] = {1, 1, 3, 4, 5, 9};
+
+    nad_Vec *v = nad_pqueue_into_vec(make_queue_from(src, 6));
+
+    nad_span_sort_heap(nad_vec_to_span_mut(v), nad_cmp_i32);
+
+    for (size_t i = 0; i < 6; ++i) {
+        TEST_ASSERT_EQUAL_INT32(want[i], *NAD_VEC_GET_AS(int32_t, v, i));
+    }
+
+    nad_vec_drop(v);
+}
+
+static void test_into_vec_of_an_empty_queue() {
+    constexpr int32_t src[1] = {7};
+    nad_Vec *v = nad_pqueue_into_vec(make_queue(src, 0));
+
+    TEST_ASSERT_EQUAL_size_t(0, nad_vec_len(v));
+
+    nad_vec_drop(v);
+}
+
+// only the adapter's own header goes back; the comparator does not travel with the elems
+static void test_into_vec_releases_the_header_alone() {
+    nad_TestProbe probe;
+    nad_test_probe_reset(&probe);
+    nad_Al al = nad_test_probe_full(&probe);
+
+    nad_PQueue *q = nullptr;
+    NAD_TEST_OK(NAD_PQUEUE_NEW(int32_t, nad_cmp_i32, &al, &q));
+
+    // the last block the constructor took is the adapter's own header, so this is what
+    // into has to hand back, and with the size it was taken as
+    const size_t header = probe.last_alloc_size;
+
+    NAD_TEST_OK(NAD_PQUEUE_PUSH(int32_t, q, 1));
+    const size_t live = probe.live;
+
+    nad_Vec *v = nad_pqueue_into_vec(q);
+
+    TEST_ASSERT_EQUAL_size_t(live - 1, probe.live);
+    TEST_ASSERT_EQUAL_size_t(header, probe.last_dealloc_size);
+
+    nad_vec_drop(v);
+    TEST_ASSERT_EQUAL_size_t(0, probe.live);
+}
+
 int main() {
     UNITY_BEGIN();
 
@@ -732,6 +809,12 @@ int main() {
     RUN_TEST(test_reserve_reports_an_exhausted_arena);
     RUN_TEST(test_a_refused_header_frees_the_buffer);
     RUN_TEST(test_a_refused_header_frees_a_filled_buffer);
+
+
+    RUN_TEST(test_into_vec_hands_the_elems_over);
+    RUN_TEST(test_into_vec_then_sort_heap);
+    RUN_TEST(test_into_vec_of_an_empty_queue);
+    RUN_TEST(test_into_vec_releases_the_header_alone);
 
     return UNITY_END();
 }

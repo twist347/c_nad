@@ -6,6 +6,7 @@
 #include "nad/core/print.h"
 #include "nad/core/span.h"
 #include "nad/core/status.h"
+#include "nad/ds/deque.h"
 
 #include <stddef.h>
 
@@ -33,6 +34,7 @@
 /// @snippet ds/example_queue.c build
 /// @snippet ds/example_queue.c fifo
 /// @snippet ds/example_queue.c read
+/// @snippet ds/example_queue.c into
 /// @{
 
 /// Owning first in first out queue.
@@ -93,6 +95,15 @@ nad_Status nad_queue_from_span(nad_Span s, nad_Al *al, nad_Queue **out);
 /// @bigo{1}
 NAD_API
 void nad_queue_drop(nad_Queue *self);
+
+/// hands the elems over to the deque that held them and releases the queue around it
+/// @param self consumed: its header goes back to the allocator, and the handle must not
+///             be used again. Null is not allowed — there would be nothing to hand back
+/// @return the deque, holding the elems front to back with the capacity and the allocator
+///         they already had. Nothing is copied, so nothing can fail
+/// @bigo{1}
+[[nodiscard]] NAD_API
+nad_Deque *nad_queue_into_deque(nad_Queue *self);
 
 /// @}
 
