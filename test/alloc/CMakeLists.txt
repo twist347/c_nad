@@ -1,5 +1,6 @@
+nad_add_test(test_alloc_aligned test_aligned.c)
 nad_add_test(test_alloc_alloc test_alloc.c)
 nad_add_test(test_alloc_arena test_arena.c)
 nad_add_test(test_alloc_default test_default.c)
-nad_add_test(test_alloc_pool test_pool.c)
 nad_add_test(test_alloc_log test_log.c)
+nad_add_test(test_alloc_pool test_pool.c)

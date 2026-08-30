@@ -3,6 +3,7 @@
 #include "nad/core/export.h"
 
 #include <stddef.h>
+#include <stdint.h>
 
 /// @file
 

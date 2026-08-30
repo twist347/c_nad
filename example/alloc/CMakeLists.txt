@@ -1,3 +1,4 @@
+nad_add_example(example_alloc_aligned example_aligned.c)
 nad_add_example(example_alloc_alloc example_alloc.c)
 nad_add_example(example_alloc_arena example_arena.c)
 nad_add_example(example_alloc_pool example_pool.c)

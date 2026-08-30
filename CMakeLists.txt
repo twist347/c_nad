@@ -41,6 +41,7 @@ set(NAD_ALGO_SOURCES
 )
 
 set(NAD_ALLOC_SOURCES
+        src/alloc/aligned.c
         src/alloc/alloc.c
         src/alloc/arena.c
         src/alloc/default.c

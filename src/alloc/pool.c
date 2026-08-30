@@ -24,7 +24,7 @@ typedef struct {
     size_t block_size;
     size_t block_count;
     size_t used;
-} nad_AlPoolCtx;
+} PoolCtx;
 
 [[nodiscard]]
 static void *pool_alloc(void *ctx, size_t size);
@@ -34,10 +34,10 @@ static void *pool_calloc(void *ctx, size_t num, size_t size);
 
 static void pool_dealloc(void *ctx, void *ptr, size_t size);
 
-static void pool_build_free_list(nad_AlPoolCtx *ctx);
+static void pool_build_free_list(PoolCtx *ctx);
 
 [[nodiscard]] [[maybe_unused]]
-static bool pool_owns(const nad_AlPoolCtx *ctx, const void *ptr);
+static bool pool_owns(const PoolCtx *ctx, const void *ptr);
 
 /* ========== lifetime ========== */
 
@@ -65,14 +65,14 @@ nad_Al *nad_al_pool_new(nad_Al *parent, size_t block_size, size_t block_count) {
     }
 
     // allocate context
-    nad_AlPoolCtx *pool_ctx = nad_alloc(parent, sizeof(nad_AlPoolCtx));
+    PoolCtx *pool_ctx = nad_alloc(parent, sizeof(PoolCtx));
     if (!pool_ctx) {
         return nullptr;
     }
 
     unsigned char *data = nad_alloc(parent, total_bytes);
     if (!data) {
-        nad_dealloc(parent, pool_ctx, sizeof(nad_AlPoolCtx));
+        nad_dealloc(parent, pool_ctx, sizeof(PoolCtx));
         return nullptr;
     }
 
@@ -91,7 +91,7 @@ nad_Al *nad_al_pool_new(nad_Al *parent, size_t block_size, size_t block_count) {
     nad_Al *al = nad_alloc(parent, sizeof(nad_Al));
     if (!al) {
         nad_dealloc(parent, data, total_bytes);
-        nad_dealloc(parent, pool_ctx, sizeof(nad_AlPoolCtx));
+        nad_dealloc(parent, pool_ctx, sizeof(PoolCtx));
         return nullptr;
     }
 
@@ -111,12 +111,12 @@ void nad_al_pool_drop(nad_Al *al) {
 
     assert(al->ctx);
 
-    nad_AlPoolCtx *pool_ctx = al->ctx;
+    PoolCtx *pool_ctx = al->ctx;
     nad_Al *parent_al = pool_ctx->parent_al;
     assert(parent_al);
 
     nad_dealloc(parent_al, pool_ctx->data, pool_ctx->block_size * pool_ctx->block_count);
-    nad_dealloc(parent_al, pool_ctx, sizeof(nad_AlPoolCtx));
+    nad_dealloc(parent_al, pool_ctx, sizeof(PoolCtx));
     nad_dealloc(parent_al, al, sizeof(nad_Al));
 }
 
@@ -124,7 +124,7 @@ void nad_al_pool_reset(nad_Al *al) {
     assert(al);
     assert(al->ctx);
 
-    nad_AlPoolCtx *pool_ctx = al->ctx;
+    PoolCtx *pool_ctx = al->ctx;
     pool_ctx->used = 0;
     pool_build_free_list(pool_ctx);
 }
@@ -133,7 +133,7 @@ nad_AlPoolStats nad_al_pool_stats(const nad_Al *al) {
     assert(al);
     assert(al->ctx);
 
-    const nad_AlPoolCtx *pool_ctx = al->ctx;
+    const PoolCtx *pool_ctx = al->ctx;
 
     return (nad_AlPoolStats){
         .block_size = pool_ctx->block_size,
@@ -152,7 +152,7 @@ static void *pool_alloc(void *ctx, size_t size) {
         return nullptr;
     }
 
-    nad_AlPoolCtx *pool_ctx = ctx;
+    PoolCtx *pool_ctx = ctx;
     if (size > pool_ctx->block_size) {
         return nullptr;
     }
@@ -190,7 +190,7 @@ static void pool_dealloc(void *ctx, void *ptr, size_t size) {
         return;
     }
 
-    nad_AlPoolCtx *pool_ctx = ctx;
+    PoolCtx *pool_ctx = ctx;
 
     assert(pool_owns(pool_ctx, ptr));
     assert(pool_ctx->used > 0);
@@ -202,7 +202,7 @@ static void pool_dealloc(void *ctx, void *ptr, size_t size) {
     --pool_ctx->used;
 }
 
-static void pool_build_free_list(nad_AlPoolCtx *ctx) {
+static void pool_build_free_list(PoolCtx *ctx) {
     assert(ctx);
     ctx->free_head = nullptr;
 
@@ -214,7 +214,7 @@ static void pool_build_free_list(nad_AlPoolCtx *ctx) {
     }
 }
 
-static bool pool_owns(const nad_AlPoolCtx *ctx, const void *ptr) {
+static bool pool_owns(const PoolCtx *ctx, const void *ptr) {
     const unsigned char *p = ptr;
     const unsigned char *begin = ctx->data;
     const unsigned char *end = ctx->data + ctx->block_size * ctx->block_count;

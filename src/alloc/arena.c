@@ -25,7 +25,7 @@ typedef struct {
     void *data;
     size_t cap;
     size_t offset;
-} nad_AlArenaCtx;
+} ArenaCtx;
 
 /* ========== lifetime ========== */
 
@@ -38,7 +38,7 @@ nad_Al *nad_al_arena_new(nad_Al *parent, size_t cap) {
         return nullptr;
     }
 
-    nad_AlArenaCtx *arena_ctx = nad_alloc(parent, sizeof(nad_AlArenaCtx));
+    ArenaCtx *arena_ctx = nad_alloc(parent, sizeof(ArenaCtx));
     if (!arena_ctx) {
         nad_dealloc(parent, data, cap);
         return nullptr;
@@ -46,7 +46,7 @@ nad_Al *nad_al_arena_new(nad_Al *parent, size_t cap) {
 
     nad_Al *al = nad_alloc(parent, sizeof(nad_Al));
     if (!al) {
-        nad_dealloc(parent, arena_ctx, sizeof(nad_AlArenaCtx));
+        nad_dealloc(parent, arena_ctx, sizeof(ArenaCtx));
         nad_dealloc(parent, data, cap);
         return nullptr;
     }
@@ -74,12 +74,12 @@ void nad_al_arena_drop(nad_Al *al) {
 
     assert(al->ctx);
 
-    nad_AlArenaCtx *arena_ctx = al->ctx;
+    ArenaCtx *arena_ctx = al->ctx;
     nad_Al *parent_al = arena_ctx->parent_al;
     assert(parent_al);
 
     nad_dealloc(parent_al, arena_ctx->data, arena_ctx->cap);
-    nad_dealloc(parent_al, arena_ctx, sizeof(nad_AlArenaCtx));
+    nad_dealloc(parent_al, arena_ctx, sizeof(ArenaCtx));
     nad_dealloc(parent_al, al, sizeof(nad_Al));
 }
 
@@ -89,7 +89,7 @@ void nad_al_arena_reset(nad_Al *al) {
     assert(al);
     assert(al->ctx);
 
-    nad_AlArenaCtx *arena_ctx = al->ctx;
+    ArenaCtx *arena_ctx = al->ctx;
     arena_ctx->offset = 0;
 }
 
@@ -99,7 +99,7 @@ nad_AlArenaStats nad_al_arena_stats(const nad_Al *al) {
     assert(al);
     assert(al->ctx);
 
-    const nad_AlArenaCtx *arena_ctx = al->ctx;
+    const ArenaCtx *arena_ctx = al->ctx;
 
     return (nad_AlArenaStats){
         .cap = arena_ctx->cap,
@@ -113,7 +113,7 @@ nad_AlArenaStats nad_al_arena_stats(const nad_Al *al) {
 static void *arena_alloc(void *ctx, size_t size) {
     assert(ctx);
 
-    nad_AlArenaCtx *arena_ctx = ctx;
+    ArenaCtx *arena_ctx = ctx;
 
     if (size == 0) {
         return nullptr;

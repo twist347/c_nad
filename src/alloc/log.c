@@ -22,7 +22,7 @@ static void log_dealloc(void *ctx, void *ptr, size_t size);
 typedef struct {
     nad_Al *wrapped;
     FILE *stream;
-} nad_AlLogCtx;
+} LogCtx;
 
 /* ========== lifetime ========== */
 
@@ -30,7 +30,7 @@ nad_Al *nad_al_log_new(nad_Al *wrapped, FILE *stream) {
     assert(wrapped);
     assert(stream);
 
-    nad_AlLogCtx *log_ctx = nad_alloc(wrapped, sizeof(nad_AlLogCtx));
+    LogCtx *log_ctx = nad_alloc(wrapped, sizeof(LogCtx));
     if (!log_ctx) {
         return nullptr;
     }
@@ -40,7 +40,7 @@ nad_Al *nad_al_log_new(nad_Al *wrapped, FILE *stream) {
 
     nad_Al *alloc = nad_alloc(wrapped, sizeof(nad_Al));
     if (!alloc) {
-        nad_dealloc(wrapped, log_ctx, sizeof(nad_AlLogCtx));
+        nad_dealloc(wrapped, log_ctx, sizeof(LogCtx));
         return nullptr;
     }
 
@@ -64,7 +64,7 @@ void nad_al_log_drop(nad_Al *self) {
         return;
     }
 
-    nad_AlLogCtx *log_ctx = self->ctx;
+    LogCtx *log_ctx = self->ctx;
     assert(log_ctx);
 
     fprintf(
@@ -78,7 +78,7 @@ void nad_al_log_drop(nad_Al *self) {
     assert(wrapped);
 
     nad_dealloc(wrapped, self, sizeof(nad_Al));
-    nad_dealloc(wrapped, log_ctx, sizeof(nad_AlLogCtx));
+    nad_dealloc(wrapped, log_ctx, sizeof(LogCtx));
 }
 
 /* ========== internals ========== */
@@ -86,7 +86,7 @@ void nad_al_log_drop(nad_Al *self) {
 static void *log_alloc(void *ctx, size_t size) {
     assert(ctx);
 
-    const nad_AlLogCtx *log_ctx = ctx;
+    const LogCtx *log_ctx = ctx;
     assert(log_ctx->stream);
 
     void *p = nad_alloc(log_ctx->wrapped, size);
@@ -102,7 +102,7 @@ static void *log_alloc(void *ctx, size_t size) {
 static void *log_calloc(void *ctx, size_t num, size_t size) {
     assert(ctx);
 
-    const nad_AlLogCtx *log_ctx = ctx;
+    const LogCtx *log_ctx = ctx;
     assert(log_ctx->stream);
 
     void *p = nad_calloc(log_ctx->wrapped, num, size);
@@ -118,7 +118,7 @@ static void *log_calloc(void *ctx, size_t num, size_t size) {
 static void *log_realloc(void *ctx, void *ptr, size_t old_size, size_t new_size) {
     assert(ctx);
 
-    const nad_AlLogCtx *log_ctx = ctx;
+    const LogCtx *log_ctx = ctx;
     assert(log_ctx->stream);
 
     void *p = nad_realloc(log_ctx->wrapped, ptr, old_size, new_size);
@@ -134,7 +134,7 @@ static void *log_realloc(void *ctx, void *ptr, size_t old_size, size_t new_size)
 static void log_dealloc(void *ctx, void *ptr, size_t size) {
     assert(ctx);
 
-    const nad_AlLogCtx *log_ctx = ctx;
+    const LogCtx *log_ctx = ctx;
     assert(log_ctx->stream);
 
     fprintf(
