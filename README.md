@@ -120,6 +120,38 @@ The reference, generated from the same headers:
 doxygen docs/Doxyfile   # -> build-docs/html/index.html
 ```
 
+## Use it in a project
+
+There is no `install` step yet, so nadc is consumed as a source dependency. Either way the
+target to link is the alias `nadc::nadc`, which carries the include path and the C23
+requirement with it.
+
+With `FetchContent`:
+
+```cmake
+include(FetchContent)
+FetchContent_Declare(nadc
+    GIT_REPOSITORY https://github.com/twist347/c_nad.git
+    GIT_TAG main
+)
+FetchContent_MakeAvailable(nadc)
+
+target_link_libraries(app PRIVATE nadc::nadc)
+```
+
+As a submodule:
+
+```sh
+git submodule add https://github.com/twist347/c_nad.git \
+    thirdparty/nadc
+```
+
+```cmake
+add_subdirectory(thirdparty/nadc)
+
+target_link_libraries(app PRIVATE nadc::nadc)
+```
+
 ## License
 
 MIT — see [LICENSE](https://github.com/twist347/c-naive-algorithms-and-data-structures/blob/main/LICENSE).

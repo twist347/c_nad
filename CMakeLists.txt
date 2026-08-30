@@ -1,11 +1,29 @@
 cmake_minimum_required(VERSION 3.22)
 
-project(nadc LANGUAGES C)
-if (NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
-    set(CMAKE_BUILD_TYPE Debug CACHE STRING "Build type" FORCE)
+project(nadc
+        VERSION 0.1.0
+        DESCRIPTION "Naive algorithms and data structures in C23"
+        LANGUAGES C
+)
+
+if (PROJECT_IS_TOP_LEVEL)
+    if (NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
+        set(CMAKE_BUILD_TYPE Debug CACHE STRING "Build type" FORCE)
+    endif ()
+    set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+    set(CMAKE_C_EXTENSIONS OFF)
 endif ()
 
-set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+set(NAD_C_STANDARD 23)
+
+option(NAD_BUILD_SHARED "Build nadc as a shared library" ${PROJECT_IS_TOP_LEVEL})
+option(NAD_BUILD_TEST "Build unit tests" ${PROJECT_IS_TOP_LEVEL})
+option(NAD_BUILD_EXAMPLE "Build the examples the reference quotes" ${PROJECT_IS_TOP_LEVEL})
+
+set(NAD_WARNINGS
+        $<$<C_COMPILER_ID:GNU,Clang,AppleClang>:-Wall;-Wextra;-Wpedantic>
+        $<$<C_COMPILER_ID:MSVC>:/W4>
+)
 
 set(NAD_ALGO_SOURCES
         src/algo/compare.c
@@ -59,72 +77,78 @@ set(NAD_SOURCES
         ${NAD_DS_SOURCES}
 )
 
-add_library(nadc_api INTERFACE)
-target_include_directories(nadc_api INTERFACE ${PROJECT_SOURCE_DIR}/include)
-set(NAD_C_STANDARD 23)
-target_compile_features(nadc_api INTERFACE c_std_${NAD_C_STANDARD})
-target_link_libraries(nadc_api INTERFACE m)
+if (NAD_BUILD_SHARED)
+    set(NAD_LIBRARY_TYPE SHARED)
+else ()
+    set(NAD_LIBRARY_TYPE STATIC)
+endif ()
 
-option(BUILD_SHARED_LIBS "Build nadc as a shared library" ON)
-
-add_library(nadc ${NAD_SOURCES})
+add_library(nadc ${NAD_LIBRARY_TYPE} ${NAD_SOURCES})
 add_library(nadc::nadc ALIAS nadc)
-target_link_libraries(nadc PUBLIC nadc_api)
-target_compile_options(nadc PRIVATE -Wall -Wextra -Wpedantic)
-target_include_directories(nadc PRIVATE ${PROJECT_SOURCE_DIR}/src)
+
+target_include_directories(nadc
+        PUBLIC $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
+               $<INSTALL_INTERFACE:include>
+        PRIVATE ${PROJECT_SOURCE_DIR}/src
+)
+target_compile_features(nadc PUBLIC c_std_${NAD_C_STANDARD})
+target_compile_options(nadc PRIVATE ${NAD_WARNINGS})
+
+if (UNIX)
+    target_link_libraries(nadc PUBLIC m)
+endif ()
 
 target_compile_definitions(nadc
         PRIVATE NAD_BUILD
-        PUBLIC $<$<NOT:$<BOOL:${BUILD_SHARED_LIBS}>>:NAD_STATIC>
+        PUBLIC $<$<NOT:$<BOOL:${NAD_BUILD_SHARED}>>:NAD_STATIC>
 )
+
 set_target_properties(nadc PROPERTIES
+        VERSION ${PROJECT_VERSION}
+        SOVERSION ${PROJECT_VERSION_MAJOR}
         POSITION_INDEPENDENT_CODE ON
         C_EXTENSIONS OFF
         C_VISIBILITY_PRESET hidden
         VISIBILITY_INLINES_HIDDEN ON
 )
 
-# Release only. The algo modules reach into ds/span for every element access, so without
-# cross-TU inlining those stay real calls; with it the sort loses about a third of its
-# time. Debug keeps it off — it slows linking and blurs the code the debugger shows.
 include(CheckIPOSupported)
 check_ipo_supported(RESULT NAD_IPO_SUPPORTED OUTPUT NAD_IPO_ERROR)
 if (NAD_IPO_SUPPORTED)
-    set_property(TARGET nadc PROPERTY INTERPROCEDURAL_OPTIMIZATION_RELEASE ON)
+    set_target_properties(nadc PROPERTIES
+            INTERPROCEDURAL_OPTIMIZATION_RELEASE ON
+            INTERPROCEDURAL_OPTIMIZATION_RELWITHDEBINFO ON
+    )
 else ()
     message(STATUS "  LTO unavailable : ${NAD_IPO_ERROR}")
 endif ()
 
-option(NAD_BUILD_TEST "Build unit tests" ${PROJECT_IS_TOP_LEVEL})
+if (NAD_BUILD_TEST OR NAD_BUILD_EXAMPLE)
+    enable_testing()
+endif ()
 
 if (NAD_BUILD_TEST)
     set(UNITY_DIR ${PROJECT_SOURCE_DIR}/thirdparty/Unity-2.7.0)
     add_subdirectory(${UNITY_DIR} EXCLUDE_FROM_ALL)
     target_compile_definitions(unity PUBLIC UNITY_INCLUDE_DOUBLE UNITY_INCLUDE_FLOAT)
 
-    enable_testing()
     add_subdirectory(test)
 endif ()
 
-option(NAD_BUILD_EXAMPLE "Build the examples the reference quotes" ${PROJECT_IS_TOP_LEVEL})
-
 if (NAD_BUILD_EXAMPLE)
-    enable_testing()
     add_subdirectory(example)
 endif ()
 
-if (BUILD_SHARED_LIBS)
-    set(NAD_LIBRARY_TYPE "shared")
-else ()
-    set(NAD_LIBRARY_TYPE "static")
+if (PROJECT_IS_TOP_LEVEL)
+    string(TOLOWER ${NAD_LIBRARY_TYPE} NAD_LIBRARY_TYPE_LOWER)
+    message(STATUS "")
+    message(STATUS "nadc configuration:")
+    message(STATUS "  version        : ${PROJECT_VERSION}")
+    message(STATUS "  build type     : ${CMAKE_BUILD_TYPE}")
+    message(STATUS "  library        : ${NAD_LIBRARY_TYPE_LOWER}")
+    message(STATUS "  compiler       : ${CMAKE_C_COMPILER_ID} ${CMAKE_C_COMPILER_VERSION}")
+    message(STATUS "  C standard     : C${NAD_C_STANDARD}")
+    message(STATUS "  tests          : ${NAD_BUILD_TEST}")
+    message(STATUS "  examples       : ${NAD_BUILD_EXAMPLE}")
+    message(STATUS "")
 endif ()
-
-message(STATUS "")
-message(STATUS "nadc configuration:")
-message(STATUS "  build type     : ${CMAKE_BUILD_TYPE}")
-message(STATUS "  library        : ${NAD_LIBRARY_TYPE}")
-message(STATUS "  compiler       : ${CMAKE_C_COMPILER_ID} ${CMAKE_C_COMPILER_VERSION}")
-message(STATUS "  C standard     : C${NAD_C_STANDARD}")
-message(STATUS "  tests          : ${NAD_BUILD_TEST}")
-message(STATUS "  examples       : ${NAD_BUILD_EXAMPLE}")
-message(STATUS "")

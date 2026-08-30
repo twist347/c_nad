@@ -7,7 +7,7 @@ function(nad_add_test target_name source_file)
 
     # test/support is header-only; this makes #include "support/..." work
     target_include_directories(${target_name} PRIVATE ${NAD_TEST_ROOT})
-    target_compile_options(${target_name} PRIVATE -Wall -Wextra -pedantic)
+    target_compile_options(${target_name} PRIVATE ${NAD_WARNINGS})
 
     add_test(NAME ${target_name} COMMAND ${target_name})
 
