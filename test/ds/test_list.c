@@ -1419,7 +1419,7 @@ static void test_new_reports_an_exhausted_arena() {
     nad_test_arena_leave(arena, 0);
 
     nad_List *l = nullptr;
-    NAD_TEST_STATUS(NAD_STATUS_OUT_OF_MEMORY, NAD_LIST_NEW(int32_t, arena, &l));
+    NAD_TEST_STATUS(NAD_STATUS_ERR_NO_MEM, NAD_LIST_NEW(int32_t, arena, &l));
 
     TEST_ASSERT_NULL(l); // out is untouched on failure
 
@@ -1434,7 +1434,7 @@ static void test_push_back_reports_an_exhausted_arena() {
     NAD_TEST_OK(NAD_LIST_OF(int32_t, arena, &l, 1, 2));
     nad_test_arena_leave(arena, 0);
 
-    NAD_TEST_STATUS(NAD_STATUS_OUT_OF_MEMORY, NAD_LIST_PUSH_BACK(int32_t, l, 3));
+    NAD_TEST_STATUS(NAD_STATUS_ERR_NO_MEM, NAD_LIST_PUSH_BACK(int32_t, l, 3));
 
     assert_elems(l, (int32_t[]){1, 2}, 2); // the list is exactly as it was
 
@@ -1449,7 +1449,7 @@ static void test_push_front_reports_an_exhausted_arena() {
     NAD_TEST_OK(NAD_LIST_OF(int32_t, arena, &l, 1, 2));
     nad_test_arena_leave(arena, 0);
 
-    NAD_TEST_STATUS(NAD_STATUS_OUT_OF_MEMORY, NAD_LIST_PUSH_FRONT(int32_t, l, 0));
+    NAD_TEST_STATUS(NAD_STATUS_ERR_NO_MEM, NAD_LIST_PUSH_FRONT(int32_t, l, 0));
 
     assert_elems(l, (int32_t[]){1, 2}, 2);
 
@@ -1465,7 +1465,7 @@ static void test_insert_reports_an_exhausted_arena() {
     nad_test_arena_leave(arena, 0);
 
     NAD_TEST_STATUS(
-        NAD_STATUS_OUT_OF_MEMORY,
+        NAD_STATUS_ERR_NO_MEM,
         NAD_LIST_INSERT_AFTER(int32_t, l, nad_list_first_node_mut(l), 9)
     );
 
@@ -1486,7 +1486,7 @@ static void test_from_data_rolls_back_the_partial_list() {
     nad_test_probe_fail_after_next(&probe, 3); // struct + 2 nodes, then refuse
 
     NAD_TEST_STATUS(
-        NAD_STATUS_OUT_OF_MEMORY,
+        NAD_STATUS_ERR_NO_MEM,
         NAD_LIST_FROM_DATA(int32_t, src, 4, &al, &l)
     );
 
@@ -1505,7 +1505,7 @@ static void test_copy_rolls_back_the_partial_clone() {
 
     nad_test_probe_fail_after_next(&probe, 2); // struct + 1 node, then refuse
     nad_List *c = nullptr;
-    NAD_TEST_STATUS(NAD_STATUS_OUT_OF_MEMORY, nad_list_copy(l, &c));
+    NAD_TEST_STATUS(NAD_STATUS_ERR_NO_MEM, nad_list_copy(l, &c));
 
     TEST_ASSERT_NULL(c);
     TEST_ASSERT_EQUAL_size_t(live, probe.live); // nothing of the clone survived
@@ -1528,7 +1528,7 @@ static void test_copy_assign_leaves_the_target_untouched_on_failure() {
     const size_t live = probe.live;
 
     nad_test_probe_fail_after_next(&probe, 1); // one node of the two it needs
-    NAD_TEST_STATUS(NAD_STATUS_OUT_OF_MEMORY, nad_list_copy_assign(src, dst));
+    NAD_TEST_STATUS(NAD_STATUS_ERR_NO_MEM, nad_list_copy_assign(src, dst));
 
     assert_elems(dst, (int32_t[]){7, 8}, 2);
     TEST_ASSERT_EQUAL_size_t(live, probe.live);
@@ -1549,7 +1549,7 @@ static void test_splice_across_allocators_reports_failure() {
     nad_List *src = make_list(3);
 
     nad_test_probe_fail_after_next(&probe, 1); // struct of the clone, then refuse
-    NAD_TEST_STATUS(NAD_STATUS_OUT_OF_MEMORY, nad_list_splice_back(dst, src));
+    NAD_TEST_STATUS(NAD_STATUS_ERR_NO_MEM, nad_list_splice_back(dst, src));
 
     assert_elems(src, (int32_t[]){0, 1, 2}, 3); // the source keeps its nodes
     assert_empty(dst);
@@ -1571,7 +1571,7 @@ static void test_splice_node_across_allocators_reports_failure() {
     nad_test_arena_leave(arena, 0);
 
     NAD_TEST_STATUS(
-        NAD_STATUS_OUT_OF_MEMORY,
+        NAD_STATUS_ERR_NO_MEM,
         nad_list_splice_node(b, nullptr, a, node_at(a, 1))
     );
 
@@ -1595,7 +1595,7 @@ static void test_merge_across_allocators_reports_failure() {
     NAD_TEST_OK(NAD_LIST_OF(int32_t, nad_al_default(), &b, 2, 9));
     nad_test_arena_leave(arena, 0);
 
-    NAD_TEST_STATUS(NAD_STATUS_OUT_OF_MEMORY, nad_list_merge(a, b, nad_cmp_i32));
+    NAD_TEST_STATUS(NAD_STATUS_ERR_NO_MEM, nad_list_merge(a, b, nad_cmp_i32));
 
     constexpr int32_t want_a[2] = {1, 5};
     constexpr int32_t want_b[2] = {2, 9};

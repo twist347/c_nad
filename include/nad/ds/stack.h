@@ -47,7 +47,7 @@ typedef struct nad_Stack nad_Stack;
 /// @param al the allocator, kept for everything after
 /// @param[out] out the new stack, written only on success
 /// @retval NAD_STATUS_OK on success
-/// @retval NAD_STATUS_OUT_OF_MEMORY when the header or the vec cannot be allocated
+/// @retval NAD_STATUS_ERR_NO_MEM when the header or the vec cannot be allocated
 /// @bigo{1}
 [[nodiscard]] NAD_API
 nad_Status nad_stack_new(size_t elem_size, nad_Al *al, nad_Stack **out);
@@ -58,7 +58,7 @@ nad_Status nad_stack_new(size_t elem_size, nad_Al *al, nad_Stack **out);
 /// @param al the allocator
 /// @param[out] out the new stack, written only on success
 /// @retval NAD_STATUS_OK on success
-/// @retval NAD_STATUS_OUT_OF_MEMORY when the block cannot be allocated, or
+/// @retval NAD_STATUS_ERR_NO_MEM when the block cannot be allocated, or
 ///         cap * elem_size overflows
 /// @bigo{n}
 [[nodiscard]] NAD_API
@@ -72,7 +72,7 @@ nad_Status nad_stack_new_cap(size_t cap, size_t elem_size, nad_Al *al, nad_Stack
 /// @param al the allocator
 /// @param[out] out the new stack, written only on success
 /// @retval NAD_STATUS_OK on success
-/// @retval NAD_STATUS_OUT_OF_MEMORY when the block cannot be allocated, or
+/// @retval NAD_STATUS_ERR_NO_MEM when the block cannot be allocated, or
 ///         len * elem_size overflows
 /// @bigo{n}
 [[nodiscard]] NAD_API
@@ -83,7 +83,7 @@ nad_Status nad_stack_from_data(const void *data, size_t len, size_t elem_size, n
 /// @param al the allocator
 /// @param[out] out the new stack, written only on success
 /// @retval NAD_STATUS_OK on success
-/// @retval NAD_STATUS_OUT_OF_MEMORY when the block cannot be allocated
+/// @retval NAD_STATUS_ERR_NO_MEM when the block cannot be allocated
 /// @bigo{n}
 [[nodiscard]] NAD_API
 nad_Status nad_stack_from_span(nad_Span s, nad_Al *al, nad_Stack **out);
@@ -112,7 +112,7 @@ nad_Vec *nad_stack_into_vec(nad_Stack *self);
 /// @param self the stack to copy
 /// @param[out] out the new stack, written only on success
 /// @retval NAD_STATUS_OK on success
-/// @retval NAD_STATUS_OUT_OF_MEMORY when the header or the block cannot be allocated
+/// @retval NAD_STATUS_ERR_NO_MEM when the header or the block cannot be allocated
 /// @bigo{n}
 [[nodiscard]] NAD_API
 nad_Status nad_stack_copy(const nad_Stack *self, nad_Stack **out);
@@ -122,7 +122,7 @@ nad_Status nad_stack_copy(const nad_Stack *self, nad_Stack **out);
 /// @param[in,out] other must have the same elem_size; keeps its own allocator, and
 ///                      'self' == 'other' is a no-op
 /// @retval NAD_STATUS_OK on success
-/// @retval NAD_STATUS_OUT_OF_MEMORY when the block cannot grow, leaving 'other' as it was
+/// @retval NAD_STATUS_ERR_NO_MEM when the block cannot grow, leaving 'other' as it was
 /// @bigo{n}
 [[nodiscard]] NAD_API
 nad_Status nad_stack_copy_assign(const nad_Stack *self, nad_Stack *other);
@@ -211,7 +211,7 @@ void *nad_stack_top_mut(nad_Stack *self);
 /// @param val must not point into the stack's own elems: a push that grows moves them out
 ///            from under it
 /// @retval NAD_STATUS_OK on success
-/// @retval NAD_STATUS_OUT_OF_MEMORY when the block cannot grow
+/// @retval NAD_STATUS_ERR_NO_MEM when the block cannot grow
 /// @bigo{1} amortized
 [[nodiscard]] NAD_API
 nad_Status nad_stack_push(nad_Stack *self, const void *val);
@@ -233,7 +233,7 @@ void nad_stack_clear(nad_Stack *self);
 /// @param self the stack
 /// @param new_cap a capacity at or below the one it has is a no-op
 /// @retval NAD_STATUS_OK on success
-/// @retval NAD_STATUS_OUT_OF_MEMORY when the block cannot grow, or new_cap * elem_size
+/// @retval NAD_STATUS_ERR_NO_MEM when the block cannot grow, or new_cap * elem_size
 ///         overflows
 /// @bigo{n}
 [[nodiscard]] NAD_API
@@ -242,7 +242,7 @@ nad_Status nad_stack_reserve(nad_Stack *self, size_t new_cap);
 /// gives back the room above the length
 /// @param self a length of 0 releases the block outright
 /// @retval NAD_STATUS_OK on success, and when there was nothing to give back
-/// @retval NAD_STATUS_OUT_OF_MEMORY when the allocator refuses the smaller block, leaving
+/// @retval NAD_STATUS_ERR_NO_MEM when the allocator refuses the smaller block, leaving
 ///         the stack as it was
 /// @bigo{n}
 [[nodiscard]] NAD_API
@@ -254,7 +254,7 @@ nad_Status nad_stack_shrink_to_fit(nad_Stack *self);
 /// @retval NAD_STATUS_OK on success; on one allocator the blocks are handed over and the
 ///         capacity travels with them, on two the bytes are moved and each side is left
 ///         sized to its new content
-/// @retval NAD_STATUS_OUT_OF_MEMORY when the two sit on different allocators and a block
+/// @retval NAD_STATUS_ERR_NO_MEM when the two sit on different allocators and a block
 ///         cannot be taken, leaving both as they were
 /// @bigo{1} on one allocator, n on two
 [[nodiscard]] NAD_API

@@ -286,7 +286,7 @@ static nad_Status wrap(nad_HMap *map, nad_HSet **out) {
     nad_HSet *obj = nad_alloc(nad_hmap_al(map), sizeof(nad_HSet));
     if (!obj) {
         nad_hmap_drop(map);
-        return NAD_STATUS_OUT_OF_MEMORY;
+        return NAD_STATUS_ERR_NO_MEM;
     }
 
     obj->map = map;

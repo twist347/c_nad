@@ -314,7 +314,7 @@ static void test_sort_stable_reports_an_exhausted_arena() {
     int32_t buf[8] = {8, 7, 6, 5, 4, 3, 2, 1};
 
     TEST_ASSERT_EQUAL_INT(
-        NAD_STATUS_OUT_OF_MEMORY,
+        NAD_STATUS_ERR_NO_MEM,
         nad_span_sort_stable(NAD_SPAN_NEW_MUT(int32_t, buf, 8), nad_cmp_i32, arena)
     );
 

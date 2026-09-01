@@ -91,7 +91,7 @@ size_t nad_span_partition(nad_SpanMut s, nad_Pred pred, void *ctx);
 ///           nad_span_sort_stable
 /// @param[out] out_boundary where the front part ends, written only on success
 /// @retval NAD_STATUS_OK on success
-/// @retval NAD_STATUS_OUT_OF_MEMORY when 'al' cannot give the buffer; 's' is untouched
+/// @retval NAD_STATUS_ERR_NO_MEM when 'al' cannot give the buffer; 's' is untouched
 /// @bigo{n}
 [[nodiscard]] NAD_API
 nad_Status nad_span_partition_stable(

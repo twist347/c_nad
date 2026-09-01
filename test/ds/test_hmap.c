@@ -1090,7 +1090,7 @@ static void test_new_reports_an_exhausted_arena() {
 
     nad_HMap *m = nullptr;
     NAD_TEST_STATUS(
-        NAD_STATUS_OUT_OF_MEMORY,
+        NAD_STATUS_ERR_NO_MEM,
         NAD_HMAP_NEW(int32_t, int32_t, nad_hash_i32, nad_eq_i32, arena, &m)
     );
     TEST_ASSERT_NULL(m);
@@ -1108,7 +1108,7 @@ static void test_new_cap_frees_the_header_when_the_buckets_are_refused() {
 
     nad_HMap *m = nullptr;
     NAD_TEST_STATUS(
-        NAD_STATUS_OUT_OF_MEMORY,
+        NAD_STATUS_ERR_NO_MEM,
         NAD_HMAP_NEW_CAP(int32_t, int32_t, 16, nad_hash_i32, nad_eq_i32, &al, &m)
     );
 
@@ -1125,7 +1125,7 @@ static void test_insert_reports_an_exhausted_arena_and_changes_nothing() {
     put(m, 1, 10);
     nad_test_arena_leave(arena, 0);
 
-    NAD_TEST_STATUS(NAD_STATUS_OUT_OF_MEMORY, NAD_HMAP_INSERT(int32_t, int32_t, m, 2, 20, nullptr));
+    NAD_TEST_STATUS(NAD_STATUS_ERR_NO_MEM, NAD_HMAP_INSERT(int32_t, int32_t, m, 2, 20, nullptr));
 
     TEST_ASSERT_EQUAL_size_t(1, nad_hmap_len(m));
     assert_has(m, 1, 10);
@@ -1160,7 +1160,7 @@ static void test_reserve_reports_an_exhausted_arena() {
     put(m, 1, 10);
     nad_test_arena_leave(arena, 0);
 
-    NAD_TEST_STATUS(NAD_STATUS_OUT_OF_MEMORY, nad_hmap_reserve(m, 100000));
+    NAD_TEST_STATUS(NAD_STATUS_ERR_NO_MEM, nad_hmap_reserve(m, 100000));
 
     TEST_ASSERT_EQUAL_size_t(1, nad_hmap_len(m));
     assert_has(m, 1, 10);
@@ -1178,7 +1178,7 @@ static void test_copy_reports_an_exhausted_arena() {
     nad_test_arena_leave(arena, 0);
 
     nad_HMap *dst = nullptr;
-    NAD_TEST_STATUS(NAD_STATUS_OUT_OF_MEMORY, nad_hmap_copy(src, &dst));
+    NAD_TEST_STATUS(NAD_STATUS_ERR_NO_MEM, nad_hmap_copy(src, &dst));
     TEST_ASSERT_NULL(dst);
 
     nad_al_arena_drop(arena);
@@ -1196,7 +1196,7 @@ static void test_copy_assign_leaves_the_target_untouched_on_failure() {
     put(dst, 7, 70);
     nad_test_arena_leave(arena, 0);
 
-    NAD_TEST_STATUS(NAD_STATUS_OUT_OF_MEMORY, nad_hmap_copy_assign(src, dst));
+    NAD_TEST_STATUS(NAD_STATUS_ERR_NO_MEM, nad_hmap_copy_assign(src, dst));
 
     TEST_ASSERT_EQUAL_size_t(1, nad_hmap_len(dst));
     assert_has(dst, 7, 70);
@@ -1217,7 +1217,7 @@ static void test_a_refused_node_leaves_nothing_behind() {
 
     nad_test_probe_fail_after_next(&probe, 0);
 
-    NAD_TEST_STATUS(NAD_STATUS_OUT_OF_MEMORY, NAD_HMAP_INSERT(int32_t, int32_t, m, 2, 20, nullptr));
+    NAD_TEST_STATUS(NAD_STATUS_ERR_NO_MEM, NAD_HMAP_INSERT(int32_t, int32_t, m, 2, 20, nullptr));
 
     TEST_ASSERT_EQUAL_size_t(1, nad_hmap_len(m));
     assert_has(m, 1, 10);
@@ -1237,7 +1237,7 @@ static void test_get_or_insert_reports_an_exhausted_arena() {
 
     nad_HMapNode *node = nullptr;
     NAD_TEST_STATUS(
-        NAD_STATUS_OUT_OF_MEMORY,
+        NAD_STATUS_ERR_NO_MEM,
         NAD_HMAP_GET_OR_INSERT(int32_t, int32_t, m, 2, 20, &node)
     );
 

@@ -47,8 +47,8 @@ instead of the operation: `nad_Hash` is the hash value, so the function that pro
 is `nad_Hasher`.
 
 Function pointers that only ever live inside one interface aggregate stay inline members
-with no typedef, as in `nad_Al` and `nad_ElemOps` — a typedef there would name a type that
-is never written a second time.
+with no typedef, as in `nad_Al` — a typedef there would name a type that is never written
+a second time.
 
 **The `mut` marker.** There is no `const` in any public name: a name either carries `mut`
 or it does not, and the unmarked form is the read-only one. Where the marker goes says
@@ -128,7 +128,7 @@ is that an error cannot be silently dropped or left un-propagated.
   `elem_size > 0`, `alloc != null`, `self != null`, `out != null`) — bugs, not runtime
   states. Return a `nad_Status` for **data-dependent** failures reachable with valid code
   (OOM; `len * elem_size` overflow, folded into `nad_calloc`'s `ckd_mul` → `nullptr` →
-  `NAD_STATUS_OUT_OF_MEMORY`). Never turn those into UB or an assert.
+  `NAD_STATUS_ERR_NO_MEM`). Never turn those into UB or an assert.
 - Public symbols are marked `NAD_API` (see `core/export.h`); everything else stays hidden
   under the shared library's default-hidden visibility.
 

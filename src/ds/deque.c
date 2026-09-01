@@ -465,7 +465,7 @@ nad_Status nad_deque_reserve(nad_Deque *self, size_t new_cap) {
 
     size_t new_bytes;
     if (ckd_mul(&new_bytes, new_cap, self->elem_size)) {
-        return NAD_STATUS_OUT_OF_MEMORY;
+        return NAD_STATUS_ERR_NO_MEM;
     }
 
     // a fresh block rather than a realloc: growing in place would leave the wrapped
@@ -474,7 +474,7 @@ nad_Status nad_deque_reserve(nad_Deque *self, size_t new_cap) {
     // a realloc would have needed anyway
     void *data = nad_alloc(self->al, new_bytes);
     if (!data) {
-        return NAD_STATUS_OUT_OF_MEMORY;
+        return NAD_STATUS_ERR_NO_MEM;
     }
 
     copy_out(self, data);
@@ -509,7 +509,7 @@ nad_Status nad_deque_shrink_to_fit(nad_Deque *self) {
 
     void *data = nad_alloc(self->al, len_bytes(self));
     if (!data) {
-        return NAD_STATUS_OUT_OF_MEMORY;
+        return NAD_STATUS_ERR_NO_MEM;
     }
 
     copy_out(self, data);
@@ -578,7 +578,7 @@ nad_Status nad_deque_swap(nad_Deque *self, nad_Deque *other) {
     if (other_bytes > 0) {
         self_new = nad_alloc(self->al, other_bytes);
         if (!self_new) {
-            return NAD_STATUS_OUT_OF_MEMORY;
+            return NAD_STATUS_ERR_NO_MEM;
         }
     }
 
@@ -586,7 +586,7 @@ nad_Status nad_deque_swap(nad_Deque *self, nad_Deque *other) {
         other_new = nad_alloc(other->al, self_bytes);
         if (!other_new) {
             nad_dealloc(self->al, self_new, other_bytes);
-            return NAD_STATUS_OUT_OF_MEMORY;
+            return NAD_STATUS_ERR_NO_MEM;
         }
     }
 
@@ -664,7 +664,7 @@ static nad_Status new_impl(bool zeroed, size_t len, size_t cap, size_t elem_size
 
     nad_Deque *obj = nad_alloc(al, sizeof(nad_Deque));
     if (!obj) {
-        return NAD_STATUS_OUT_OF_MEMORY;
+        return NAD_STATUS_ERR_NO_MEM;
     }
 
     void *data = nullptr;
@@ -692,7 +692,7 @@ static nad_Status new_impl(bool zeroed, size_t len, size_t cap, size_t elem_size
 
 fail:
     nad_dealloc(al, obj, sizeof(nad_Deque));
-    return NAD_STATUS_OUT_OF_MEMORY;
+    return NAD_STATUS_ERR_NO_MEM;
 }
 
 static void set_fields(nad_Deque *obj, void *data, size_t len, size_t cap, size_t elem_size, nad_Al *al) {
@@ -721,7 +721,7 @@ static nad_Status grow(nad_Deque *self) {
     assert(self->len == self->cap);
 
     if (self->cap == SIZE_MAX) {
-        return NAD_STATUS_OUT_OF_MEMORY;
+        return NAD_STATUS_ERR_NO_MEM;
     }
 
     const size_t wanted = next_cap(self);

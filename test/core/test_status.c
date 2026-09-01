@@ -27,8 +27,7 @@ static const struct {
     const char *name;
 } NAMED[] = {
     {NAD_STATUS_OK, "NAD_STATUS_OK"},
-    {NAD_STATUS_OUT_OF_MEMORY, "NAD_STATUS_OUT_OF_MEMORY"},
-    {NAD_STATUS_UNSUPPORTED, "NAD_STATUS_UNSUPPORTED"},
+    {NAD_STATUS_ERR_NO_MEM, "NAD_STATUS_ERR_NO_MEM"}
 };
 
 static constexpr size_t NAMED_LEN = sizeof NAMED / sizeof NAMED[0];
@@ -68,10 +67,10 @@ static void test_status_to_str_gives_each_status_its_own_name() {
 // satisfies the contract, a shared buffer does not
 static void test_status_to_str_does_not_hand_out_a_shared_buffer() {
     const char *first = nad_status_to_str(NAD_STATUS_OK);
-    const char *second = nad_status_to_str(NAD_STATUS_UNSUPPORTED);
+    const char *second = nad_status_to_str(NAD_STATUS_ERR_NO_MEM);
 
     TEST_ASSERT_EQUAL_STRING("NAD_STATUS_OK", first);
-    TEST_ASSERT_EQUAL_STRING("NAD_STATUS_UNSUPPORTED", second);
+    TEST_ASSERT_EQUAL_STRING("NAD_STATUS_ERR_NO_MEM", second);
 }
 
 /* ========== values outside the enum ========== */
@@ -86,7 +85,7 @@ static void test_status_to_str_falls_back_outside_the_enum() {
 // fails, which is what sends you back to NAMED. -Wswitch does the same job for status.c,
 // nothing does it for the table above
 static void test_status_to_str_notices_a_status_added_to_the_end() {
-    constexpr nad_Status past_the_end = (nad_Status) (NAD_STATUS_UNSUPPORTED + 1);
+    constexpr nad_Status past_the_end = (nad_Status) (NAD_STATUS_ERR_NO_MEM + 1);
 
     TEST_ASSERT_EQUAL_STRING("UNKNOWN_NAD_STATUS", nad_status_to_str(past_the_end));
 }
@@ -127,7 +126,7 @@ static void test_status_macros_evaluate_their_argument_once() {
     TEST_ASSERT_EQUAL_size_t(1, arg_evals);
 
     arg_evals = 0;
-    TEST_ASSERT_TRUE(NAD_STATUS_IS_ERR(counted(NAD_STATUS_OUT_OF_MEMORY)));
+    TEST_ASSERT_TRUE(NAD_STATUS_IS_ERR(counted(NAD_STATUS_ERR_NO_MEM)));
     TEST_ASSERT_EQUAL_size_t(1, arg_evals);
 }
 

@@ -53,7 +53,7 @@ typedef struct nad_Arr nad_Arr;
 /// @param al the allocator, kept for everything after
 /// @param[out] out the new arr, written only on success
 /// @retval NAD_STATUS_OK on success
-/// @retval NAD_STATUS_OUT_OF_MEMORY when the header or the block cannot be allocated, or
+/// @retval NAD_STATUS_ERR_NO_MEM when the header or the block cannot be allocated, or
 ///         len * elem_size overflows
 /// @bigo{n} — the block is zeroed
 [[nodiscard]] NAD_API
@@ -66,7 +66,7 @@ nad_Status nad_arr_new_len(size_t len, size_t elem_size, nad_Al *al, nad_Arr **o
 /// @param al the allocator
 /// @param[out] out the new arr, written only on success
 /// @retval NAD_STATUS_OK on success
-/// @retval NAD_STATUS_OUT_OF_MEMORY when the header or the block cannot be allocated, or
+/// @retval NAD_STATUS_ERR_NO_MEM when the header or the block cannot be allocated, or
 ///         len * elem_size overflows
 /// @bigo{n}
 [[nodiscard]] NAD_API
@@ -77,7 +77,7 @@ nad_Status nad_arr_from_data(const void *data, size_t len, size_t elem_size, nad
 /// @param al the allocator; unrelated to where 's' points, the elems are copied out of it
 /// @param[out] out the new arr, written only on success
 /// @retval NAD_STATUS_OK on success
-/// @retval NAD_STATUS_OUT_OF_MEMORY when the header or the block cannot be allocated
+/// @retval NAD_STATUS_ERR_NO_MEM when the header or the block cannot be allocated
 /// @bigo{n}
 [[nodiscard]] NAD_API
 nad_Status nad_arr_from_span(nad_Span s, nad_Al *al, nad_Arr **out);
@@ -98,7 +98,7 @@ void nad_arr_drop(nad_Arr *self);
 /// @param self the arr to copy
 /// @param[out] out the new arr, written only on success
 /// @retval NAD_STATUS_OK on success
-/// @retval NAD_STATUS_OUT_OF_MEMORY when the header or the block cannot be allocated
+/// @retval NAD_STATUS_ERR_NO_MEM when the header or the block cannot be allocated
 /// @bigo{n}
 [[nodiscard]] NAD_API
 nad_Status nad_arr_copy(const nad_Arr *self, nad_Arr **out);
@@ -109,7 +109,7 @@ nad_Status nad_arr_copy(const nad_Arr *self, nad_Arr **out);
 /// @param[in,out] other must have the same elem_size; keeps its own allocator, and
 ///                      'self' == 'other' is a no-op
 /// @retval NAD_STATUS_OK on success
-/// @retval NAD_STATUS_OUT_OF_MEMORY when the block cannot be resized, leaving 'other' as
+/// @retval NAD_STATUS_ERR_NO_MEM when the block cannot be resized, leaving 'other' as
 ///         it was
 /// @bigo{n}
 [[nodiscard]] NAD_API
@@ -245,7 +245,7 @@ void *nad_arr_data_mut(nad_Arr *self);
 /// @param[in,out] other must have the same elem_size; 'self' == 'other' is a no-op
 /// @retval NAD_STATUS_OK on success; on one allocator this swaps the two headers and
 ///         cannot fail
-/// @retval NAD_STATUS_OUT_OF_MEMORY when the two sit on different allocators and the
+/// @retval NAD_STATUS_ERR_NO_MEM when the two sit on different allocators and the
 ///         elems cannot be moved, leaving both as they were
 /// @bigo{1} on one allocator, n on two
 [[nodiscard]] NAD_API

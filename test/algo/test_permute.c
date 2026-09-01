@@ -584,7 +584,7 @@ static void test_partition_stable_reports_a_refused_scratch() {
 
     size_t boundary = 777;
     NAD_TEST_STATUS(
-        NAD_STATUS_OUT_OF_MEMORY,
+        NAD_STATUS_ERR_NO_MEM,
         nad_span_partition_stable(NAD_SPAN_NEW_MUT(int32_t, buf, 4), is_even, nullptr, &al, &boundary)
     );
 

@@ -119,7 +119,7 @@ nad_Status nad_span_partition_stable(
     // twice to find out would be a second, differently timed set of answers
     void *buf = nad_alloc(al, bytes);
     if (!buf) {
-        return NAD_STATUS_OUT_OF_MEMORY;
+        return NAD_STATUS_ERR_NO_MEM;
     }
 
     const nad_Span view = nad_span_mut_to_span(s);

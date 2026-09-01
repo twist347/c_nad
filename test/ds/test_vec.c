@@ -939,7 +939,7 @@ static void test_reserve_reports_size_overflow() {
     nad_Vec *v = make_vec(3);
     const void *before = nad_vec_data(v);
 
-    NAD_TEST_STATUS(NAD_STATUS_OUT_OF_MEMORY, nad_vec_reserve(v, SIZE_MAX));
+    NAD_TEST_STATUS(NAD_STATUS_ERR_NO_MEM, nad_vec_reserve(v, SIZE_MAX));
 
     // the vec is left as it was
     TEST_ASSERT_EQUAL_size_t(3, nad_vec_len(v));
@@ -1080,7 +1080,7 @@ static void test_resize_to_the_same_len_is_a_noop() {
 static void test_resize_reports_size_overflow() {
     nad_Vec *v = make_vec(3);
 
-    NAD_TEST_STATUS(NAD_STATUS_OUT_OF_MEMORY, nad_vec_resize(v, SIZE_MAX));
+    NAD_TEST_STATUS(NAD_STATUS_ERR_NO_MEM, nad_vec_resize(v, SIZE_MAX));
 
     TEST_ASSERT_EQUAL_size_t(3, nad_vec_len(v));
     TEST_ASSERT_EQUAL_size_t(3, nad_vec_cap(v));
@@ -1236,7 +1236,7 @@ static void test_swap_across_allocators_rolls_back_a_failed_second_alloc() {
     // b's side has nothing left to give
     nad_test_arena_leave(arena, 0);
 
-    NAD_TEST_STATUS(NAD_STATUS_OUT_OF_MEMORY, nad_vec_swap(a, b));
+    NAD_TEST_STATUS(NAD_STATUS_ERR_NO_MEM, nad_vec_swap(a, b));
 
     // both vecs untouched
     TEST_ASSERT_EQUAL_size_t(2, nad_vec_len(a));
@@ -1340,7 +1340,7 @@ static void test_to_span_of_empty_keeps_elem_size() {
 static void test_new_len_reports_size_overflow() {
     nad_Vec *v = nullptr;
 
-    NAD_TEST_STATUS(NAD_STATUS_OUT_OF_MEMORY, nad_vec_new_len(SIZE_MAX, 2, nad_al_default(), &v));
+    NAD_TEST_STATUS(NAD_STATUS_ERR_NO_MEM, nad_vec_new_len(SIZE_MAX, 2, nad_al_default(), &v));
 
     TEST_ASSERT_NULL(v); // out is untouched on failure
 }
@@ -1348,7 +1348,7 @@ static void test_new_len_reports_size_overflow() {
 static void test_new_cap_reports_size_overflow() {
     nad_Vec *v = nullptr;
 
-    NAD_TEST_STATUS(NAD_STATUS_OUT_OF_MEMORY, nad_vec_new_cap(SIZE_MAX, 2, nad_al_default(), &v));
+    NAD_TEST_STATUS(NAD_STATUS_ERR_NO_MEM, nad_vec_new_cap(SIZE_MAX, 2, nad_al_default(), &v));
 
     TEST_ASSERT_NULL(v);
 }
@@ -1358,7 +1358,7 @@ static void test_from_data_reports_size_overflow() {
     nad_Vec *v = nullptr;
 
     NAD_TEST_STATUS(
-        NAD_STATUS_OUT_OF_MEMORY,
+        NAD_STATUS_ERR_NO_MEM,
         nad_vec_from_data(src, SIZE_MAX, 2, nad_al_default(), &v)
     );
 
@@ -1371,7 +1371,7 @@ static void test_new_len_reports_an_exhausted_arena() {
 
     nad_Vec *v = nullptr;
 
-    NAD_TEST_STATUS(NAD_STATUS_OUT_OF_MEMORY, NAD_VEC_NEW_LEN(int32_t, 1000, arena, &v));
+    NAD_TEST_STATUS(NAD_STATUS_ERR_NO_MEM, NAD_VEC_NEW_LEN(int32_t, 1000, arena, &v));
 
     TEST_ASSERT_NULL(v);
 
@@ -1392,7 +1392,7 @@ static void test_push_reports_an_exhausted_arena() {
 
     nad_test_arena_leave(arena, 0);
 
-    NAD_TEST_STATUS(NAD_STATUS_OUT_OF_MEMORY, NAD_VEC_PUSH(int32_t, v, 3));
+    NAD_TEST_STATUS(NAD_STATUS_ERR_NO_MEM, NAD_VEC_PUSH(int32_t, v, 3));
 
     TEST_ASSERT_EQUAL_size_t(2, nad_vec_len(v));
     TEST_ASSERT_EQUAL_size_t(2, nad_vec_cap(v));
@@ -1453,7 +1453,7 @@ static void test_extend_reports_an_exhausted_arena_and_changes_nothing() {
     nad_test_arena_leave(arena, 0);
 
     constexpr int32_t src[3] = {7, 8, 9};
-    NAD_TEST_STATUS(NAD_STATUS_OUT_OF_MEMORY, nad_vec_extend(v, NAD_SPAN_NEW(int32_t, src, 3)));
+    NAD_TEST_STATUS(NAD_STATUS_ERR_NO_MEM, nad_vec_extend(v, NAD_SPAN_NEW(int32_t, src, 3)));
 
     constexpr int32_t want[2] = {1, 2};
     assert_elems(v, want, 2);
@@ -1479,7 +1479,7 @@ static void test_insert_span_reports_an_exhausted_arena_and_changes_nothing() {
 
     constexpr int32_t src[2] = {7, 8};
     NAD_TEST_STATUS(
-        NAD_STATUS_OUT_OF_MEMORY,
+        NAD_STATUS_ERR_NO_MEM,
         nad_vec_insert_span(v, 1, NAD_SPAN_NEW(int32_t, src, 2))
     );
 
@@ -1495,7 +1495,7 @@ static void test_extend_reports_size_overflow() {
 
     constexpr int32_t src[1] = {1};
     NAD_TEST_STATUS(
-        NAD_STATUS_OUT_OF_MEMORY,
+        NAD_STATUS_ERR_NO_MEM,
         nad_vec_extend(v, NAD_SPAN_NEW(int32_t, src, SIZE_MAX))
     );
 

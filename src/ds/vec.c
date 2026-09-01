@@ -346,11 +346,11 @@ nad_Status nad_vec_reserve(nad_Vec *self, size_t new_cap) {
 
     size_t new_bytes;
     if (ckd_mul(&new_bytes, new_cap, self->elem_size)) {
-        return NAD_STATUS_OUT_OF_MEMORY;
+        return NAD_STATUS_ERR_NO_MEM;
     }
     void *data = nad_realloc(self->al, self->data, cap_bytes(self), new_bytes);
     if (!data) {
-        return NAD_STATUS_OUT_OF_MEMORY;
+        return NAD_STATUS_ERR_NO_MEM;
     }
 
     self->data = data;
@@ -378,7 +378,7 @@ nad_Status nad_vec_shrink_to_fit(nad_Vec *self) {
 
     void *data = nad_realloc(self->al, self->data, cap_bytes(self), len_bytes(self));
     if (!data) {
-        return NAD_STATUS_OUT_OF_MEMORY;
+        return NAD_STATUS_ERR_NO_MEM;
     }
 
     self->data = data;
@@ -439,7 +439,7 @@ nad_Status nad_vec_swap(nad_Vec *self, nad_Vec *other) {
     if (other_bytes > 0) {
         self_new = nad_alloc(self->al, other_bytes);
         if (!self_new) {
-            return NAD_STATUS_OUT_OF_MEMORY;
+            return NAD_STATUS_ERR_NO_MEM;
         }
     }
 
@@ -447,7 +447,7 @@ nad_Status nad_vec_swap(nad_Vec *self, nad_Vec *other) {
         other_new = nad_alloc(other->al, self_bytes);
         if (!other_new) {
             nad_dealloc(self->al, self_new, other_bytes);
-            return NAD_STATUS_OUT_OF_MEMORY;
+            return NAD_STATUS_ERR_NO_MEM;
         }
     }
 
@@ -503,7 +503,7 @@ nad_Status nad_vec_insert_span(nad_Vec *self, size_t idx, nad_Span src) {
 
     size_t new_len;
     if (ckd_add(&new_len, self->len, src.len)) {
-        return NAD_STATUS_OUT_OF_MEMORY;
+        return NAD_STATUS_ERR_NO_MEM;
     }
 
     if (new_len > self->cap) {
@@ -585,7 +585,7 @@ static nad_Status new_impl(bool zeroed, size_t len, size_t cap, size_t elem_size
 
     nad_Vec *obj = nad_alloc(al, sizeof(nad_Vec));
     if (!obj) {
-        return NAD_STATUS_OUT_OF_MEMORY;
+        return NAD_STATUS_ERR_NO_MEM;
     }
 
     void *data = nullptr;
@@ -613,7 +613,7 @@ static nad_Status new_impl(bool zeroed, size_t len, size_t cap, size_t elem_size
 
 fail:
     nad_dealloc(al, obj, sizeof(nad_Vec));
-    return NAD_STATUS_OUT_OF_MEMORY;
+    return NAD_STATUS_ERR_NO_MEM;
 }
 
 static void set_fields(nad_Vec *obj, void *data, size_t len, size_t cap, size_t elem_size, nad_Al *al) {
@@ -641,7 +641,7 @@ static nad_Status grow(nad_Vec *self) {
     assert(self->len == self->cap);
 
     if (self->cap == SIZE_MAX) {
-        return NAD_STATUS_OUT_OF_MEMORY;
+        return NAD_STATUS_ERR_NO_MEM;
     }
 
     const size_t wanted = next_cap(self);

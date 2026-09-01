@@ -176,7 +176,7 @@ static void test_a_refused_header_frees_the_map() {
 
     nad_HSet *s = nullptr;
     NAD_TEST_STATUS(
-        NAD_STATUS_OUT_OF_MEMORY,
+        NAD_STATUS_ERR_NO_MEM,
         NAD_HSET_NEW(int32_t, nad_hash_i32, nad_eq_i32, &al, &s)
     );
 
@@ -671,7 +671,7 @@ static void test_new_reports_an_exhausted_arena() {
 
     nad_HSet *s = nullptr;
     NAD_TEST_STATUS(
-        NAD_STATUS_OUT_OF_MEMORY,
+        NAD_STATUS_ERR_NO_MEM,
         NAD_HSET_NEW(int32_t, nad_hash_i32, nad_eq_i32, arena, &s)
     );
     TEST_ASSERT_NULL(s);
@@ -688,7 +688,7 @@ static void test_insert_reports_an_exhausted_arena_and_changes_nothing() {
     put(s, 1);
     nad_test_arena_leave(arena, 0);
 
-    NAD_TEST_STATUS(NAD_STATUS_OUT_OF_MEMORY, NAD_HSET_INSERT(int32_t, s, 2, nullptr));
+    NAD_TEST_STATUS(NAD_STATUS_ERR_NO_MEM, NAD_HSET_INSERT(int32_t, s, 2, nullptr));
 
     TEST_ASSERT_EQUAL_size_t(1, nad_hset_len(s));
     assert_has(s, 1);
@@ -724,7 +724,7 @@ static void test_reserve_reports_an_exhausted_arena() {
     put(s, 1);
     nad_test_arena_leave(arena, 0);
 
-    NAD_TEST_STATUS(NAD_STATUS_OUT_OF_MEMORY, nad_hset_reserve(s, 100000));
+    NAD_TEST_STATUS(NAD_STATUS_ERR_NO_MEM, nad_hset_reserve(s, 100000));
 
     TEST_ASSERT_EQUAL_size_t(1, nad_hset_len(s));
     assert_has(s, 1);
@@ -742,7 +742,7 @@ static void test_copy_reports_an_exhausted_arena() {
     nad_test_arena_leave(arena, 0);
 
     nad_HSet *dst = nullptr;
-    NAD_TEST_STATUS(NAD_STATUS_OUT_OF_MEMORY, nad_hset_copy(src, &dst));
+    NAD_TEST_STATUS(NAD_STATUS_ERR_NO_MEM, nad_hset_copy(src, &dst));
     TEST_ASSERT_NULL(dst);
 
     nad_al_arena_drop(arena);
@@ -759,7 +759,7 @@ static void test_copy_assign_leaves_the_target_untouched_on_failure() {
     put(dst, 7);
     nad_test_arena_leave(arena, 0);
 
-    NAD_TEST_STATUS(NAD_STATUS_OUT_OF_MEMORY, nad_hset_copy_assign(src, dst));
+    NAD_TEST_STATUS(NAD_STATUS_ERR_NO_MEM, nad_hset_copy_assign(src, dst));
 
     TEST_ASSERT_EQUAL_size_t(1, nad_hset_len(dst));
     assert_has(dst, 7);

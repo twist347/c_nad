@@ -783,7 +783,7 @@ static void test_new_reports_a_refused_header() {
     nad_test_probe_fail_after_next(&probe, 0);
 
     nad_BitSet *b = nullptr;
-    NAD_TEST_STATUS(NAD_STATUS_OUT_OF_MEMORY, nad_bitset_new(200, &al, &b));
+    NAD_TEST_STATUS(NAD_STATUS_ERR_NO_MEM, nad_bitset_new(200, &al, &b));
 
     TEST_ASSERT_NULL(b);
     TEST_ASSERT_EQUAL_size_t(0, probe.live);
@@ -796,7 +796,7 @@ static void test_refused_words_free_the_header() {
     nad_test_probe_fail_after_next(&probe, 1); // the header goes through, the words do not
 
     nad_BitSet *b = nullptr;
-    NAD_TEST_STATUS(NAD_STATUS_OUT_OF_MEMORY, nad_bitset_new(200, &al, &b));
+    NAD_TEST_STATUS(NAD_STATUS_ERR_NO_MEM, nad_bitset_new(200, &al, &b));
 
     TEST_ASSERT_NULL(b);
     TEST_ASSERT_EQUAL_size_t(0, probe.live);
@@ -812,7 +812,7 @@ static void test_copy_reports_an_exhausted_arena() {
     nad_test_arena_leave(arena, 0);
 
     nad_BitSet *copy = nullptr;
-    NAD_TEST_STATUS(NAD_STATUS_OUT_OF_MEMORY, nad_bitset_copy(src, &copy));
+    NAD_TEST_STATUS(NAD_STATUS_ERR_NO_MEM, nad_bitset_copy(src, &copy));
     TEST_ASSERT_NULL(copy);
 
     // the source is untouched by the failure
@@ -837,7 +837,7 @@ static void test_copy_assign_leaves_the_target_untouched_on_failure() {
 
     // the resize is the only request copy_assign makes, so refusing the next one hits it
     nad_test_probe_fail_after_next(&probe, 0);
-    NAD_TEST_STATUS(NAD_STATUS_OUT_OF_MEMORY, nad_bitset_copy_assign(src, dst));
+    NAD_TEST_STATUS(NAD_STATUS_ERR_NO_MEM, nad_bitset_copy_assign(src, dst));
 
     assert_members(dst, 65, kept, 2);
 

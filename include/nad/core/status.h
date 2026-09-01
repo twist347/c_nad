@@ -31,11 +31,8 @@
 /// How an operation reports its outcome. Fixed at int32_t, so the value crosses an ABI
 /// boundary at a width that does not depend on the compiler.
 typedef enum : int32_t {
-    NAD_STATUS_OK = 0,        ///< success — the only value on which an 'out' is written
-    NAD_STATUS_OUT_OF_MEMORY, ///< an allocation failed, or the size asked for overflowed
-                              ///< on the way to it; what every fallible op but one returns
-    NAD_STATUS_UNSUPPORTED,   ///< the op cannot be done for what it was handed; returned
-                              ///< from one place, core/elem_ops on an oversized elem
+    NAD_STATUS_OK = 0,         ///< success — the only value on which an 'out' is written
+    NAD_STATUS_ERR_NO_MEM,     ///< an allocation failed, or the size asked for overflowed
 } nad_Status;
 
 /// @name to str
@@ -44,7 +41,8 @@ typedef enum : int32_t {
 /// the status spelled as it is written in this header
 /// @param st the status
 /// @return a static string — "NAD_STATUS_OK" and so on, or "UNKNOWN_NAD_STATUS" for a
-///         value that is none of the five. Never null, and never the caller's to free
+///         value that is none of the enumerators. Never null, and never the caller's to
+///         free
 /// @bigo{1}
 [[nodiscard]] NAD_API
 const char *nad_status_to_str(nad_Status st);

@@ -55,7 +55,7 @@ typedef nad_HMapNode nad_HSetNode;
 /// @param al the allocator, kept for everything after
 /// @param[out] out the new set, written only on success
 /// @retval NAD_STATUS_OK on success
-/// @retval NAD_STATUS_OUT_OF_MEMORY when the header cannot be allocated
+/// @retval NAD_STATUS_ERR_NO_MEM when the header cannot be allocated
 /// @bigo{1}
 [[nodiscard]] NAD_API
 nad_Status nad_hset_new(size_t key_size, nad_Hasher hasher, nad_Eq eq, nad_Al *al, nad_HSet **out);
@@ -68,7 +68,7 @@ nad_Status nad_hset_new(size_t key_size, nad_Hasher hasher, nad_Eq eq, nad_Al *a
 /// @param al the allocator
 /// @param[out] out the new set, written only on success
 /// @retval NAD_STATUS_OK on success
-/// @retval NAD_STATUS_OUT_OF_MEMORY when the buckets cannot be allocated
+/// @retval NAD_STATUS_ERR_NO_MEM when the buckets cannot be allocated
 /// @bigo{n}
 [[nodiscard]] NAD_API
 nad_Status nad_hset_new_cap(size_t cap, size_t key_size, nad_Hasher hasher, nad_Eq eq, nad_Al *al, nad_HSet **out);
@@ -88,7 +88,7 @@ void nad_hset_drop(nad_HSet *self);
 /// @param self the set to copy
 /// @param[out] out the new set, written only on success
 /// @retval NAD_STATUS_OK on success
-/// @retval NAD_STATUS_OUT_OF_MEMORY when the buckets or any node cannot be allocated
+/// @retval NAD_STATUS_ERR_NO_MEM when the buckets or any node cannot be allocated
 /// @bigo{n}
 [[nodiscard]] NAD_API
 nad_Status nad_hset_copy(const nad_HSet *self, nad_HSet **out);
@@ -99,7 +99,7 @@ nad_Status nad_hset_copy(const nad_HSet *self, nad_HSet **out);
 ///                      along with the keys, overwriting its own, and keeps its own
 ///                      allocator. 'self' == 'other' is a no-op
 /// @retval NAD_STATUS_OK on success
-/// @retval NAD_STATUS_OUT_OF_MEMORY when a node cannot be allocated, leaving 'other' as
+/// @retval NAD_STATUS_ERR_NO_MEM when a node cannot be allocated, leaving 'other' as
 ///         it was
 /// @bigo{n}
 [[nodiscard]] NAD_API
@@ -242,7 +242,7 @@ const void *nad_hset_node_key(const nad_HSetNode *node);
 /// @param[out] out_is_new whether the key was absent; may be null when the caller does
 ///                        not care, and written only on NAD_STATUS_OK
 /// @retval NAD_STATUS_OK on success
-/// @retval NAD_STATUS_OUT_OF_MEMORY when the node or the wider bucket array cannot be
+/// @retval NAD_STATUS_ERR_NO_MEM when the node or the wider bucket array cannot be
 ///         allocated
 /// @bigo{1} expected, plus the amortized cost of growing
 [[nodiscard]] NAD_API
@@ -274,7 +274,7 @@ void nad_hset_clear(nad_HSet *self);
 /// @param self the set
 /// @param cap a capacity at or below the one it has is a no-op
 /// @retval NAD_STATUS_OK on success
-/// @retval NAD_STATUS_OUT_OF_MEMORY when the bucket array cannot be allocated, leaving
+/// @retval NAD_STATUS_ERR_NO_MEM when the bucket array cannot be allocated, leaving
 ///         the set as it was
 /// @bigo{n} — the nodes are relinked, not rebuilt, so a borrowed one survives this
 [[nodiscard]] NAD_API
@@ -283,7 +283,7 @@ nad_Status nad_hset_reserve(nad_HSet *self, size_t cap);
 /// gives back the buckets the keys no longer need
 /// @param self an empty set is left owning nothing
 /// @retval NAD_STATUS_OK on success, and when there was nothing to give back
-/// @retval NAD_STATUS_OUT_OF_MEMORY when the smaller bucket array cannot be allocated,
+/// @retval NAD_STATUS_ERR_NO_MEM when the smaller bucket array cannot be allocated,
 ///         leaving the set as it was
 /// @bigo{n} — the nodes are relinked, not rebuilt, so a borrowed one survives this
 [[nodiscard]] NAD_API

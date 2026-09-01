@@ -51,7 +51,7 @@ typedef struct nad_PQueue nad_PQueue;
 /// @param al the allocator, kept for everything after
 /// @param[out] out the new queue, written only on success
 /// @retval NAD_STATUS_OK on success
-/// @retval NAD_STATUS_OUT_OF_MEMORY when the header or the vec cannot be allocated
+/// @retval NAD_STATUS_ERR_NO_MEM when the header or the vec cannot be allocated
 /// @bigo{1}
 [[nodiscard]] NAD_API
 nad_Status nad_pqueue_new(size_t elem_size, nad_Cmp cmp, nad_Al *al, nad_PQueue **out);
@@ -63,7 +63,7 @@ nad_Status nad_pqueue_new(size_t elem_size, nad_Cmp cmp, nad_Al *al, nad_PQueue 
 /// @param al the allocator
 /// @param[out] out the new queue, written only on success
 /// @retval NAD_STATUS_OK on success
-/// @retval NAD_STATUS_OUT_OF_MEMORY when the block cannot be allocated, or
+/// @retval NAD_STATUS_ERR_NO_MEM when the block cannot be allocated, or
 ///         cap * elem_size overflows
 /// @bigo{n}
 [[nodiscard]] NAD_API
@@ -77,7 +77,7 @@ nad_Status nad_pqueue_new_cap(size_t cap, size_t elem_size, nad_Cmp cmp, nad_Al 
 /// @param al the allocator
 /// @param[out] out the new queue, written only on success
 /// @retval NAD_STATUS_OK on success
-/// @retval NAD_STATUS_OUT_OF_MEMORY when the block cannot be allocated, or
+/// @retval NAD_STATUS_ERR_NO_MEM when the block cannot be allocated, or
 ///         len * elem_size overflows
 /// @bigo{n} — heapifying in one pass is cheaper than 'len' pushes, which cost O(n log n)
 [[nodiscard]] NAD_API
@@ -90,7 +90,7 @@ nad_Status nad_pqueue_from_data(const void *data, size_t len, size_t elem_size, 
 /// @param al the allocator
 /// @param[out] out the new queue, written only on success
 /// @retval NAD_STATUS_OK on success
-/// @retval NAD_STATUS_OUT_OF_MEMORY when the block cannot be allocated
+/// @retval NAD_STATUS_ERR_NO_MEM when the block cannot be allocated
 /// @bigo{n}
 [[nodiscard]] NAD_API
 nad_Status nad_pqueue_from_span(nad_Span s, nad_Cmp cmp, nad_Al *al, nad_PQueue **out);
@@ -122,7 +122,7 @@ nad_Vec *nad_pqueue_into_vec(nad_PQueue *self);
 /// @param self the queue to copy
 /// @param[out] out the new queue, written only on success
 /// @retval NAD_STATUS_OK on success
-/// @retval NAD_STATUS_OUT_OF_MEMORY when the header or the block cannot be allocated
+/// @retval NAD_STATUS_ERR_NO_MEM when the header or the block cannot be allocated
 /// @bigo{n} — the arrangement is copied as it is, so nothing is reheapified
 [[nodiscard]] NAD_API
 nad_Status nad_pqueue_copy(const nad_PQueue *self, nad_PQueue **out);
@@ -133,7 +133,7 @@ nad_Status nad_pqueue_copy(const nad_PQueue *self, nad_PQueue **out);
 ///                      the elems, overwriting its own, and keeps its own allocator.
 ///                      'self' == 'other' is a no-op
 /// @retval NAD_STATUS_OK on success
-/// @retval NAD_STATUS_OUT_OF_MEMORY when the block cannot grow, leaving 'other' as it was
+/// @retval NAD_STATUS_ERR_NO_MEM when the block cannot grow, leaving 'other' as it was
 /// @bigo{n}
 [[nodiscard]] NAD_API
 nad_Status nad_pqueue_copy_assign(const nad_PQueue *self, nad_PQueue *other);
@@ -202,7 +202,7 @@ const void *nad_pqueue_top(const nad_PQueue *self);
 /// @param val must not point into the queue's own elems: a push that grows moves them out
 ///            from under it
 /// @retval NAD_STATUS_OK on success
-/// @retval NAD_STATUS_OUT_OF_MEMORY when the block cannot grow
+/// @retval NAD_STATUS_ERR_NO_MEM when the block cannot grow
 /// @bigo{log n} — plus the amortized cost of growing
 [[nodiscard]] NAD_API
 nad_Status nad_pqueue_push(nad_PQueue *self, const void *val);
@@ -224,7 +224,7 @@ void nad_pqueue_clear(nad_PQueue *self);
 /// @param self the queue
 /// @param new_cap a capacity at or below the one it has is a no-op
 /// @retval NAD_STATUS_OK on success
-/// @retval NAD_STATUS_OUT_OF_MEMORY when the block cannot grow, or new_cap * elem_size
+/// @retval NAD_STATUS_ERR_NO_MEM when the block cannot grow, or new_cap * elem_size
 ///         overflows
 /// @bigo{n}
 [[nodiscard]] NAD_API
@@ -233,7 +233,7 @@ nad_Status nad_pqueue_reserve(nad_PQueue *self, size_t new_cap);
 /// gives back the room above the length
 /// @param self a length of 0 releases the block outright
 /// @retval NAD_STATUS_OK on success, and when there was nothing to give back
-/// @retval NAD_STATUS_OUT_OF_MEMORY when the allocator refuses the smaller block, leaving
+/// @retval NAD_STATUS_ERR_NO_MEM when the allocator refuses the smaller block, leaving
 ///         the queue as it was
 /// @bigo{n}
 [[nodiscard]] NAD_API
@@ -246,7 +246,7 @@ nad_Status nad_pqueue_shrink_to_fit(nad_PQueue *self);
 /// @retval NAD_STATUS_OK on success; on one allocator the blocks are handed over and the
 ///         capacity travels with them, on two the bytes are moved and each side is left
 ///         sized to its new content
-/// @retval NAD_STATUS_OUT_OF_MEMORY when the two sit on different allocators and a block
+/// @retval NAD_STATUS_ERR_NO_MEM when the two sit on different allocators and a block
 ///         cannot be taken, leaving both as they were
 /// @bigo{1} on one allocator, n on two
 [[nodiscard]] NAD_API

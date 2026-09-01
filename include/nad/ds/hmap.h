@@ -57,7 +57,7 @@ typedef struct nad_HMapNode nad_HMapNode;
 /// @param al the allocator, kept for everything after
 /// @param[out] out the new map, written only on success
 /// @retval NAD_STATUS_OK on success
-/// @retval NAD_STATUS_OUT_OF_MEMORY when the header cannot be allocated
+/// @retval NAD_STATUS_ERR_NO_MEM when the header cannot be allocated
 /// @bigo{1}
 [[nodiscard]] NAD_API
 nad_Status nad_hmap_new(size_t key_size, size_t val_size, nad_Hasher hasher, nad_Eq eq, nad_Al *al, nad_HMap **out);
@@ -71,7 +71,7 @@ nad_Status nad_hmap_new(size_t key_size, size_t val_size, nad_Hasher hasher, nad
 /// @param al the allocator
 /// @param[out] out the new map, written only on success
 /// @retval NAD_STATUS_OK on success
-/// @retval NAD_STATUS_OUT_OF_MEMORY when the buckets cannot be allocated
+/// @retval NAD_STATUS_ERR_NO_MEM when the buckets cannot be allocated
 /// @bigo{n}
 [[nodiscard]] NAD_API
 nad_Status nad_hmap_new_cap(size_t cap, size_t key_size, size_t val_size, nad_Hasher hasher, nad_Eq eq, nad_Al *al,
@@ -92,7 +92,7 @@ void nad_hmap_drop(nad_HMap *self);
 /// @param self the map to copy
 /// @param[out] out the new map, written only on success
 /// @retval NAD_STATUS_OK on success
-/// @retval NAD_STATUS_OUT_OF_MEMORY when the buckets or any node cannot be allocated
+/// @retval NAD_STATUS_ERR_NO_MEM when the buckets or any node cannot be allocated
 /// @bigo{n}
 [[nodiscard]] NAD_API
 nad_Status nad_hmap_copy(const nad_HMap *self, nad_HMap **out);
@@ -103,7 +103,7 @@ nad_Status nad_hmap_copy(const nad_HMap *self, nad_HMap **out);
 ///                      the equality along with the entries, overwriting its own, and
 ///                      keeps its own allocator. 'self' == 'other' is a no-op
 /// @retval NAD_STATUS_OK on success
-/// @retval NAD_STATUS_OUT_OF_MEMORY when a node cannot be allocated, leaving 'other' as
+/// @retval NAD_STATUS_ERR_NO_MEM when a node cannot be allocated, leaving 'other' as
 ///         it was
 /// @bigo{n}
 [[nodiscard]] NAD_API
@@ -301,7 +301,7 @@ void *nad_hmap_node_val_mut(const nad_HMap *self, nad_HMapNode *node);
 ///                        observation rather than the operation's result, which is the
 ///                        map itself
 /// @retval NAD_STATUS_OK on success
-/// @retval NAD_STATUS_OUT_OF_MEMORY when the node or the wider bucket array cannot be
+/// @retval NAD_STATUS_ERR_NO_MEM when the node or the wider bucket array cannot be
 ///         allocated
 /// @bigo{1} expected, plus the amortized cost of growing
 [[nodiscard]] NAD_API
@@ -332,7 +332,7 @@ void nad_hmap_remove_node(nad_HMap *self, nad_HMapNode *node);
 ///                      it is
 /// @param[out] out_node the entry either way, written only on NAD_STATUS_OK
 /// @retval NAD_STATUS_OK on success
-/// @retval NAD_STATUS_OUT_OF_MEMORY when the node or the wider bucket array cannot be
+/// @retval NAD_STATUS_ERR_NO_MEM when the node or the wider bucket array cannot be
 ///         allocated
 /// @bigo{1} expected — one hash and one walk of the bucket either way, which a lookup
 ///          followed by an insert cannot be: that pair hashes twice and walks twice
@@ -351,7 +351,7 @@ void nad_hmap_clear(nad_HMap *self);
 /// @param self the map
 /// @param cap a capacity at or below the one it has is a no-op
 /// @retval NAD_STATUS_OK on success
-/// @retval NAD_STATUS_OUT_OF_MEMORY when the bucket array cannot be allocated, leaving
+/// @retval NAD_STATUS_ERR_NO_MEM when the bucket array cannot be allocated, leaving
 ///         the map as it was
 /// @bigo{n} — only the bucket array is reallocated, the entries are relinked where they
 ///            lie, so a borrowed node survives this
@@ -362,7 +362,7 @@ nad_Status nad_hmap_reserve(nad_HMap *self, size_t cap);
 /// that still holds them and never below the count a fresh map takes
 /// @param self an empty map is left owning nothing at all
 /// @retval NAD_STATUS_OK on success, and when there was nothing to give back
-/// @retval NAD_STATUS_OUT_OF_MEMORY when the smaller bucket array cannot be allocated,
+/// @retval NAD_STATUS_ERR_NO_MEM when the smaller bucket array cannot be allocated,
 ///         leaving the map as it was
 /// @bigo{n} — the entries are relinked, not rebuilt, so a borrowed node survives this as
 ///            it survives a growth

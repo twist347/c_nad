@@ -89,7 +89,7 @@ nad_Status nad_list_new(size_t elem_size, nad_Al *al, nad_List **out) {
 
     nad_List *obj = nad_alloc(al, sizeof(nad_List));
     if (!obj) {
-        return NAD_STATUS_OUT_OF_MEMORY;
+        return NAD_STATUS_ERR_NO_MEM;
     }
 
     obj->head = nullptr;
@@ -687,12 +687,12 @@ static nad_Status node_new(nad_Al *al, size_t elem_size, const void *val, nad_Li
 
     size_t bytes;
     if (ckd_add(&bytes, sizeof(nad_ListNode), elem_size)) {
-        return NAD_STATUS_OUT_OF_MEMORY;
+        return NAD_STATUS_ERR_NO_MEM;
     }
 
     nad_ListNode *node = nad_alloc(al, bytes);
     if (!node) {
-        return NAD_STATUS_OUT_OF_MEMORY;
+        return NAD_STATUS_ERR_NO_MEM;
     }
 
     assert(nad_ptr_is_aligned(node, alignof(max_align_t)));

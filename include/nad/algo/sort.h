@@ -47,7 +47,7 @@ void nad_span_sort(nad_SpanMut s, nad_Cmp cmp);
 /// @param al where the buffer comes from; a bottom-up merge sort needs one span-sized,
 ///           which is the whole reason this returns a status
 /// @retval NAD_STATUS_OK on success
-/// @retval NAD_STATUS_OUT_OF_MEMORY when 'al' cannot give it; 's' is left as it was
+/// @retval NAD_STATUS_ERR_NO_MEM when 'al' cannot give it; 's' is left as it was
 /// @bigo{n log n}
 [[nodiscard]] NAD_API
 nad_Status nad_span_sort_stable(nad_SpanMut s, nad_Cmp cmp, nad_Al *al);

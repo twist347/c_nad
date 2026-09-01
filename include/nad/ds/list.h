@@ -54,7 +54,7 @@ typedef struct nad_ListNode nad_ListNode;
 /// @param al the allocator, kept for everything after
 /// @param[out] out the new list, written only on success
 /// @retval NAD_STATUS_OK on success
-/// @retval NAD_STATUS_OUT_OF_MEMORY when the header cannot be allocated
+/// @retval NAD_STATUS_ERR_NO_MEM when the header cannot be allocated
 /// @bigo{1}
 [[nodiscard]] NAD_API
 nad_Status nad_list_new(size_t elem_size, nad_Al *al, nad_List **out);
@@ -66,7 +66,7 @@ nad_Status nad_list_new(size_t elem_size, nad_Al *al, nad_List **out);
 /// @param al the allocator
 /// @param[out] out the new list, written only on success
 /// @retval NAD_STATUS_OK on success
-/// @retval NAD_STATUS_OUT_OF_MEMORY when the header or any node cannot be allocated;
+/// @retval NAD_STATUS_ERR_NO_MEM when the header or any node cannot be allocated;
 ///         nothing is left behind on the way out
 /// @bigo{n} — one allocation per elem
 [[nodiscard]] NAD_API
@@ -77,7 +77,7 @@ nad_Status nad_list_from_data(const void *data, size_t len, size_t elem_size, na
 /// @param al the allocator
 /// @param[out] out the new list, written only on success
 /// @retval NAD_STATUS_OK on success
-/// @retval NAD_STATUS_OUT_OF_MEMORY when the header or any node cannot be allocated
+/// @retval NAD_STATUS_ERR_NO_MEM when the header or any node cannot be allocated
 /// @bigo{n}
 [[nodiscard]] NAD_API
 nad_Status nad_list_from_span(nad_Span s, nad_Al *al, nad_List **out);
@@ -97,7 +97,7 @@ void nad_list_drop(nad_List *self);
 /// @param self the list to copy
 /// @param[out] out the new list, written only on success
 /// @retval NAD_STATUS_OK on success
-/// @retval NAD_STATUS_OUT_OF_MEMORY when the header or any node cannot be allocated
+/// @retval NAD_STATUS_ERR_NO_MEM when the header or any node cannot be allocated
 /// @bigo{n}
 [[nodiscard]] NAD_API
 nad_Status nad_list_copy(const nad_List *self, nad_List **out);
@@ -108,7 +108,7 @@ nad_Status nad_list_copy(const nad_List *self, nad_List **out);
 /// @param[in,out] other must have the same elem_size; keeps its own allocator, and
 ///                      'self' == 'other' is a no-op
 /// @retval NAD_STATUS_OK on success
-/// @retval NAD_STATUS_OUT_OF_MEMORY when a node cannot be allocated, leaving 'other' as
+/// @retval NAD_STATUS_ERR_NO_MEM when a node cannot be allocated, leaving 'other' as
 ///         it was
 /// @bigo{n}
 [[nodiscard]] NAD_API
@@ -262,7 +262,7 @@ void *nad_list_node_elem_mut(nad_ListNode *node);
 /// @param self the list
 /// @param val the elem to copy in
 /// @retval NAD_STATUS_OK on success
-/// @retval NAD_STATUS_OUT_OF_MEMORY when the node cannot be allocated
+/// @retval NAD_STATUS_ERR_NO_MEM when the node cannot be allocated
 /// @bigo{1}
 [[nodiscard]] NAD_API
 nad_Status nad_list_push_front(nad_List *self, const void *val);
@@ -288,7 +288,7 @@ void nad_list_pop_back(nad_List *self);
 /// @param at a position, asserted to be one of this list's own
 /// @param val the elem to copy in
 /// @retval NAD_STATUS_OK on success
-/// @retval NAD_STATUS_OUT_OF_MEMORY when the node cannot be allocated
+/// @retval NAD_STATUS_ERR_NO_MEM when the node cannot be allocated
 /// @bigo{1} — the walk to 'at' is the caller's, and this is what it pays for
 [[nodiscard]] NAD_API
 nad_Status nad_list_insert_before(nad_List *self, nad_ListNode *at, const void *val);
@@ -316,7 +316,7 @@ void nad_list_clear(nad_List *self);
 /// @param self the list written into
 /// @param[in,out] src must have the same elem_size; emptied on success
 /// @retval NAD_STATUS_OK on success
-/// @retval NAD_STATUS_OUT_OF_MEMORY when the two sit on different allocators and a node
+/// @retval NAD_STATUS_ERR_NO_MEM when the two sit on different allocators and a node
 ///         cannot be allocated, leaving both as they were
 /// @bigo{1} on one allocator, n on two — a node belongs to the allocator that made it, so
 ///          across two the elems are copied and the borrowed positions do not survive
@@ -343,7 +343,7 @@ void nad_list_swap(nad_List *self, nad_List *other);
 /// @param node the node to move, asserted to be one of 'src''s own and not 'at'
 /// @retval NAD_STATUS_OK on success; on one allocator the node keeps its address, so a
 ///         borrowed pointer to it survives the move
-/// @retval NAD_STATUS_OUT_OF_MEMORY when the two sit on different allocators and the new
+/// @retval NAD_STATUS_ERR_NO_MEM when the two sit on different allocators and the new
 ///         node cannot be allocated; across two the elem is copied and the address does
 ///         not survive
 /// @bigo{1}
@@ -376,7 +376,7 @@ void nad_list_sort(nad_List *self, nad_Cmp cmp);
 ///                    of 'self' are kept before those of 'src'
 /// @param cmp the order both are already in
 /// @retval NAD_STATUS_OK on success
-/// @retval NAD_STATUS_OUT_OF_MEMORY when the two sit on different allocators and a node
+/// @retval NAD_STATUS_ERR_NO_MEM when the two sit on different allocators and a node
 ///         cannot be allocated, leaving both as they were
 /// @bigo{n + m} — reaching the same result through splice_back plus sort would cost
 ///                O(n log n) and throw away what is already known

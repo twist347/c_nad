@@ -43,7 +43,7 @@ typedef struct nad_BitSet nad_BitSet;
 /// @param al the allocator, kept for everything after
 /// @param[out] out the new bitset, written only on success
 /// @retval NAD_STATUS_OK on success
-/// @retval NAD_STATUS_OUT_OF_MEMORY when the header or the words cannot be allocated
+/// @retval NAD_STATUS_ERR_NO_MEM when the header or the words cannot be allocated
 /// @bigo{n/64}
 [[nodiscard]] NAD_API
 nad_Status nad_bitset_new(size_t nbits, nad_Al *al, nad_BitSet **out);
@@ -63,7 +63,7 @@ void nad_bitset_drop(nad_BitSet *self);
 /// @param self the bitset to copy
 /// @param[out] out the new bitset, written only on success
 /// @retval NAD_STATUS_OK on success
-/// @retval NAD_STATUS_OUT_OF_MEMORY when the header or the words cannot be allocated
+/// @retval NAD_STATUS_ERR_NO_MEM when the header or the words cannot be allocated
 /// @bigo{n/64}
 [[nodiscard]] NAD_API
 nad_Status nad_bitset_copy(const nad_BitSet *self, nad_BitSet **out);
@@ -72,7 +72,7 @@ nad_Status nad_bitset_copy(const nad_BitSet *self, nad_BitSet **out);
 /// @param self the bitset to copy from
 /// @param[in,out] other keeps its own allocator; 'self' == 'other' is a no-op
 /// @retval NAD_STATUS_OK on success
-/// @retval NAD_STATUS_OUT_OF_MEMORY when the words cannot be resized, leaving 'other' as
+/// @retval NAD_STATUS_ERR_NO_MEM when the words cannot be resized, leaving 'other' as
 ///         it was
 /// @bigo{n/64}
 [[nodiscard]] NAD_API

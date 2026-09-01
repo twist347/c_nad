@@ -51,7 +51,6 @@ nad_al_arena_drop(arena); // the vec went with it
 | `span.h` | `nad_Span` / `nad_SpanMut`, a non-owning view over contiguous elems |
 | `cmp.h` | `nad_Cmp` and `nad_Eq`, plus ready-made ones for the built-in types |
 | `hash.h` | `nad_Hasher`, `nad_Hash`, hashers for the built-in types and `nad_hash_combine` |
-| `elem_ops.h` | `nad_ElemOps` — copy, drop and hash of a single elem, gathered |
 | `print.h` | `nad_FPrint`, the printer a container is handed to show itself, plus ready-made ones for the built-in types |
 | `util.h` | `NAD_SWAP`, `NAD_UNUSED`, `NAD_STRINGIFY` |
 | `export.h` | `NAD_API` and the visibility it carries |

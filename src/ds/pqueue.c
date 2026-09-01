@@ -281,7 +281,7 @@ static nad_Status wrap(nad_Vec *vec, nad_Cmp cmp, nad_PQueue **out) {
     nad_PQueue *obj = nad_alloc(nad_vec_al(vec), sizeof(nad_PQueue));
     if (!obj) {
         nad_vec_drop(vec);
-        return NAD_STATUS_OUT_OF_MEMORY;
+        return NAD_STATUS_ERR_NO_MEM;
     }
 
     obj->vec = vec;

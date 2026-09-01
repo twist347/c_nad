@@ -78,7 +78,7 @@ nad_Status nad_span_sort_stable(nad_SpanMut s, nad_Cmp cmp, nad_Al *al) {
 
     void *buf = nad_alloc(al, bytes);
     if (!buf) {
-        return NAD_STATUS_OUT_OF_MEMORY;
+        return NAD_STATUS_ERR_NO_MEM;
     }
 
     nad_SpanMut src = s;

@@ -455,7 +455,7 @@ static void test_swap_across_allocators_reports_a_failed_first_alloc() {
 
     nad_test_arena_leave(arena, 0);
 
-    NAD_TEST_STATUS(NAD_STATUS_OUT_OF_MEMORY, nad_arr_swap(a, b));
+    NAD_TEST_STATUS(NAD_STATUS_ERR_NO_MEM, nad_arr_swap(a, b));
 
     TEST_ASSERT_EQUAL_size_t(2, nad_arr_len(a));
     TEST_ASSERT_EQUAL_size_t(3, nad_arr_len(b));
@@ -487,7 +487,7 @@ static void test_swap_across_allocators_rolls_back_a_failed_second_alloc() {
     // b's side has nothing left to give
     nad_test_arena_leave(arena, 0);
 
-    NAD_TEST_STATUS(NAD_STATUS_OUT_OF_MEMORY, nad_arr_swap(a, b));
+    NAD_TEST_STATUS(NAD_STATUS_ERR_NO_MEM, nad_arr_swap(a, b));
 
     // both arrays untouched
     TEST_ASSERT_EQUAL_size_t(2, nad_arr_len(a));
@@ -576,7 +576,7 @@ static void test_copy_assign_keeps_the_target_allocator() {
 static void test_new_len_reports_size_overflow() {
     nad_Arr *a = nullptr;
 
-    NAD_TEST_STATUS(NAD_STATUS_OUT_OF_MEMORY, nad_arr_new_len(SIZE_MAX, 2, nad_al_default(), &a));
+    NAD_TEST_STATUS(NAD_STATUS_ERR_NO_MEM, nad_arr_new_len(SIZE_MAX, 2, nad_al_default(), &a));
 
     TEST_ASSERT_NULL(a); // out is untouched on failure
 }
@@ -586,7 +586,7 @@ static void test_from_data_reports_size_overflow() {
     nad_Arr *a = nullptr;
 
     NAD_TEST_STATUS(
-        NAD_STATUS_OUT_OF_MEMORY,
+        NAD_STATUS_ERR_NO_MEM,
         nad_arr_from_data(src, SIZE_MAX, 2, nad_al_default(), &a)
     );
 
@@ -599,7 +599,7 @@ static void test_new_len_reports_an_exhausted_arena() {
 
     nad_Arr *a = nullptr;
 
-    NAD_TEST_STATUS(NAD_STATUS_OUT_OF_MEMORY, NAD_ARR_NEW_LEN(int32_t, 1000, arena, &a));
+    NAD_TEST_STATUS(NAD_STATUS_ERR_NO_MEM, NAD_ARR_NEW_LEN(int32_t, 1000, arena, &a));
 
     TEST_ASSERT_NULL(a);
 
@@ -613,7 +613,7 @@ static void test_from_data_reports_an_exhausted_arena() {
     constexpr int32_t src[4] = {1, 2, 3, 4};
     nad_Arr *a = nullptr;
 
-    NAD_TEST_STATUS(NAD_STATUS_OUT_OF_MEMORY, nad_arr_from_data(src, 1000, sizeof(int32_t), arena, &a));
+    NAD_TEST_STATUS(NAD_STATUS_ERR_NO_MEM, nad_arr_from_data(src, 1000, sizeof(int32_t), arena, &a));
 
     TEST_ASSERT_NULL(a);
 
@@ -631,7 +631,7 @@ static void test_copy_reports_an_exhausted_arena() {
     nad_test_arena_leave(arena, 0);
 
     nad_Arr *dst = nullptr;
-    NAD_TEST_STATUS(NAD_STATUS_OUT_OF_MEMORY, nad_arr_copy(src, &dst));
+    NAD_TEST_STATUS(NAD_STATUS_ERR_NO_MEM, nad_arr_copy(src, &dst));
 
     TEST_ASSERT_NULL(dst);
     TEST_ASSERT_EQUAL_size_t(3, nad_arr_len(src)); // the source is only read
@@ -649,7 +649,7 @@ static void test_copy_of_empty_reports_an_exhausted_arena() {
     nad_test_arena_leave(arena, 0);
 
     nad_Arr *dst = nullptr;
-    NAD_TEST_STATUS(NAD_STATUS_OUT_OF_MEMORY, nad_arr_copy(src, &dst));
+    NAD_TEST_STATUS(NAD_STATUS_ERR_NO_MEM, nad_arr_copy(src, &dst));
 
     TEST_ASSERT_NULL(dst);
 
@@ -671,7 +671,7 @@ static void test_copy_assign_reports_an_exhausted_arena_and_changes_nothing() {
     const void *before = nad_arr_data(other);
     nad_test_arena_leave(arena, 0);
 
-    NAD_TEST_STATUS(NAD_STATUS_OUT_OF_MEMORY, nad_arr_copy_assign(self, other));
+    NAD_TEST_STATUS(NAD_STATUS_ERR_NO_MEM, nad_arr_copy_assign(self, other));
 
     TEST_ASSERT_EQUAL_size_t(2, nad_arr_len(other));
     TEST_ASSERT_EQUAL_PTR(before, nad_arr_data(other));
@@ -720,7 +720,7 @@ static void test_a_refused_buffer_frees_the_header() {
     nad_test_probe_fail_after_next(&probe, 1);
 
     nad_Arr *a = nullptr;
-    NAD_TEST_STATUS(NAD_STATUS_OUT_OF_MEMORY, NAD_ARR_NEW_LEN(int32_t, 4, &al, &a));
+    NAD_TEST_STATUS(NAD_STATUS_ERR_NO_MEM, NAD_ARR_NEW_LEN(int32_t, 4, &al, &a));
 
     TEST_ASSERT_NULL(a);
     TEST_ASSERT_EQUAL_size_t(0, probe.live);
@@ -736,7 +736,7 @@ static void test_a_refused_buffer_frees_the_header_of_from_data() {
     nad_test_probe_fail_after_next(&probe, 1);
 
     nad_Arr *a = nullptr;
-    NAD_TEST_STATUS(NAD_STATUS_OUT_OF_MEMORY, NAD_ARR_OF(int32_t, &al, &a, 1, 2, 3));
+    NAD_TEST_STATUS(NAD_STATUS_ERR_NO_MEM, NAD_ARR_OF(int32_t, &al, &a, 1, 2, 3));
 
     TEST_ASSERT_NULL(a);
     TEST_ASSERT_EQUAL_size_t(0, probe.live);

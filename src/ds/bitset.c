@@ -64,7 +64,7 @@ nad_Status nad_bitset_new(size_t nbits, nad_Al *al, nad_BitSet **out) {
 
     nad_BitSet *obj = nad_alloc(al, sizeof(nad_BitSet));
     if (!obj) {
-        return NAD_STATUS_OUT_OF_MEMORY;
+        return NAD_STATUS_ERR_NO_MEM;
     }
 
     const size_t nwords = words_for(nbits);
@@ -74,7 +74,7 @@ nad_Status nad_bitset_new(size_t nbits, nad_Al *al, nad_BitSet **out) {
         words = nad_calloc(al, nwords, sizeof(uint64_t));
         if (!words) {
             nad_dealloc(al, obj, sizeof(nad_BitSet));
-            return NAD_STATUS_OUT_OF_MEMORY;
+            return NAD_STATUS_ERR_NO_MEM;
         }
     }
 
@@ -135,7 +135,7 @@ nad_Status nad_bitset_copy_assign(const nad_BitSet *self, nad_BitSet *other) {
         uint64_t *new_words = nad_realloc(other->al, other->words, words_bytes(other), words_bytes(self));
         // a new_size of 0 hands the block back and answers null, which is not a failure
         if (self->nwords > 0 && !new_words) {
-            return NAD_STATUS_OUT_OF_MEMORY;
+            return NAD_STATUS_ERR_NO_MEM;
         }
 
         other->words = new_words;

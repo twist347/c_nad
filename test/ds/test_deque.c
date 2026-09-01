@@ -786,7 +786,7 @@ static void test_new_reports_a_refused_allocator() {
     nad_test_probe_fail_after_next(&probe, 0);
 
     nad_Deque *d = nullptr;
-    NAD_TEST_STATUS(NAD_STATUS_OUT_OF_MEMORY, NAD_DEQUE_NEW(int32_t, &al, &d));
+    NAD_TEST_STATUS(NAD_STATUS_ERR_NO_MEM, NAD_DEQUE_NEW(int32_t, &al, &d));
 
     TEST_ASSERT_NULL(d);
     TEST_ASSERT_EQUAL_size_t(0, probe.live);
@@ -800,7 +800,7 @@ static void test_new_cap_reports_a_refused_buffer() {
     nad_test_probe_fail_after_next(&probe, 1);
 
     nad_Deque *d = nullptr;
-    NAD_TEST_STATUS(NAD_STATUS_OUT_OF_MEMORY, NAD_DEQUE_NEW_CAP(int32_t, 4, &al, &d));
+    NAD_TEST_STATUS(NAD_STATUS_ERR_NO_MEM, NAD_DEQUE_NEW_CAP(int32_t, 4, &al, &d));
 
     TEST_ASSERT_EQUAL_size_t(0, probe.live);
 }
@@ -815,8 +815,8 @@ static void test_the_pushes_report_a_refused_growth() {
     NAD_TEST_OK(NAD_DEQUE_PUSH_BACK(int32_t, back, 1));
 
     nad_test_probe_fail_after_next(&probe, 0);
-    NAD_TEST_STATUS(NAD_STATUS_OUT_OF_MEMORY, NAD_DEQUE_PUSH_BACK(int32_t, back, 2));
-    NAD_TEST_STATUS(NAD_STATUS_OUT_OF_MEMORY, NAD_DEQUE_PUSH_FRONT(int32_t, back, 0));
+    NAD_TEST_STATUS(NAD_STATUS_ERR_NO_MEM, NAD_DEQUE_PUSH_BACK(int32_t, back, 2));
+    NAD_TEST_STATUS(NAD_STATUS_ERR_NO_MEM, NAD_DEQUE_PUSH_FRONT(int32_t, back, 0));
 
     // the refusal left the deque exactly as it was
     assert_elems(back, (int32_t[]){1}, 1);
@@ -837,7 +837,7 @@ static void test_insert_reports_a_refused_growth() {
     NAD_TEST_OK(NAD_DEQUE_PUSH_BACK(int32_t, d, 2));
 
     nad_test_probe_fail_after_next(&probe, 0);
-    NAD_TEST_STATUS(NAD_STATUS_OUT_OF_MEMORY, NAD_DEQUE_INSERT(int32_t, d, 1, 99));
+    NAD_TEST_STATUS(NAD_STATUS_ERR_NO_MEM, NAD_DEQUE_INSERT(int32_t, d, 1, 99));
 
     assert_elems(d, (int32_t[]){1, 2}, 2);
 
@@ -854,7 +854,7 @@ static void test_reserve_reports_a_refused_allocator() {
     NAD_TEST_OK(NAD_DEQUE_NEW(int32_t, &al, &d));
 
     nad_test_probe_fail_after_next(&probe, 0);
-    NAD_TEST_STATUS(NAD_STATUS_OUT_OF_MEMORY, nad_deque_reserve(d, 8));
+    NAD_TEST_STATUS(NAD_STATUS_ERR_NO_MEM, nad_deque_reserve(d, 8));
 
     TEST_ASSERT_EQUAL_size_t(0, nad_deque_cap(d));
 

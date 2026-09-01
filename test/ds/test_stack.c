@@ -610,7 +610,7 @@ static void test_new_reports_an_exhausted_arena() {
     nad_test_arena_leave(arena, 0);
 
     nad_Stack *s = nullptr;
-    NAD_TEST_STATUS(NAD_STATUS_OUT_OF_MEMORY, NAD_STACK_NEW(int32_t, arena, &s));
+    NAD_TEST_STATUS(NAD_STATUS_ERR_NO_MEM, NAD_STACK_NEW(int32_t, arena, &s));
     TEST_ASSERT_NULL(s);
 
     nad_al_arena_drop(arena);
@@ -622,7 +622,7 @@ static void test_from_data_reports_an_exhausted_arena() {
 
     nad_Stack *s = nullptr;
     NAD_TEST_STATUS(
-        NAD_STATUS_OUT_OF_MEMORY,
+        NAD_STATUS_ERR_NO_MEM,
         NAD_STACK_FROM_DATA(int32_t, SPREAD, 1000, arena, &s)
     );
     TEST_ASSERT_NULL(s);
@@ -641,7 +641,7 @@ static void test_push_reports_an_exhausted_arena_and_changes_nothing() {
     nad_test_arena_leave(arena, 0);
 
     constexpr int32_t val = 100;
-    NAD_TEST_STATUS(NAD_STATUS_OUT_OF_MEMORY, nad_stack_push(s, &val));
+    NAD_TEST_STATUS(NAD_STATUS_ERR_NO_MEM, nad_stack_push(s, &val));
 
     constexpr int32_t want[3] = {5, 1, 3};
     assert_elems(s, want, 3);
@@ -660,7 +660,7 @@ static void test_copy_reports_an_exhausted_arena() {
     nad_test_arena_leave(arena, 0);
 
     nad_Stack *dst = nullptr;
-    NAD_TEST_STATUS(NAD_STATUS_OUT_OF_MEMORY, nad_stack_copy(src, &dst));
+    NAD_TEST_STATUS(NAD_STATUS_ERR_NO_MEM, nad_stack_copy(src, &dst));
     TEST_ASSERT_NULL(dst);
 
     nad_stack_drop(src);
@@ -675,7 +675,7 @@ static void test_reserve_reports_an_exhausted_arena() {
     NAD_TEST_OK(NAD_STACK_OF(int32_t, arena, &s, 5, 1, 3));
     nad_test_arena_leave(arena, 0);
 
-    NAD_TEST_STATUS(NAD_STATUS_OUT_OF_MEMORY, nad_stack_reserve(s, 1000));
+    NAD_TEST_STATUS(NAD_STATUS_ERR_NO_MEM, nad_stack_reserve(s, 1000));
 
     constexpr int32_t want[3] = {5, 1, 3};
     assert_elems(s, want, 3);
@@ -695,7 +695,7 @@ static void test_a_refused_header_frees_the_vec() {
     nad_test_probe_fail_after_next(&probe, 1);
 
     nad_Stack *s = nullptr;
-    NAD_TEST_STATUS(NAD_STATUS_OUT_OF_MEMORY, NAD_STACK_NEW(int32_t, &al, &s));
+    NAD_TEST_STATUS(NAD_STATUS_ERR_NO_MEM, NAD_STACK_NEW(int32_t, &al, &s));
 
     TEST_ASSERT_NULL(s);
     TEST_ASSERT_EQUAL_size_t(0, probe.live);
@@ -711,7 +711,7 @@ static void test_a_refused_header_frees_a_filled_vec() {
 
     nad_Stack *s = nullptr;
     NAD_TEST_STATUS(
-        NAD_STATUS_OUT_OF_MEMORY,
+        NAD_STATUS_ERR_NO_MEM,
         NAD_STACK_FROM_DATA(int32_t, SPREAD, SPREAD_LEN, &al, &s)
     );
 

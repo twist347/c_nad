@@ -50,7 +50,7 @@ typedef struct nad_Vec nad_Vec;
 /// @param al the allocator, kept for everything after
 /// @param[out] out the new vec, written only on success
 /// @retval NAD_STATUS_OK on success
-/// @retval NAD_STATUS_OUT_OF_MEMORY when the header cannot be allocated
+/// @retval NAD_STATUS_ERR_NO_MEM when the header cannot be allocated
 /// @bigo{1}
 [[nodiscard]] NAD_API
 nad_Status nad_vec_new(size_t elem_size, nad_Al *al, nad_Vec **out);
@@ -61,7 +61,7 @@ nad_Status nad_vec_new(size_t elem_size, nad_Al *al, nad_Vec **out);
 /// @param al the allocator
 /// @param[out] out the new vec, written only on success
 /// @retval NAD_STATUS_OK on success
-/// @retval NAD_STATUS_OUT_OF_MEMORY when the header or the block cannot be allocated, or
+/// @retval NAD_STATUS_ERR_NO_MEM when the header or the block cannot be allocated, or
 ///         len * elem_size overflows
 /// @bigo{n}
 [[nodiscard]] NAD_API
@@ -73,7 +73,7 @@ nad_Status nad_vec_new_len(size_t len, size_t elem_size, nad_Al *al, nad_Vec **o
 /// @param al the allocator
 /// @param[out] out the new vec, written only on success
 /// @retval NAD_STATUS_OK on success
-/// @retval NAD_STATUS_OUT_OF_MEMORY when the header or the block cannot be allocated, or
+/// @retval NAD_STATUS_ERR_NO_MEM when the header or the block cannot be allocated, or
 ///         cap * elem_size overflows
 /// @bigo{n}
 [[nodiscard]] NAD_API
@@ -86,7 +86,7 @@ nad_Status nad_vec_new_cap(size_t cap, size_t elem_size, nad_Al *al, nad_Vec **o
 /// @param al the allocator
 /// @param[out] out the new vec, written only on success
 /// @retval NAD_STATUS_OK on success
-/// @retval NAD_STATUS_OUT_OF_MEMORY when the header or the block cannot be allocated, or
+/// @retval NAD_STATUS_ERR_NO_MEM when the header or the block cannot be allocated, or
 ///         len * elem_size overflows
 /// @bigo{n}
 [[nodiscard]] NAD_API
@@ -97,7 +97,7 @@ nad_Status nad_vec_from_data(const void *data, size_t len, size_t elem_size, nad
 /// @param al the allocator
 /// @param[out] out the new vec, written only on success
 /// @retval NAD_STATUS_OK on success
-/// @retval NAD_STATUS_OUT_OF_MEMORY when the header or the block cannot be allocated
+/// @retval NAD_STATUS_ERR_NO_MEM when the header or the block cannot be allocated
 /// @bigo{n}
 [[nodiscard]] NAD_API
 nad_Status nad_vec_from_span(nad_Span s, nad_Al *al, nad_Vec **out);
@@ -117,7 +117,7 @@ void nad_vec_drop(nad_Vec *self);
 /// @param self the vec to copy
 /// @param[out] out the new vec, written only on success
 /// @retval NAD_STATUS_OK on success
-/// @retval NAD_STATUS_OUT_OF_MEMORY when the header or the block cannot be allocated
+/// @retval NAD_STATUS_ERR_NO_MEM when the header or the block cannot be allocated
 /// @bigo{n}
 [[nodiscard]] NAD_API
 nad_Status nad_vec_copy(const nad_Vec *self, nad_Vec **out);
@@ -127,7 +127,7 @@ nad_Status nad_vec_copy(const nad_Vec *self, nad_Vec **out);
 /// @param[in,out] other must have the same elem_size; keeps its own allocator, and
 ///                      'self' == 'other' is a no-op
 /// @retval NAD_STATUS_OK on success
-/// @retval NAD_STATUS_OUT_OF_MEMORY when the block cannot grow, leaving 'other' as it was
+/// @retval NAD_STATUS_ERR_NO_MEM when the block cannot grow, leaving 'other' as it was
 /// @bigo{n}
 [[nodiscard]] NAD_API
 nad_Status nad_vec_copy_assign(const nad_Vec *self, nad_Vec *other);
@@ -266,7 +266,7 @@ void *nad_vec_data_mut(nad_Vec *self);
 /// @param val must not point into this vec's own block: a push that grows moves the elems
 ///            out from under it
 /// @retval NAD_STATUS_OK on success
-/// @retval NAD_STATUS_OUT_OF_MEMORY when the block cannot grow
+/// @retval NAD_STATUS_ERR_NO_MEM when the block cannot grow
 /// @bigo{1} amortized
 [[nodiscard]] NAD_API
 nad_Status nad_vec_push(nad_Vec *self, const void *val);
@@ -282,7 +282,7 @@ void nad_vec_pop(nad_Vec *self);
 /// @param idx asserts idx <= len; idx == len appends
 /// @param val must not point into this vec's own block, as in nad_vec_push
 /// @retval NAD_STATUS_OK on success
-/// @retval NAD_STATUS_OUT_OF_MEMORY when the block cannot grow
+/// @retval NAD_STATUS_ERR_NO_MEM when the block cannot grow
 /// @bigo{n}
 [[nodiscard]] NAD_API
 nad_Status nad_vec_insert(nad_Vec *self, size_t idx, const void *val);
@@ -304,7 +304,7 @@ void nad_vec_clear(nad_Vec *self);
 /// @param self the vec
 /// @param new_cap a capacity at or below the one it has is a no-op
 /// @retval NAD_STATUS_OK on success
-/// @retval NAD_STATUS_OUT_OF_MEMORY when the block cannot grow, or new_cap * elem_size
+/// @retval NAD_STATUS_ERR_NO_MEM when the block cannot grow, or new_cap * elem_size
 ///         overflows
 /// @bigo{n}
 [[nodiscard]] NAD_API
@@ -313,7 +313,7 @@ nad_Status nad_vec_reserve(nad_Vec *self, size_t new_cap);
 /// gives back the room above the length
 /// @param self a length of 0 releases the block outright
 /// @retval NAD_STATUS_OK on success, and when there was nothing to give back
-/// @retval NAD_STATUS_OUT_OF_MEMORY when the allocator refuses the smaller block, leaving
+/// @retval NAD_STATUS_ERR_NO_MEM when the allocator refuses the smaller block, leaving
 ///         the vec as it was
 /// @bigo{n}
 [[nodiscard]] NAD_API
@@ -323,7 +323,7 @@ nad_Status nad_vec_shrink_to_fit(nad_Vec *self);
 /// @param self the vec
 /// @param new_len below the length drops the tail; above it appends zeroed elems
 /// @retval NAD_STATUS_OK on success
-/// @retval NAD_STATUS_OUT_OF_MEMORY when the block cannot grow
+/// @retval NAD_STATUS_ERR_NO_MEM when the block cannot grow
 /// @bigo{n}
 [[nodiscard]] NAD_API
 nad_Status nad_vec_resize(nad_Vec *self, size_t new_len);
@@ -334,7 +334,7 @@ nad_Status nad_vec_resize(nad_Vec *self, size_t new_len);
 /// @retval NAD_STATUS_OK on success; on one allocator the blocks are handed over and the
 ///         capacity travels with them, on two the bytes are moved and each side is left
 ///         sized to its new content
-/// @retval NAD_STATUS_OUT_OF_MEMORY when the two sit on different allocators and a block
+/// @retval NAD_STATUS_ERR_NO_MEM when the two sit on different allocators and a block
 ///         cannot be taken, leaving both as they were
 /// @bigo{1} on one allocator, n on two
 [[nodiscard]] NAD_API
@@ -358,7 +358,7 @@ void nad_vec_swap_elems(nad_Vec *self, size_t i, size_t j);
 /// @param src must have the same elem_size, and must not view this vec's own block:
 ///            growing frees what 'src' would be reading from
 /// @retval NAD_STATUS_OK on success
-/// @retval NAD_STATUS_OUT_OF_MEMORY when the block cannot grow
+/// @retval NAD_STATUS_ERR_NO_MEM when the block cannot grow
 /// @bigo{n} — the room is taken once for the whole run and with the growth factor a push
 ///            uses, so a run of extends stays amortized O(1) per elem
 [[nodiscard]] NAD_API
@@ -370,7 +370,7 @@ nad_Status nad_vec_extend(nad_Vec *self, nad_Span src);
 /// @param src must have the same elem_size, and must not view this vec's own block, as in
 ///            nad_vec_extend
 /// @retval NAD_STATUS_OK on success
-/// @retval NAD_STATUS_OUT_OF_MEMORY when the block cannot grow
+/// @retval NAD_STATUS_ERR_NO_MEM when the block cannot grow
 /// @bigo{n} — the tail moves once for the whole run, which a loop of insert cannot do: it
 ///            moves the tail once per elem and costs O(len * src.len)
 [[nodiscard]] NAD_API

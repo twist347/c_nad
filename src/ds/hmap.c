@@ -134,12 +134,12 @@ nad_Status nad_hmap_new_raw_(size_t cap, size_t key_size, size_t val_size, nad_H
 
     size_t kv_bytes;
     if (ckd_add(&kv_bytes, val_offset, val_size)) {
-        return NAD_STATUS_OUT_OF_MEMORY;
+        return NAD_STATUS_ERR_NO_MEM;
     }
 
     nad_HMap *obj = nad_alloc(al, sizeof(nad_HMap));
     if (!obj) {
-        return NAD_STATUS_OUT_OF_MEMORY;
+        return NAD_STATUS_ERR_NO_MEM;
     }
 
     obj->buckets = nullptr;
@@ -505,7 +505,7 @@ nad_Status nad_hmap_reserve(nad_HMap *self, size_t cap) {
     // sensible bucket array rather than one or two buckets
     const size_t want = round_up_pow2(cap);
     if (want == 0) {
-        return NAD_STATUS_OUT_OF_MEMORY;
+        return NAD_STATUS_ERR_NO_MEM;
     }
 
     return rehash(self, want);
@@ -597,7 +597,7 @@ static const void *node_val(const nad_HMap *self, const nad_HMapNode *node) {
 static nad_Status node_new(const nad_HMap *self, const void *key, const void *val, nad_Hash hash, nad_HMapNode **out) {
     nad_HMapNode *node = nad_alloc(self->al, node_bytes(self));
     if (!node) {
-        return NAD_STATUS_OUT_OF_MEMORY;
+        return NAD_STATUS_ERR_NO_MEM;
     }
 
     assert(nad_ptr_is_aligned(node, alignof(max_align_t)));
@@ -685,7 +685,7 @@ static nad_Status rehash(nad_HMap *self, size_t new_count) {
 
     nad_HMapNode **buckets = nad_calloc(self->al, new_count, sizeof(nad_HMapNode *));
     if (!buckets) {
-        return NAD_STATUS_OUT_OF_MEMORY;
+        return NAD_STATUS_ERR_NO_MEM;
     }
 
     for (size_t i = 0; i < self->bucket_count; ++i) {
@@ -719,7 +719,7 @@ static nad_Status reserve_one(nad_HMap *self) {
 
     size_t grown;
     if (ckd_mul(&grown, self->bucket_count, HMAP_GROWTH_FACTOR)) {
-        return NAD_STATUS_OUT_OF_MEMORY;
+        return NAD_STATUS_ERR_NO_MEM;
     }
 
     return rehash(self, grown);

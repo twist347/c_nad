@@ -112,7 +112,7 @@ nad_Status nad_arr_copy_assign(const nad_Arr *self, nad_Arr *other) {
     if (self_bytes != other_bytes) {
         void *new_data = nad_realloc(other->al, other->data, other_bytes, self_bytes);
         if (self_bytes > 0 && !new_data) {
-            return NAD_STATUS_OUT_OF_MEMORY;
+            return NAD_STATUS_ERR_NO_MEM;
         }
 
         other->data = new_data;
@@ -260,7 +260,7 @@ nad_Status nad_arr_swap(nad_Arr *self, nad_Arr *other) {
     if (other_bytes > 0) {
         self_new = nad_alloc(self->al, other_bytes);
         if (!self_new) {
-            return NAD_STATUS_OUT_OF_MEMORY;
+            return NAD_STATUS_ERR_NO_MEM;
         }
     }
 
@@ -268,7 +268,7 @@ nad_Status nad_arr_swap(nad_Arr *self, nad_Arr *other) {
         other_new = nad_alloc(other->al, self_bytes);
         if (!other_new) {
             nad_dealloc(self->al, self_new, other_bytes);
-            return NAD_STATUS_OUT_OF_MEMORY;
+            return NAD_STATUS_ERR_NO_MEM;
         }
     }
 
@@ -339,7 +339,7 @@ static nad_Status new_impl(bool zeroed, size_t len, size_t elem_size, nad_Al *al
 
     nad_Arr *obj = nad_alloc(al, sizeof(nad_Arr));
     if (!obj) {
-        return NAD_STATUS_OUT_OF_MEMORY;
+        return NAD_STATUS_ERR_NO_MEM;
     }
 
     void *data = nullptr;
@@ -364,7 +364,7 @@ static nad_Status new_impl(bool zeroed, size_t len, size_t elem_size, nad_Al *al
 
 fail:
     nad_dealloc(al, obj, sizeof(nad_Arr));
-    return NAD_STATUS_OUT_OF_MEMORY;
+    return NAD_STATUS_ERR_NO_MEM;
 }
 
 static void set_fields(nad_Arr *obj, void *data, size_t len, size_t elem_size, nad_Al *al) {

@@ -266,7 +266,7 @@ static nad_Status wrap(nad_Deque *deque, nad_Queue **out) {
     nad_Queue *obj = nad_alloc(nad_deque_al(deque), sizeof(nad_Queue));
     if (!obj) {
         nad_deque_drop(deque);
-        return NAD_STATUS_OUT_OF_MEMORY;
+        return NAD_STATUS_ERR_NO_MEM;
     }
 
     obj->deque = deque;
