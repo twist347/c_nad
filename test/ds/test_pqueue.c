@@ -476,6 +476,92 @@ static void test_copy_with_reports_an_exhausted_target_arena() {
     nad_al_arena_drop(arena);
 }
 
+static void test_move_assign_hands_over_the_contents_on_one_allocator() {
+    nad_TestProbe probe;
+    nad_test_probe_reset(&probe);
+    nad_Al al = nad_test_probe_full(&probe);
+
+    nad_PQueue *src = nullptr;
+    NAD_TEST_OK(NAD_PQUEUE_OF(int32_t, nad_cmp_i32, &al, &src, 1, 5, 3));
+
+    nad_PQueue *dst = nullptr;
+    NAD_TEST_OK(NAD_PQUEUE_OF(int32_t, nad_cmp_desc_i32, &al, &dst, 9));
+
+    const size_t requests = nad_test_probe_requests(&probe);
+    NAD_TEST_OK(nad_pqueue_move_assign(src, dst));
+
+    // nothing was asked of the allocator: the vec's block changed hands
+    TEST_ASSERT_EQUAL_size_t(requests, nad_test_probe_requests(&probe));
+
+    TEST_ASSERT_EQUAL_size_t(3, nad_pqueue_len(dst));
+    TEST_ASSERT_EQUAL_INT32(5, *NAD_PQUEUE_TOP_AS(int32_t, dst));
+
+    // the elems arrive arranged under the source's comparator, so it travels with them
+    TEST_ASSERT_EQUAL_PTR(nad_cmp_i32, nad_pqueue_cmp(dst));
+
+    TEST_ASSERT_EQUAL_size_t(0, nad_pqueue_len(src));
+
+    nad_pqueue_drop(src);
+    nad_pqueue_drop(dst);
+    TEST_ASSERT_EQUAL_size_t(0, probe.live);
+}
+
+static void test_move_assign_across_allocators_empties_the_source() {
+    nad_Al *arena = nad_al_arena_new(nad_al_default(), 1024);
+    TEST_ASSERT_NOT_NULL(arena);
+
+    nad_PQueue *src = make_queue_from(SPREAD, SPREAD_LEN);
+
+    nad_PQueue *dst = nullptr;
+    NAD_TEST_OK(NAD_PQUEUE_OF(int32_t, nad_cmp_desc_i32, arena, &dst, 9));
+
+    NAD_TEST_OK(nad_pqueue_move_assign(src, dst));
+
+    TEST_ASSERT_EQUAL_size_t(SPREAD_LEN, nad_pqueue_len(dst));
+    TEST_ASSERT_EQUAL_PTR(nad_cmp_i32, nad_pqueue_cmp(dst));
+    TEST_ASSERT_EQUAL_PTR(arena, nad_pqueue_al(dst));
+    assert_drains_sorted(dst, SPREAD, SPREAD_LEN, nad_cmp_desc_i32);
+
+    TEST_ASSERT_EQUAL_size_t(0, nad_pqueue_len(src));
+    TEST_ASSERT_EQUAL_PTR(nad_al_default(), nad_pqueue_al(src));
+
+    nad_pqueue_drop(src);
+    nad_pqueue_drop(dst);
+    nad_al_arena_drop(arena);
+}
+
+static void test_move_assign_across_allocators_reports_an_exhausted_arena() {
+    nad_Al *arena = nad_al_arena_new(nad_al_default(), 1024);
+    TEST_ASSERT_NOT_NULL(arena);
+
+    nad_PQueue *dst = nullptr;
+    NAD_TEST_OK(NAD_PQUEUE_OF(int32_t, nad_cmp_desc_i32, arena, &dst, 9));
+    nad_test_arena_leave(arena, 0);
+
+    nad_PQueue *src = make_queue_from(SPREAD, SPREAD_LEN);
+
+    NAD_TEST_STATUS(NAD_STATUS_ERR_NO_MEM, nad_pqueue_move_assign(src, dst));
+
+    TEST_ASSERT_EQUAL_size_t(SPREAD_LEN, nad_pqueue_len(src));
+    TEST_ASSERT_EQUAL_size_t(1, nad_pqueue_len(dst));
+    TEST_ASSERT_EQUAL_PTR(nad_cmp_desc_i32, nad_pqueue_cmp(dst));
+
+    nad_pqueue_drop(src);
+    nad_pqueue_drop(dst);
+    nad_al_arena_drop(arena);
+}
+
+static void test_move_assign_of_itself_changes_nothing() {
+    nad_PQueue *q = make_queue_from(SPREAD, SPREAD_LEN);
+
+    NAD_TEST_OK(nad_pqueue_move_assign(q, q));
+
+    TEST_ASSERT_EQUAL_size_t(SPREAD_LEN, nad_pqueue_len(q));
+    assert_drains_sorted(q, SPREAD, SPREAD_LEN, nad_cmp_desc_i32);
+
+    nad_pqueue_drop(q);
+}
+
 static void test_copy_drains_the_same_as_its_source() {
     nad_PQueue *src = make_queue_from(SPREAD, SPREAD_LEN);
     nad_PQueue *dst = nullptr;
@@ -831,6 +917,10 @@ int main() {
     RUN_TEST(test_copy_inherits_the_allocator_and_the_comparator);
     RUN_TEST(test_copy_with_builds_on_the_given_allocator);
     RUN_TEST(test_copy_with_reports_an_exhausted_target_arena);
+    RUN_TEST(test_move_assign_hands_over_the_contents_on_one_allocator);
+    RUN_TEST(test_move_assign_across_allocators_empties_the_source);
+    RUN_TEST(test_move_assign_across_allocators_reports_an_exhausted_arena);
+    RUN_TEST(test_move_assign_of_itself_changes_nothing);
     RUN_TEST(test_copy_drains_the_same_as_its_source);
     RUN_TEST(test_copy_of_empty_stays_empty);
     RUN_TEST(test_copy_assign_hands_over_the_comparator_too);

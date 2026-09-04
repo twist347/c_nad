@@ -259,6 +259,90 @@ static void test_copy_with_reports_an_exhausted_target_arena() {
     nad_al_arena_drop(arena);
 }
 
+static void test_move_assign_hands_over_the_contents_on_one_allocator() {
+    nad_TestProbe probe;
+    nad_test_probe_reset(&probe);
+    nad_Al al = nad_test_probe_full(&probe);
+
+    nad_List *src = nullptr;
+    NAD_TEST_OK(NAD_LIST_OF(int32_t, &al, &src, 1, 2, 3));
+
+    nad_List *dst = nullptr;
+    NAD_TEST_OK(NAD_LIST_OF(int32_t, &al, &dst, 9));
+
+    // a position borrowed from the source before the move: on one allocator the nodes are
+    // relinked where they lie, so it must still be good afterwards — and belong to 'dst'
+    const nad_ListNode *node = nad_list_first_node(src);
+
+    const size_t requests = nad_test_probe_requests(&probe);
+    NAD_TEST_OK(nad_list_move_assign(src, dst));
+
+    TEST_ASSERT_EQUAL_size_t(requests, nad_test_probe_requests(&probe));
+
+    assert_elems(dst, (int32_t[]){1, 2, 3}, 3);
+    TEST_ASSERT_EQUAL_PTR(node, nad_list_first_node(dst));
+    TEST_ASSERT_EQUAL_INT32(1, *NAD_LIST_NODE_ELEM_AS(int32_t, node));
+
+    TEST_ASSERT_EQUAL_size_t(0, nad_list_len(src));
+    TEST_ASSERT_NULL(nad_list_first_node(src));
+
+    nad_list_drop(src);
+    nad_list_drop(dst);
+    TEST_ASSERT_EQUAL_size_t(0, probe.live);
+}
+
+static void test_move_assign_across_allocators_empties_the_source() {
+    nad_Al *arena = nad_al_arena_new(nad_al_default(), 1024);
+    TEST_ASSERT_NOT_NULL(arena);
+
+    nad_List *src = make_list(4);
+
+    nad_List *dst = nullptr;
+    NAD_TEST_OK(NAD_LIST_OF(int32_t, arena, &dst, 9));
+
+    NAD_TEST_OK(nad_list_move_assign(src, dst));
+
+    assert_elems(dst, (int32_t[]){0, 1, 2, 3}, 4);
+    TEST_ASSERT_EQUAL_PTR(arena, nad_list_al(dst));
+
+    TEST_ASSERT_EQUAL_size_t(0, nad_list_len(src));
+    TEST_ASSERT_EQUAL_PTR(nad_al_default(), nad_list_al(src));
+
+    nad_list_drop(src);
+    nad_list_drop(dst);
+    nad_al_arena_drop(arena);
+}
+
+static void test_move_assign_across_allocators_reports_an_exhausted_arena() {
+    nad_Al *arena = nad_al_arena_new(nad_al_default(), 1024);
+    TEST_ASSERT_NOT_NULL(arena);
+
+    nad_List *dst = nullptr;
+    NAD_TEST_OK(NAD_LIST_OF(int32_t, arena, &dst, 9));
+    nad_test_arena_leave(arena, 0);
+
+    nad_List *src = make_list(4);
+
+    NAD_TEST_STATUS(NAD_STATUS_ERR_NO_MEM, nad_list_move_assign(src, dst));
+
+    assert_elems(src, (int32_t[]){0, 1, 2, 3}, 4);
+    assert_elems(dst, (int32_t[]){9}, 1);
+
+    nad_list_drop(src);
+    nad_list_drop(dst);
+    nad_al_arena_drop(arena);
+}
+
+static void test_move_assign_of_itself_changes_nothing() {
+    nad_List *l = make_list(3);
+
+    NAD_TEST_OK(nad_list_move_assign(l, l));
+
+    assert_elems(l, (int32_t[]){0, 1, 2}, 3);
+
+    nad_list_drop(l);
+}
+
 static void test_copy_of_empty_is_empty() {
     nad_List *l = make_list(0);
     nad_List *c = nullptr;
@@ -1793,6 +1877,10 @@ int main() {
     RUN_TEST(test_copy_inherits_the_source_allocator);
     RUN_TEST(test_copy_with_builds_on_the_given_allocator);
     RUN_TEST(test_copy_with_reports_an_exhausted_target_arena);
+    RUN_TEST(test_move_assign_hands_over_the_contents_on_one_allocator);
+    RUN_TEST(test_move_assign_across_allocators_empties_the_source);
+    RUN_TEST(test_move_assign_across_allocators_reports_an_exhausted_arena);
+    RUN_TEST(test_move_assign_of_itself_changes_nothing);
     RUN_TEST(test_copy_of_empty_is_empty);
     RUN_TEST(test_copy_assign_grows_the_target);
     RUN_TEST(test_copy_assign_shrinks_the_target);

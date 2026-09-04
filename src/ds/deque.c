@@ -37,6 +37,9 @@ static nad_Status new_impl(bool zeroed, size_t len, size_t cap, size_t elem_size
 
 static void set_fields(nad_Deque *obj, void *data, size_t len, size_t cap, size_t elem_size, nad_Al *al);
 
+/// hands the block back and leaves an empty deque on the same allocator
+static void release_data(nad_Deque *self);
+
 [[nodiscard]]
 static size_t next_cap(const nad_Deque *self);
 
@@ -193,6 +196,45 @@ nad_Status nad_deque_copy_assign(const nad_Deque *self, nad_Deque *other) {
     other->len = self->len;
     copy_out(self, other->data);
 
+    ASSERT_DEQUE(other);
+
+    return NAD_STATUS_OK;
+}
+
+nad_Status nad_deque_move_assign(nad_Deque *self, nad_Deque *other) {
+    ASSERT_DEQUE(self);
+    ASSERT_DEQUE(other);
+    assert(self->elem_size == other->elem_size);
+
+    if (self == other) {
+        return NAD_STATUS_OK;
+    }
+
+    // one allocator: the block is handed over, ring and all. What 'other' held ends up in 'self' and is released
+    // there, through the very allocator that made it
+    if (self->al == other->al) {
+        NAD_SWAP(*self, *other);
+        release_data(self);
+
+        ASSERT_DEQUE(self);
+        ASSERT_DEQUE(other);
+
+        return NAD_STATUS_OK;
+    }
+
+    // two allocators: the whole copy is built on the target's before anything of it is
+    // touched, so a refusal leaves both as they were
+    nad_Deque *obj;
+    const nad_Status st = nad_deque_copy_with(self, other->al, &obj);
+    if (NAD_STATUS_IS_ERR(st)) {
+        return st;
+    }
+
+    NAD_SWAP(*other, *obj);
+    nad_deque_drop(obj);
+    release_data(self);
+
+    ASSERT_DEQUE(self);
     ASSERT_DEQUE(other);
 
     return NAD_STATUS_OK;
@@ -739,6 +781,14 @@ static nad_Status grow(nad_Deque *self) {
     }
 
     return nad_deque_reserve(self, self->cap + 1);
+}
+
+static void release_data(nad_Deque *self) {
+    nad_dealloc(self->al, self->data, cap_bytes(self));
+    self->data = nullptr;
+    self->len = 0;
+    self->cap = 0;
+    self->head = 0;
 }
 
 static size_t len_bytes(const nad_Deque *self) {

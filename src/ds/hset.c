@@ -90,6 +90,15 @@ nad_Status nad_hset_copy_assign(const nad_HSet *self, nad_HSet *other) {
     return nad_hmap_copy_assign(self->map, other->map);
 }
 
+nad_Status nad_hset_move_assign(nad_HSet *self, nad_HSet *other) {
+    ASSERT_HSET(self);
+    ASSERT_HSET(other);
+
+    // self assignment is left to the map, which already returns early on it: a guard
+    // repeated here would be a branch no test could tell from its absence
+    return nad_hmap_move_assign(self->map, other->map);
+}
+
 /* ========== info ========== */
 
 size_t nad_hset_len(const nad_HSet *self) {

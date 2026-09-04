@@ -124,6 +124,18 @@ nad_Status nad_list_copy_with(const nad_List *self, nad_Al *al, nad_List **out);
 [[nodiscard]] NAD_API
 nad_Status nad_list_copy_assign(const nad_List *self, nad_List *other);
 
+/// moves the elems of 'self' into 'other', leaving 'self' empty
+/// @param[in,out] self the list to move from; emptied on success and still usable, on
+///                     its own allocator
+/// @param[in,out] other must have the same elem_size; releases what it held and keeps its own allocator. 'self' == 'other' is a no-op
+/// @retval NAD_STATUS_OK on success
+/// @retval NAD_STATUS_ERR_NO_MEM when the two sit on different allocators and a node cannot be allocated,
+///         leaving both as they were
+/// @bigo{1} on one allocator, n on two — a node belongs to the allocator that made it,
+///          so across two the elems are copied and the borrowed positions do not survive
+[[nodiscard]] NAD_API
+nad_Status nad_list_move_assign(nad_List *self, nad_List *other);
+
 /// @}
 
 /// @name compare

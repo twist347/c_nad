@@ -366,6 +366,84 @@ static void test_copy_with_reports_an_exhausted_target_arena() {
     nad_al_arena_drop(arena);
 }
 
+static void test_move_assign_hands_over_the_contents_on_one_allocator() {
+    nad_TestProbe probe;
+    nad_test_probe_reset(&probe);
+    nad_Al al = nad_test_probe_full(&probe);
+
+    nad_Deque *src = nullptr;
+    NAD_TEST_OK(NAD_DEQUE_OF(int32_t, &al, &src, 1, 2, 3));
+
+    nad_Deque *dst = nullptr;
+    NAD_TEST_OK(NAD_DEQUE_OF(int32_t, &al, &dst, 9));
+
+    const size_t requests = nad_test_probe_requests(&probe);
+    NAD_TEST_OK(nad_deque_move_assign(src, dst));
+
+    // nothing was asked of the allocator: the ring changed hands as it stood
+    TEST_ASSERT_EQUAL_size_t(requests, nad_test_probe_requests(&probe));
+
+    assert_elems(dst, (int32_t[]){1, 2, 3}, 3);
+    TEST_ASSERT_EQUAL_size_t(0, nad_deque_len(src));
+
+    nad_deque_drop(src);
+    nad_deque_drop(dst);
+    TEST_ASSERT_EQUAL_size_t(0, probe.live);
+}
+
+static void test_move_assign_across_allocators_empties_the_source() {
+    nad_Al *arena = nad_al_arena_new(nad_al_default(), 1024);
+    TEST_ASSERT_NOT_NULL(arena);
+
+    // a split ring must arrive in deque order, exactly as in copy
+    nad_Deque *src = make_wrapped();
+
+    nad_Deque *dst = nullptr;
+    NAD_TEST_OK(NAD_DEQUE_OF(int32_t, arena, &dst, 9));
+
+    NAD_TEST_OK(nad_deque_move_assign(src, dst));
+
+    assert_elems(dst, (int32_t[]){10, 20, 30, 40}, 4);
+    TEST_ASSERT_EQUAL_PTR(arena, nad_deque_al(dst));
+
+    TEST_ASSERT_EQUAL_size_t(0, nad_deque_len(src));
+    TEST_ASSERT_EQUAL_PTR(nad_al_default(), nad_deque_al(src));
+
+    nad_deque_drop(src);
+    nad_deque_drop(dst);
+    nad_al_arena_drop(arena);
+}
+
+static void test_move_assign_across_allocators_reports_an_exhausted_arena() {
+    nad_Al *arena = nad_al_arena_new(nad_al_default(), 1024);
+    TEST_ASSERT_NOT_NULL(arena);
+
+    nad_Deque *dst = nullptr;
+    NAD_TEST_OK(NAD_DEQUE_OF(int32_t, arena, &dst, 9));
+    nad_test_arena_leave(arena, 0);
+
+    nad_Deque *src = make_deque(4);
+
+    NAD_TEST_STATUS(NAD_STATUS_ERR_NO_MEM, nad_deque_move_assign(src, dst));
+
+    assert_elems(src, (int32_t[]){0, 1, 2, 3}, 4);
+    assert_elems(dst, (int32_t[]){9}, 1);
+
+    nad_deque_drop(src);
+    nad_deque_drop(dst);
+    nad_al_arena_drop(arena);
+}
+
+static void test_move_assign_of_itself_changes_nothing() {
+    nad_Deque *d = make_deque(3);
+
+    NAD_TEST_OK(nad_deque_move_assign(d, d));
+
+    assert_elems(d, (int32_t[]){0, 1, 2}, 3);
+
+    nad_deque_drop(d);
+}
+
 static void test_copy_assign_overwrites_a_longer_target() {
     nad_Deque *src = make_deque(2);
     nad_Deque *dst = make_deque(6);
@@ -1056,6 +1134,10 @@ int main() {
     RUN_TEST(test_copy_is_independent_of_a_wrapped_source);
     RUN_TEST(test_copy_with_builds_on_the_given_allocator);
     RUN_TEST(test_copy_with_reports_an_exhausted_target_arena);
+    RUN_TEST(test_move_assign_hands_over_the_contents_on_one_allocator);
+    RUN_TEST(test_move_assign_across_allocators_empties_the_source);
+    RUN_TEST(test_move_assign_across_allocators_reports_an_exhausted_arena);
+    RUN_TEST(test_move_assign_of_itself_changes_nothing);
     RUN_TEST(test_copy_assign_overwrites_a_longer_target);
     RUN_TEST(test_copy_assign_grows_a_shorter_target);
     RUN_TEST(test_copy_assign_of_itself_changes_nothing);

@@ -531,6 +531,88 @@ static void test_copy_with_reports_an_exhausted_target_arena() {
     nad_al_arena_drop(arena);
 }
 
+static void test_move_assign_hands_over_the_contents_on_one_allocator() {
+    nad_TestProbe probe;
+    nad_test_probe_reset(&probe);
+    nad_Al al = nad_test_probe_full(&probe);
+
+    nad_Queue *src = nullptr;
+    NAD_TEST_OK(NAD_QUEUE_OF(int32_t, &al, &src, 1, 2, 3));
+
+    nad_Queue *dst = nullptr;
+    NAD_TEST_OK(NAD_QUEUE_OF(int32_t, &al, &dst, 9));
+
+    const size_t requests = nad_test_probe_requests(&probe);
+    NAD_TEST_OK(nad_queue_move_assign(src, dst));
+
+    // nothing was asked of the allocator: the deque's ring changed hands
+    TEST_ASSERT_EQUAL_size_t(requests, nad_test_probe_requests(&probe));
+
+    TEST_ASSERT_EQUAL_size_t(3, nad_queue_len(dst));
+    TEST_ASSERT_EQUAL_INT32(1, *NAD_QUEUE_FRONT_AS(int32_t, dst));
+    TEST_ASSERT_EQUAL_size_t(0, nad_queue_len(src));
+
+    nad_queue_drop(src);
+    nad_queue_drop(dst);
+    TEST_ASSERT_EQUAL_size_t(0, probe.live);
+}
+
+static void test_move_assign_across_allocators_empties_the_source() {
+    nad_Al *arena = nad_al_arena_new(nad_al_default(), 1024);
+    TEST_ASSERT_NOT_NULL(arena);
+
+    // a split ring must arrive in queue order, exactly as in copy
+    nad_Queue *src = make_wrapped();
+
+    nad_Queue *dst = nullptr;
+    NAD_TEST_OK(NAD_QUEUE_OF(int32_t, arena, &dst, 9));
+
+    NAD_TEST_OK(nad_queue_move_assign(src, dst));
+
+    TEST_ASSERT_EQUAL_size_t(4, nad_queue_len(dst));
+    TEST_ASSERT_EQUAL_INT32(10, *NAD_QUEUE_FRONT_AS(int32_t, dst));
+    TEST_ASSERT_EQUAL_PTR(arena, nad_queue_al(dst));
+
+    TEST_ASSERT_EQUAL_size_t(0, nad_queue_len(src));
+    TEST_ASSERT_EQUAL_PTR(nad_al_default(), nad_queue_al(src));
+
+    nad_queue_drop(src);
+    nad_queue_drop(dst);
+    nad_al_arena_drop(arena);
+}
+
+static void test_move_assign_across_allocators_reports_an_exhausted_arena() {
+    nad_Al *arena = nad_al_arena_new(nad_al_default(), 1024);
+    TEST_ASSERT_NOT_NULL(arena);
+
+    nad_Queue *dst = nullptr;
+    NAD_TEST_OK(NAD_QUEUE_OF(int32_t, arena, &dst, 9));
+    nad_test_arena_leave(arena, 0);
+
+    nad_Queue *src = make_queue_from(SPREAD, SPREAD_LEN);
+
+    NAD_TEST_STATUS(NAD_STATUS_ERR_NO_MEM, nad_queue_move_assign(src, dst));
+
+    TEST_ASSERT_EQUAL_size_t(SPREAD_LEN, nad_queue_len(src));
+    TEST_ASSERT_EQUAL_size_t(1, nad_queue_len(dst));
+    TEST_ASSERT_EQUAL_INT32(9, *NAD_QUEUE_FRONT_AS(int32_t, dst));
+
+    nad_queue_drop(src);
+    nad_queue_drop(dst);
+    nad_al_arena_drop(arena);
+}
+
+static void test_move_assign_of_itself_changes_nothing() {
+    nad_Queue *q = make_queue_from(SPREAD, SPREAD_LEN);
+
+    NAD_TEST_OK(nad_queue_move_assign(q, q));
+
+    TEST_ASSERT_EQUAL_size_t(SPREAD_LEN, nad_queue_len(q));
+    TEST_ASSERT_EQUAL_INT32(SPREAD[0], *NAD_QUEUE_FRONT_AS(int32_t, q));
+
+    nad_queue_drop(q);
+}
+
 // the copy of a split ring must come out in queue order, not in buffer order
 static void test_copy_of_a_wrapped_queue_keeps_the_order() {
     nad_Queue *src = make_wrapped();
@@ -1022,6 +1104,10 @@ int main() {
     RUN_TEST(test_copy_inherits_the_allocator);
     RUN_TEST(test_copy_with_builds_on_the_given_allocator);
     RUN_TEST(test_copy_with_reports_an_exhausted_target_arena);
+    RUN_TEST(test_move_assign_hands_over_the_contents_on_one_allocator);
+    RUN_TEST(test_move_assign_across_allocators_empties_the_source);
+    RUN_TEST(test_move_assign_across_allocators_reports_an_exhausted_arena);
+    RUN_TEST(test_move_assign_of_itself_changes_nothing);
     RUN_TEST(test_copy_of_a_wrapped_queue_keeps_the_order);
     RUN_TEST(test_copy_of_empty_stays_empty);
     RUN_TEST(test_copy_assign_overwrites_the_target);

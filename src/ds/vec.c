@@ -34,6 +34,9 @@ static nad_Status new_impl(bool zeroed, size_t len, size_t cap, size_t elem_size
 
 static void set_fields(nad_Vec *obj, void *data, size_t len, size_t cap, size_t elem_size, nad_Al *al);
 
+/// hands the block back and leaves an empty vec on the same allocator
+static void release_data(nad_Vec *self);
+
 [[nodiscard]]
 static size_t next_cap(const nad_Vec *self);
 
@@ -160,6 +163,45 @@ nad_Status nad_vec_copy_assign(const nad_Vec *self, nad_Vec *other) {
 
     other->len = self->len;
 
+    ASSERT_VEC(other);
+
+    return NAD_STATUS_OK;
+}
+
+nad_Status nad_vec_move_assign(nad_Vec *self, nad_Vec *other) {
+    ASSERT_VEC(self);
+    ASSERT_VEC(other);
+    assert(self->elem_size == other->elem_size);
+
+    if (self == other) {
+        return NAD_STATUS_OK;
+    }
+
+    // one allocator: the block is handed over, capacity and all. What 'other' held ends up in 'self' and is released
+    // there, through the very allocator that made it
+    if (self->al == other->al) {
+        NAD_SWAP(*self, *other);
+        release_data(self);
+
+        ASSERT_VEC(self);
+        ASSERT_VEC(other);
+
+        return NAD_STATUS_OK;
+    }
+
+    // two allocators: the whole copy is built on the target's before anything of it is
+    // touched, so a refusal leaves both as they were
+    nad_Vec *obj;
+    const nad_Status st = nad_vec_copy_with(self, other->al, &obj);
+    if (NAD_STATUS_IS_ERR(st)) {
+        return st;
+    }
+
+    NAD_SWAP(*other, *obj);
+    nad_vec_drop(obj);
+    release_data(self);
+
+    ASSERT_VEC(self);
     ASSERT_VEC(other);
 
     return NAD_STATUS_OK;
@@ -673,6 +715,13 @@ static nad_Status reserve_for(nad_Vec *self, size_t new_len) {
     }
 
     return nad_vec_reserve(self, new_len);
+}
+
+static void release_data(nad_Vec *self) {
+    nad_dealloc(self->al, self->data, cap_bytes(self));
+    self->data = nullptr;
+    self->len = 0;
+    self->cap = 0;
 }
 
 static size_t len_bytes(const nad_Vec *self) {

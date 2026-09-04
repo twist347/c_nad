@@ -236,6 +236,46 @@ nad_Status nad_hmap_copy_assign(const nad_HMap *self, nad_HMap *other) {
     return NAD_STATUS_OK;
 }
 
+nad_Status nad_hmap_move_assign(nad_HMap *self, nad_HMap *other) {
+    ASSERT_HMAP(self);
+    ASSERT_HMAP(other);
+    assert(self->key_size == other->key_size);
+    assert(self->val_size == other->val_size);
+
+    if (self == other) {
+        return NAD_STATUS_OK;
+    }
+
+    // one allocator: the buckets are handed over, nodes and all. What 'other' held ends up in 'self' and is released
+    // there, through the very allocator that made it
+    if (self->al == other->al) {
+        NAD_SWAP(*self, *other);
+        nad_hmap_clear(self);
+
+        ASSERT_HMAP(self);
+        ASSERT_HMAP(other);
+
+        return NAD_STATUS_OK;
+    }
+
+    // two allocators: the whole copy is built on the target's before anything of it is
+    // touched, so a refusal leaves both as they were
+    nad_HMap *obj;
+    const nad_Status st = nad_hmap_copy_with(self, other->al, &obj);
+    if (NAD_STATUS_IS_ERR(st)) {
+        return st;
+    }
+
+    NAD_SWAP(*other, *obj);
+    nad_hmap_drop(obj);
+    nad_hmap_clear(self);
+
+    ASSERT_HMAP(self);
+    ASSERT_HMAP(other);
+
+    return NAD_STATUS_OK;
+}
+
 /* ========== info ========== */
 
 size_t nad_hmap_len(const nad_HMap *self) {

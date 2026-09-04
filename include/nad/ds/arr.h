@@ -125,6 +125,17 @@ nad_Status nad_arr_copy_with(const nad_Arr *self, nad_Al *al, nad_Arr **out);
 [[nodiscard]] NAD_API
 nad_Status nad_arr_copy_assign(const nad_Arr *self, nad_Arr *other);
 
+/// moves the elems of 'self' into 'other', leaving 'self' empty
+/// @param[in,out] self the arr to move from; emptied on success and still usable, on
+///                     its own allocator
+/// @param[in,out] other must have the same elem_size; releases what it held and keeps its own allocator. 'self' == 'other' is a no-op
+/// @retval NAD_STATUS_OK on success
+/// @retval NAD_STATUS_ERR_NO_MEM when the two sit on different allocators and the block cannot be taken,
+///         leaving both as they were
+/// @bigo{1} on one allocator, n on two — the block belongs to the allocator that made it
+[[nodiscard]] NAD_API
+nad_Status nad_arr_move_assign(nad_Arr *self, nad_Arr *other);
+
 /// @}
 
 /// @name compare

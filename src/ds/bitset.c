@@ -1,5 +1,7 @@
 #include "nad/ds/bitset.h"
 
+#include "nad/core/util.h"
+
 #include <assert.h>
 #include <stdbit.h>
 #include <stdint.h>
@@ -35,6 +37,9 @@ static size_t words_for(size_t nbits);
 /// how many bytes the words take, the size the block was asked for
 [[nodiscard]]
 static size_t words_bytes(const nad_BitSet *self);
+
+/// hands the words back and leaves an empty universe on the same allocator
+static void release_words(nad_BitSet *self);
 
 [[nodiscard]]
 static size_t word_of(size_t idx);
@@ -155,6 +160,44 @@ nad_Status nad_bitset_copy_assign(const nad_BitSet *self, nad_BitSet *other) {
         memcpy(other->words, self->words, words_bytes(self));
     }
 
+    ASSERT_BITSET(other);
+
+    return NAD_STATUS_OK;
+}
+
+nad_Status nad_bitset_move_assign(nad_BitSet *self, nad_BitSet *other) {
+    ASSERT_BITSET(self);
+    ASSERT_BITSET(other);
+
+    if (self == other) {
+        return NAD_STATUS_OK;
+    }
+
+    // one allocator: the words are handed over, universe and all. What 'other' held ends up in 'self' and is released
+    // there, through the very allocator that made it
+    if (self->al == other->al) {
+        NAD_SWAP(*self, *other);
+        release_words(self);
+
+        ASSERT_BITSET(self);
+        ASSERT_BITSET(other);
+
+        return NAD_STATUS_OK;
+    }
+
+    // two allocators: the whole copy is built on the target's before anything of it is
+    // touched, so a refusal leaves both as they were
+    nad_BitSet *obj;
+    const nad_Status st = nad_bitset_copy_with(self, other->al, &obj);
+    if (NAD_STATUS_IS_ERR(st)) {
+        return st;
+    }
+
+    NAD_SWAP(*other, *obj);
+    nad_bitset_drop(obj);
+    release_words(self);
+
+    ASSERT_BITSET(self);
     ASSERT_BITSET(other);
 
     return NAD_STATUS_OK;
@@ -459,6 +502,13 @@ void nad_bitset_print(const nad_BitSet *self) {
 static size_t words_for(size_t nbits) {
     // not (nbits + 63) / 64: that addition overflows for an nbits near SIZE_MAX
     return nbits / WORD_BITS + (nbits % WORD_BITS != 0);
+}
+
+static void release_words(nad_BitSet *self) {
+    nad_dealloc(self->al, self->words, words_bytes(self));
+    self->words = nullptr;
+    self->nbits = 0;
+    self->nwords = 0;
 }
 
 static size_t words_bytes(const nad_BitSet *self) {

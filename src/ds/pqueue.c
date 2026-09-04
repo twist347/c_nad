@@ -151,6 +151,29 @@ nad_Status nad_pqueue_copy_assign(const nad_PQueue *self, nad_PQueue *other) {
     return NAD_STATUS_OK;
 }
 
+nad_Status nad_pqueue_move_assign(nad_PQueue *self, nad_PQueue *other) {
+    ASSERT_PQUEUE(self);
+    ASSERT_PQUEUE(other);
+    assert(nad_vec_elem_size(self->vec) == nad_vec_elem_size(other->vec));
+
+    if (self == other) {
+        return NAD_STATUS_OK;
+    }
+
+    const nad_Status st = nad_vec_move_assign(self->vec, other->vec);
+    if (NAD_STATUS_IS_ERR(st)) {
+        return st;
+    }
+
+    // the elems arrive arranged under the comparator of 'self', so it travels with them —
+    // the same reason copy_assign hands it over
+    other->cmp = self->cmp;
+
+    ASSERT_PQUEUE(other);
+
+    return NAD_STATUS_OK;
+}
+
 /* ========== info ========== */
 
 size_t nad_pqueue_len(const nad_PQueue *self) {

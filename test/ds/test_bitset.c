@@ -496,6 +496,91 @@ static void test_copy_with_reports_an_exhausted_target_arena() {
     nad_al_arena_drop(arena);
 }
 
+static void test_move_assign_hands_over_the_contents_on_one_allocator() {
+    nad_TestProbe probe;
+    nad_test_probe_reset(&probe);
+    nad_Al al = nad_test_probe_full(&probe);
+
+    nad_BitSet *src = nullptr;
+    NAD_TEST_OK(nad_bitset_new(129, &al, &src));
+    nad_bitset_set(src, 0);
+    nad_bitset_set(src, 128);
+
+    nad_BitSet *dst = nullptr;
+    NAD_TEST_OK(nad_bitset_new(8, &al, &dst));
+    nad_bitset_set(dst, 3);
+
+    const size_t requests = nad_test_probe_requests(&probe);
+    NAD_TEST_OK(nad_bitset_move_assign(src, dst));
+
+    // nothing was asked of the allocator: the words changed hands, universe and all
+    TEST_ASSERT_EQUAL_size_t(requests, nad_test_probe_requests(&probe));
+
+    assert_members(dst, 129, (const size_t[]){0, 128}, 2);
+    TEST_ASSERT_EQUAL_size_t(0, nad_bitset_len(src));
+
+    nad_bitset_drop(src);
+    nad_bitset_drop(dst);
+    TEST_ASSERT_EQUAL_size_t(0, probe.live);
+}
+
+static void test_move_assign_across_allocators_empties_the_source() {
+    nad_Al *arena = nad_al_arena_new(nad_al_default(), 1024);
+    TEST_ASSERT_NOT_NULL(arena);
+
+    constexpr size_t want[] = {0, 64, 128};
+    nad_BitSet *src = make_bitset(129, want, 3);
+
+    nad_BitSet *dst = nullptr;
+    NAD_TEST_OK(nad_bitset_new(8, arena, &dst));
+    nad_bitset_set(dst, 3);
+
+    NAD_TEST_OK(nad_bitset_move_assign(src, dst));
+
+    assert_members(dst, 129, want, 3);
+    TEST_ASSERT_EQUAL_PTR(arena, nad_bitset_al(dst));
+
+    TEST_ASSERT_EQUAL_size_t(0, nad_bitset_len(src));
+    TEST_ASSERT_EQUAL_PTR(nad_al_default(), nad_bitset_al(src));
+
+    nad_bitset_drop(src);
+    nad_bitset_drop(dst);
+    nad_al_arena_drop(arena);
+}
+
+static void test_move_assign_across_allocators_reports_an_exhausted_arena() {
+    nad_Al *arena = nad_al_arena_new(nad_al_default(), 1024);
+    TEST_ASSERT_NOT_NULL(arena);
+
+    nad_BitSet *dst = nullptr;
+    NAD_TEST_OK(nad_bitset_new(8, arena, &dst));
+    nad_bitset_set(dst, 3);
+    nad_test_arena_leave(arena, 0);
+
+    constexpr size_t want[] = {0, 64, 128};
+    nad_BitSet *src = make_bitset(129, want, 3);
+
+    NAD_TEST_STATUS(NAD_STATUS_ERR_NO_MEM, nad_bitset_move_assign(src, dst));
+
+    assert_members(src, 129, want, 3);
+    assert_members(dst, 8, (const size_t[]){3}, 1);
+
+    nad_bitset_drop(src);
+    nad_bitset_drop(dst);
+    nad_al_arena_drop(arena);
+}
+
+static void test_move_assign_of_itself_changes_nothing() {
+    constexpr size_t want[] = {0, 64, 128};
+    nad_BitSet *b = make_bitset(129, want, 3);
+
+    NAD_TEST_OK(nad_bitset_move_assign(b, b));
+
+    assert_members(b, 129, want, 3);
+
+    nad_bitset_drop(b);
+}
+
 static void test_copy_of_an_empty_universe() {
     nad_BitSet *b = make_bitset(0, nullptr, 0);
 
@@ -942,6 +1027,10 @@ int main() {
     RUN_TEST(test_copy_is_independent);
     RUN_TEST(test_copy_with_builds_on_the_given_allocator);
     RUN_TEST(test_copy_with_reports_an_exhausted_target_arena);
+    RUN_TEST(test_move_assign_hands_over_the_contents_on_one_allocator);
+    RUN_TEST(test_move_assign_across_allocators_empties_the_source);
+    RUN_TEST(test_move_assign_across_allocators_reports_an_exhausted_arena);
+    RUN_TEST(test_move_assign_of_itself_changes_nothing);
     RUN_TEST(test_copy_of_an_empty_universe);
     RUN_TEST(test_copy_assign_grow_shrink_empty);
     RUN_TEST(test_copy_assign_self_is_noop);

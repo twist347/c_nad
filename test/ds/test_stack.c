@@ -473,6 +473,87 @@ static void test_copy_with_reports_an_exhausted_target_arena() {
     nad_al_arena_drop(arena);
 }
 
+static void test_move_assign_hands_over_the_contents_on_one_allocator() {
+    nad_TestProbe probe;
+    nad_test_probe_reset(&probe);
+    nad_Al al = nad_test_probe_full(&probe);
+
+    nad_Stack *src = nullptr;
+    NAD_TEST_OK(NAD_STACK_OF(int32_t, &al, &src, 1, 2, 3));
+
+    nad_Stack *dst = nullptr;
+    NAD_TEST_OK(NAD_STACK_OF(int32_t, &al, &dst, 9));
+
+    const size_t requests = nad_test_probe_requests(&probe);
+    NAD_TEST_OK(nad_stack_move_assign(src, dst));
+
+    // nothing was asked of the allocator: the vec's block changed hands
+    TEST_ASSERT_EQUAL_size_t(requests, nad_test_probe_requests(&probe));
+
+    TEST_ASSERT_EQUAL_size_t(3, nad_stack_len(dst));
+    TEST_ASSERT_EQUAL_INT32(3, *NAD_STACK_TOP_AS(int32_t, dst));
+    TEST_ASSERT_EQUAL_size_t(0, nad_stack_len(src));
+
+    nad_stack_drop(src);
+    nad_stack_drop(dst);
+    TEST_ASSERT_EQUAL_size_t(0, probe.live);
+}
+
+static void test_move_assign_across_allocators_empties_the_source() {
+    nad_Al *arena = nad_al_arena_new(nad_al_default(), 1024);
+    TEST_ASSERT_NOT_NULL(arena);
+
+    nad_Stack *src = make_stack_from(SPREAD, SPREAD_LEN);
+
+    nad_Stack *dst = nullptr;
+    NAD_TEST_OK(NAD_STACK_OF(int32_t, arena, &dst, 9));
+
+    NAD_TEST_OK(nad_stack_move_assign(src, dst));
+
+    TEST_ASSERT_EQUAL_size_t(SPREAD_LEN, nad_stack_len(dst));
+    TEST_ASSERT_EQUAL_INT32(SPREAD[SPREAD_LEN - 1], *NAD_STACK_TOP_AS(int32_t, dst));
+    TEST_ASSERT_EQUAL_PTR(arena, nad_stack_al(dst));
+
+    TEST_ASSERT_EQUAL_size_t(0, nad_stack_len(src));
+    TEST_ASSERT_EQUAL_PTR(nad_al_default(), nad_stack_al(src));
+
+    nad_stack_drop(src);
+    nad_stack_drop(dst);
+    nad_al_arena_drop(arena);
+}
+
+static void test_move_assign_across_allocators_reports_an_exhausted_arena() {
+    nad_Al *arena = nad_al_arena_new(nad_al_default(), 1024);
+    TEST_ASSERT_NOT_NULL(arena);
+
+    nad_Stack *dst = nullptr;
+    NAD_TEST_OK(NAD_STACK_OF(int32_t, arena, &dst, 9));
+    nad_test_arena_leave(arena, 0);
+
+    nad_Stack *src = make_stack_from(SPREAD, SPREAD_LEN);
+
+    NAD_TEST_STATUS(NAD_STATUS_ERR_NO_MEM, nad_stack_move_assign(src, dst));
+
+    TEST_ASSERT_EQUAL_size_t(SPREAD_LEN, nad_stack_len(src));
+    TEST_ASSERT_EQUAL_size_t(1, nad_stack_len(dst));
+    TEST_ASSERT_EQUAL_INT32(9, *NAD_STACK_TOP_AS(int32_t, dst));
+
+    nad_stack_drop(src);
+    nad_stack_drop(dst);
+    nad_al_arena_drop(arena);
+}
+
+static void test_move_assign_of_itself_changes_nothing() {
+    nad_Stack *s = make_stack_from(SPREAD, SPREAD_LEN);
+
+    NAD_TEST_OK(nad_stack_move_assign(s, s));
+
+    TEST_ASSERT_EQUAL_size_t(SPREAD_LEN, nad_stack_len(s));
+    TEST_ASSERT_EQUAL_INT32(SPREAD[SPREAD_LEN - 1], *NAD_STACK_TOP_AS(int32_t, s));
+
+    nad_stack_drop(s);
+}
+
 static void test_copy_drains_the_same_as_its_source() {
     nad_Stack *src = make_stack_from(SPREAD, SPREAD_LEN);
 
@@ -947,6 +1028,10 @@ int main() {
     RUN_TEST(test_copy_inherits_the_allocator);
     RUN_TEST(test_copy_with_builds_on_the_given_allocator);
     RUN_TEST(test_copy_with_reports_an_exhausted_target_arena);
+    RUN_TEST(test_move_assign_hands_over_the_contents_on_one_allocator);
+    RUN_TEST(test_move_assign_across_allocators_empties_the_source);
+    RUN_TEST(test_move_assign_across_allocators_reports_an_exhausted_arena);
+    RUN_TEST(test_move_assign_of_itself_changes_nothing);
     RUN_TEST(test_copy_drains_the_same_as_its_source);
     RUN_TEST(test_copy_of_empty_stays_empty);
     RUN_TEST(test_copy_assign_overwrites_the_target);

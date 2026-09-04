@@ -233,6 +233,45 @@ nad_Status nad_list_copy_assign(const nad_List *self, nad_List *other) {
     return NAD_STATUS_OK;
 }
 
+nad_Status nad_list_move_assign(nad_List *self, nad_List *other) {
+    ASSERT_LIST(self);
+    ASSERT_LIST(other);
+    assert(self->elem_size == other->elem_size);
+
+    if (self == other) {
+        return NAD_STATUS_OK;
+    }
+
+    // one allocator: the nodes change list without moving. What 'other' held ends up in 'self' and is released
+    // there, through the very allocator that made it
+    if (self->al == other->al) {
+        NAD_SWAP(*self, *other);
+        clear_nodes(self);
+
+        ASSERT_LIST(self);
+        ASSERT_LIST(other);
+
+        return NAD_STATUS_OK;
+    }
+
+    // two allocators: the whole copy is built on the target's before anything of it is
+    // touched, so a refusal leaves both as they were
+    nad_List *obj;
+    const nad_Status st = nad_list_copy_with(self, other->al, &obj);
+    if (NAD_STATUS_IS_ERR(st)) {
+        return st;
+    }
+
+    NAD_SWAP(*other, *obj);
+    nad_list_drop(obj);
+    clear_nodes(self);
+
+    ASSERT_LIST(self);
+    ASSERT_LIST(other);
+
+    return NAD_STATUS_OK;
+}
+
 /* ========== compare ========== */
 
 bool nad_list_eq(const nad_List *a, const nad_List *b) {

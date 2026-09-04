@@ -128,6 +128,15 @@ nad_Status nad_stack_copy_assign(const nad_Stack *self, nad_Stack *other) {
     return nad_vec_copy_assign(self->vec, other->vec);
 }
 
+nad_Status nad_stack_move_assign(nad_Stack *self, nad_Stack *other) {
+    ASSERT_STACK(self);
+    ASSERT_STACK(other);
+    assert(nad_vec_elem_size(self->vec) == nad_vec_elem_size(other->vec));
+
+    // as in copy_assign, moving a stack onto itself is the vec's early return
+    return nad_vec_move_assign(self->vec, other->vec);
+}
+
 /* ========== compare ========== */
 
 bool nad_stack_eq(const nad_Stack *a, const nad_Stack *b) {

@@ -128,6 +128,15 @@ nad_Status nad_queue_copy_assign(const nad_Queue *self, nad_Queue *other) {
     return nad_deque_copy_assign(self->deque, other->deque);
 }
 
+nad_Status nad_queue_move_assign(nad_Queue *self, nad_Queue *other) {
+    ASSERT_QUEUE(self);
+    ASSERT_QUEUE(other);
+    assert(nad_deque_elem_size(self->deque) == nad_deque_elem_size(other->deque));
+
+    // as in copy_assign, moving a queue onto itself is the deque's early return
+    return nad_deque_move_assign(self->deque, other->deque);
+}
+
 void nad_queue_copy_to_span(const nad_Queue *self, nad_SpanMut dst) {
     ASSERT_QUEUE(self);
     NAD_SPAN_ASSERT(dst);
