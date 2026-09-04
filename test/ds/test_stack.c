@@ -675,7 +675,7 @@ static void test_swap_exchanges_the_elems() {
     NAD_TEST_OK(NAD_STACK_OF(int32_t, nad_al_default(), &a, 1, 2, 3));
     NAD_TEST_OK(NAD_STACK_OF(int32_t, nad_al_default(), &b, 10, 20));
 
-    NAD_TEST_OK(nad_stack_swap(a, b));
+    nad_stack_swap(a, b);
 
     constexpr int32_t want_a[2] = {10, 20};
     constexpr int32_t want_b[3] = {1, 2, 3};
@@ -691,34 +691,11 @@ static void test_swap_exchanges_the_elems() {
 static void test_swap_self_is_noop() {
     nad_Stack *s = make_stack_from(SPREAD, SPREAD_LEN);
 
-    NAD_TEST_OK(nad_stack_swap(s, s));
+    nad_stack_swap(s, s);
 
     assert_elems(s, SPREAD, SPREAD_LEN);
 
     nad_stack_drop(s);
-}
-
-// two allocators: neither may free the other's memory, so the bytes move and each side
-// keeps the allocator it was built with
-static void test_swap_across_allocators_moves_the_bytes() {
-    nad_Al *arena = nad_al_arena_new(nad_al_default(), 1024);
-    TEST_ASSERT_NOT_NULL(arena);
-
-    nad_Stack *a = nullptr;
-    nad_Stack *b = nullptr;
-    NAD_TEST_OK(NAD_STACK_OF(int32_t, nad_al_default(), &a, 1, 2, 3));
-    NAD_TEST_OK(NAD_STACK_OF(int32_t, arena, &b, 10, 20, 30));
-
-    NAD_TEST_OK(nad_stack_swap(a, b));
-
-    TEST_ASSERT_EQUAL_PTR(nad_al_default(), nad_stack_al(a));
-    TEST_ASSERT_EQUAL_PTR(arena, nad_stack_al(b));
-    TEST_ASSERT_EQUAL_INT32(30, *NAD_STACK_TOP_AS(int32_t, a));
-    TEST_ASSERT_EQUAL_INT32(3, *NAD_STACK_TOP_AS(int32_t, b));
-
-    nad_stack_drop(a);
-    nad_stack_drop(b);
-    nad_al_arena_drop(arena);
 }
 
 /* ========== failures ========== */
@@ -1045,7 +1022,6 @@ int main() {
 
     RUN_TEST(test_swap_exchanges_the_elems);
     RUN_TEST(test_swap_self_is_noop);
-    RUN_TEST(test_swap_across_allocators_moves_the_bytes);
 
     RUN_TEST(test_new_reports_an_exhausted_arena);
     RUN_TEST(test_from_data_reports_an_exhausted_arena);

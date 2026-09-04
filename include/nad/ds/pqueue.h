@@ -261,18 +261,18 @@ nad_Status nad_pqueue_reserve(nad_PQueue *self, size_t new_cap);
 [[nodiscard]] NAD_API
 nad_Status nad_pqueue_shrink_to_fit(nad_PQueue *self);
 
-/// exchanges the contents of the two, comparators included
-/// @param self one queue
-/// @param other must have the same elem_size; the comparator changes sides with the
-///              elems, so two queues under different orders stay valid queues afterwards
-/// @retval NAD_STATUS_OK on success; on one allocator the blocks are handed over and the
-///         capacity travels with them, on two the bytes are moved and each side is left
-///         sized to its new content
-/// @retval NAD_STATUS_ERR_NO_MEM when the two sit on different allocators and a block
-///         cannot be taken, leaving both as they were
-/// @bigo{1} on one allocator, n on two
-[[nodiscard]] NAD_API
-nad_Status nad_pqueue_swap(nad_PQueue *self, nad_PQueue *other);
+/// exchanges the contents of the two, comparators and all
+/// @param[in,out] self one queue
+/// @param[in,out] other must have the same elem_size and the same allocator: the vecs
+///                      underneath change hands where they lie, so nothing is copied and
+///                      nothing can fail. 'self' == 'other' is a no-op
+/// @note two allocators are a broken precondition, not a runtime state — a block belongs to
+///       the allocator that made it. To exchange across two, build each side on the other's
+///       allocator with nad_pqueue_copy_with and hand the results over with
+///       nad_pqueue_move_assign
+/// @bigo{1}
+NAD_API
+void nad_pqueue_swap(nad_PQueue *self, nad_PQueue *other);
 
 /// @}
 

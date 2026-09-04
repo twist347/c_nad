@@ -203,6 +203,21 @@ nad_Status nad_bitset_move_assign(nad_BitSet *self, nad_BitSet *other) {
     return NAD_STATUS_OK;
 }
 
+void nad_bitset_swap(nad_BitSet *self, nad_BitSet *other) {
+    ASSERT_BITSET(self);
+    ASSERT_BITSET(other);
+    assert(self->al == other->al);
+
+    if (self == other) {
+        return;
+    }
+
+    NAD_SWAP(*self, *other);
+
+    ASSERT_BITSET(self);
+    ASSERT_BITSET(other);
+}
+
 /* ========== one bit ========== */
 
 bool nad_bitset_test(const nad_BitSet *self, size_t idx) {

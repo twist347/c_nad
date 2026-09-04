@@ -399,6 +399,10 @@ nad_Status nad_hmap_shrink_to_fit(nad_HMap *self);
 ///              nodes change map without moving, so every borrowed node stays valid — the
 ///              same trade ds/list makes. Two maps built under different hashers stay
 ///              valid maps afterwards, since each order travels with its entries
+/// @note two allocators are a broken precondition, not a runtime state — a node belongs to
+///       the allocator that made it. To exchange across two, build each side on the other's
+///       allocator with nad_hmap_copy_with and hand the results over with
+///       nad_hmap_move_assign
 /// @bigo{1}
 NAD_API
 void nad_hmap_swap(nad_HMap *self, nad_HMap *other);

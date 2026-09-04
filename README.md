@@ -21,6 +21,19 @@ Two rules shape the whole API:
 - **Nothing is thread-safe.** No container takes a lock; sharing one across threads is the
   caller's problem.
 
+## Allocators, in three rules
+
+A container is built on one `nad_Al *` and never touches another:
+
+- **A copy is born on its source's allocator** — `nad_vec_copy_with` names another one.
+- **An assignment keeps the target's.** On one allocator a move hands the block over and
+  cannot fail; across two it costs `n` and may return `NAD_STATUS_ERR_NO_MEM`, leaving
+  both sides as they were.
+- **`swap` wants both sides on one allocator** — it is O(1) and returns nothing, so a
+  mismatch is an `assert`, exactly as C++ leaves it undefined when
+  `propagate_on_container_swap` is false. Across two, copy with `copy_with` and hand the
+  results over with `move_assign`.
+
 ## Example
 
 ```c

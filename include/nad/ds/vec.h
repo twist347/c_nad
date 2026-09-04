@@ -349,17 +349,18 @@ nad_Status nad_vec_shrink_to_fit(nad_Vec *self);
 [[nodiscard]] NAD_API
 nad_Status nad_vec_resize(nad_Vec *self, size_t new_len);
 
-/// exchanges the contents of the two
-/// @param self one vec
-/// @param other must have the same elem_size
-/// @retval NAD_STATUS_OK on success; on one allocator the blocks are handed over and the
-///         capacity travels with them, on two the bytes are moved and each side is left
-///         sized to its new content
-/// @retval NAD_STATUS_ERR_NO_MEM when the two sit on different allocators and a block
-///         cannot be taken, leaving both as they were
-/// @bigo{1} on one allocator, n on two
-[[nodiscard]] NAD_API
-nad_Status nad_vec_swap(nad_Vec *self, nad_Vec *other);
+/// exchanges the two vecs whole, lengths, capacities and all
+/// @param[in,out] self one vec
+/// @param[in,out] other must have the same elem_size and the same allocator: the blocks
+///                      change hands where they lie, capacity and all, so nothing is copied
+///                      and nothing can fail. 'self' == 'other' is a no-op
+/// @note two allocators are a broken precondition, not a runtime state — a block belongs to
+///       the allocator that made it. To exchange across two, build each side on the other's
+///       allocator with nad_vec_copy_with and hand the results over with
+///       nad_vec_move_assign
+/// @bigo{1}
+NAD_API
+void nad_vec_swap(nad_Vec *self, nad_Vec *other);
 
 /// exchanges the elems at 'i' and 'j'
 /// @param self the vec

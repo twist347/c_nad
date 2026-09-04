@@ -263,14 +263,16 @@ void *nad_arr_data_mut(nad_Arr *self);
 
 /// exchanges the two arrs whole, lengths and all
 /// @param[in,out] self one arr
-/// @param[in,out] other must have the same elem_size; 'self' == 'other' is a no-op
-/// @retval NAD_STATUS_OK on success; on one allocator this swaps the two headers and
-///         cannot fail
-/// @retval NAD_STATUS_ERR_NO_MEM when the two sit on different allocators and the
-///         elems cannot be moved, leaving both as they were
-/// @bigo{1} on one allocator, n on two
-[[nodiscard]] NAD_API
-nad_Status nad_arr_swap(nad_Arr *self, nad_Arr *other);
+/// @param[in,out] other must have the same elem_size and the same allocator: the blocks
+///                      change hands where they lie, so nothing is copied and nothing can
+///                      fail. 'self' == 'other' is a no-op
+/// @note two allocators are a broken precondition, not a runtime state — a block belongs to
+///       the allocator that made it. To exchange across two, build each side on the other's
+///       allocator with nad_arr_copy_with and hand the results over with
+///       nad_arr_move_assign
+/// @bigo{1}
+NAD_API
+void nad_arr_swap(nad_Arr *self, nad_Arr *other);
 
 /// exchanges two elems in place
 /// @param self the arr

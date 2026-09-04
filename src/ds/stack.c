@@ -229,13 +229,13 @@ nad_Status nad_stack_shrink_to_fit(nad_Stack *self) {
     return nad_vec_shrink_to_fit(self->vec);
 }
 
-nad_Status nad_stack_swap(nad_Stack *self, nad_Stack *other) {
+void nad_stack_swap(nad_Stack *self, nad_Stack *other) {
     ASSERT_STACK(self);
     ASSERT_STACK(other);
     assert(nad_vec_elem_size(self->vec) == nad_vec_elem_size(other->vec));
 
     // as in copy_assign, swapping a stack with itself is the vec's early return
-    return nad_vec_swap(self->vec, other->vec);
+    nad_vec_swap(self->vec, other->vec);
 }
 
 /* ========== to span ========== */

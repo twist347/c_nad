@@ -825,7 +825,7 @@ static void test_swap_on_one_allocator_hands_over_the_buffers() {
     const size_t a_cap = nad_deque_cap(a);
     const size_t b_cap = nad_deque_cap(b);
 
-    NAD_TEST_OK(nad_deque_swap(a, b));
+    nad_deque_swap(a, b);
 
     assert_elems(a, (int32_t[]){10, 20, 30, 40}, 4);
     assert_elems(b, (int32_t[]){0, 1}, 2);
@@ -836,46 +836,10 @@ static void test_swap_on_one_allocator_hands_over_the_buffers() {
     nad_deque_drop(a);
 }
 
-static void test_swap_on_two_allocators_moves_the_bytes() {
-    nad_TestProbe probe;
-    nad_test_probe_reset(&probe);
-    nad_Al other_al = nad_test_probe_full(&probe);
-
-    nad_Deque *a = make_wrapped();
-
-    // both sides wrap, so a raw block copy in either direction would show up here
-    nad_Deque *b = nullptr;
-    NAD_TEST_OK(NAD_DEQUE_NEW_CAP(int32_t, 2, &other_al, &b));
-    NAD_TEST_OK(NAD_DEQUE_PUSH_BACK(int32_t, b, 6));
-    NAD_TEST_OK(NAD_DEQUE_PUSH_BACK(int32_t, b, 7));
-    nad_deque_pop_front(b);
-    NAD_TEST_OK(NAD_DEQUE_PUSH_BACK(int32_t, b, 8));
-    TEST_ASSERT_TRUE(wraps(b));
-
-    NAD_TEST_OK(nad_deque_swap(a, b));
-
-    assert_elems(a, (int32_t[]){7, 8}, 2);
-    assert_elems(b, (int32_t[]){10, 20, 30, 40}, 4);
-
-    // each side comes out sized to what it received, and unwrapped
-    TEST_ASSERT_EQUAL_size_t(2, nad_deque_cap(a));
-    TEST_ASSERT_EQUAL_size_t(4, nad_deque_cap(b));
-    TEST_ASSERT_FALSE(wraps(a));
-    TEST_ASSERT_FALSE(wraps(b));
-
-    // the allocators did not trade memory: b still belongs to the probe
-    TEST_ASSERT_EQUAL_PTR(&other_al, nad_deque_al(b));
-    TEST_ASSERT_EQUAL_PTR(nad_al_default(), nad_deque_al(a));
-
-    nad_deque_drop(b);
-    nad_deque_drop(a);
-    TEST_ASSERT_EQUAL_size_t(0, probe.live);
-}
-
 static void test_swap_of_itself_changes_nothing() {
     nad_Deque *d = make_wrapped();
 
-    NAD_TEST_OK(nad_deque_swap(d, d));
+    nad_deque_swap(d, d);
 
     assert_elems(d, (int32_t[]){10, 20, 30, 40}, 4);
 
@@ -1168,7 +1132,6 @@ int main() {
     RUN_TEST(test_resize_grows_inside_a_wrapped_capacity);
     RUN_TEST(test_resize_shrinks_from_the_back);
     RUN_TEST(test_swap_on_one_allocator_hands_over_the_buffers);
-    RUN_TEST(test_swap_on_two_allocators_moves_the_bytes);
     RUN_TEST(test_swap_of_itself_changes_nothing);
     RUN_TEST(test_swap_elems_across_the_seam);
 

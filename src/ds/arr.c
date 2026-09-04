@@ -286,60 +286,20 @@ void *nad_arr_data_mut(nad_Arr *self) {
 
 /* ========== mods ========== */
 
-nad_Status nad_arr_swap(nad_Arr *self, nad_Arr *other) {
+void nad_arr_swap(nad_Arr *self, nad_Arr *other) {
     ASSERT_ARR(self);
     ASSERT_ARR(other);
     assert(self->elem_size == other->elem_size);
+    assert(self->al == other->al);
 
     if (self == other) {
-        return NAD_STATUS_OK;
+        return;
     }
 
-    if (self->al == other->al) {
-        NAD_SWAP(*self, *other);
-        return NAD_STATUS_OK;
-    }
-
-    const size_t self_bytes = len_bytes(self);
-    const size_t other_bytes = len_bytes(other);
-
-    void *self_new = nullptr;
-    void *other_new = nullptr;
-
-    if (other_bytes > 0) {
-        self_new = nad_alloc(self->al, other_bytes);
-        if (!self_new) {
-            return NAD_STATUS_ERR_NO_MEM;
-        }
-    }
-
-    if (self_bytes > 0) {
-        other_new = nad_alloc(other->al, self_bytes);
-        if (!other_new) {
-            nad_dealloc(self->al, self_new, other_bytes);
-            return NAD_STATUS_ERR_NO_MEM;
-        }
-    }
-
-    if (other_bytes > 0) {
-        memcpy(self_new, other->data, other_bytes);
-    }
-
-    if (self_bytes > 0) {
-        memcpy(other_new, self->data, self_bytes);
-    }
-
-    nad_dealloc(self->al, self->data, self_bytes);
-    nad_dealloc(other->al, other->data, other_bytes);
-
-    self->data = self_new;
-    other->data = other_new;
-    NAD_SWAP(self->len, other->len);
+    NAD_SWAP(*self, *other);
 
     ASSERT_ARR(self);
     ASSERT_ARR(other);
-
-    return NAD_STATUS_OK;
 }
 
 void nad_arr_swap_elems(nad_Arr *self, size_t i, size_t j) {

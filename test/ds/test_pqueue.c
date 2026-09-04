@@ -621,7 +621,7 @@ static void test_swap_exchanges_the_elems_and_the_comparators() {
     NAD_TEST_OK(NAD_PQUEUE_OF(int32_t, nad_cmp_i32, nad_al_default(), &a, 1, 2, 3));
     NAD_TEST_OK(NAD_PQUEUE_OF(int32_t, nad_cmp_desc_i32, nad_al_default(), &b, 10, 20, 30));
 
-    NAD_TEST_OK(nad_pqueue_swap(a, b));
+    nad_pqueue_swap(a, b);
 
     TEST_ASSERT_EQUAL_PTR(nad_cmp_desc_i32, nad_pqueue_cmp(a));
     TEST_ASSERT_EQUAL_PTR(nad_cmp_i32, nad_pqueue_cmp(b));
@@ -639,34 +639,11 @@ static void test_swap_exchanges_the_elems_and_the_comparators() {
 static void test_swap_self_is_noop() {
     nad_PQueue *q = make_queue(SPREAD, SPREAD_LEN);
 
-    NAD_TEST_OK(nad_pqueue_swap(q, q));
+    nad_pqueue_swap(q, q);
 
     assert_drains_sorted(q, SPREAD, SPREAD_LEN, nad_cmp_desc_i32);
 
     nad_pqueue_drop(q);
-}
-
-// two allocators: neither may free the other's memory, so the bytes move and each side
-// keeps the allocator it was built with
-static void test_swap_across_allocators_moves_the_bytes() {
-    nad_Al *arena = nad_al_arena_new(nad_al_default(), 1024);
-    TEST_ASSERT_NOT_NULL(arena);
-
-    nad_PQueue *a = nullptr;
-    nad_PQueue *b = nullptr;
-    NAD_TEST_OK(NAD_PQUEUE_OF(int32_t, nad_cmp_i32, nad_al_default(), &a, 1, 2, 3));
-    NAD_TEST_OK(NAD_PQUEUE_OF(int32_t, nad_cmp_i32, arena, &b, 10, 20, 30));
-
-    NAD_TEST_OK(nad_pqueue_swap(a, b));
-
-    TEST_ASSERT_EQUAL_PTR(nad_al_default(), nad_pqueue_al(a));
-    TEST_ASSERT_EQUAL_PTR(arena, nad_pqueue_al(b));
-    TEST_ASSERT_EQUAL_INT32(30, *NAD_PQUEUE_TOP_AS(int32_t, a));
-    TEST_ASSERT_EQUAL_INT32(3, *NAD_PQUEUE_TOP_AS(int32_t, b));
-
-    nad_pqueue_drop(a);
-    nad_pqueue_drop(b);
-    nad_al_arena_drop(arena);
 }
 
 /* ========== to span ========== */
@@ -928,7 +905,6 @@ int main() {
 
     RUN_TEST(test_swap_exchanges_the_elems_and_the_comparators);
     RUN_TEST(test_swap_self_is_noop);
-    RUN_TEST(test_swap_across_allocators_moves_the_bytes);
 
     RUN_TEST(test_to_span_shows_the_heap_not_a_sorted_run);
     RUN_TEST(test_to_span_of_empty_has_no_elems);

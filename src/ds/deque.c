@@ -600,69 +600,20 @@ nad_Status nad_deque_resize(nad_Deque *self, size_t new_len) {
     return NAD_STATUS_OK;
 }
 
-nad_Status nad_deque_swap(nad_Deque *self, nad_Deque *other) {
+void nad_deque_swap(nad_Deque *self, nad_Deque *other) {
     ASSERT_DEQUE(self);
     ASSERT_DEQUE(other);
     assert(self->elem_size == other->elem_size);
+    assert(self->al == other->al);
 
     if (self == other) {
-        return NAD_STATUS_OK;
+        return;
     }
 
-    // one allocator on both sides: the buffers are handed over, ring and all
-    if (self->al == other->al) {
-        NAD_SWAP(*self, *other);
-        return NAD_STATUS_OK;
-    }
-
-    // two allocators: neither may free the other's memory, so the bytes are moved.
-    // Each side is sized to the content it receives and comes out unwrapped, exactly
-    // as in nad_deque_copy.
-    const size_t self_bytes = len_bytes(self);
-    const size_t other_bytes = len_bytes(other);
-
-    void *self_new = nullptr;
-    void *other_new = nullptr;
-
-    if (other_bytes > 0) {
-        self_new = nad_alloc(self->al, other_bytes);
-        if (!self_new) {
-            return NAD_STATUS_ERR_NO_MEM;
-        }
-    }
-
-    if (self_bytes > 0) {
-        other_new = nad_alloc(other->al, self_bytes);
-        if (!other_new) {
-            nad_dealloc(self->al, self_new, other_bytes);
-            return NAD_STATUS_ERR_NO_MEM;
-        }
-    }
-
-    if (other_bytes > 0) {
-        copy_out(other, self_new);
-    }
-
-    if (self_bytes > 0) {
-        copy_out(self, other_new);
-    }
-
-    // the old blocks are handed back at their allocated size, not their used one
-    nad_dealloc(self->al, self->data, cap_bytes(self));
-    nad_dealloc(other->al, other->data, cap_bytes(other));
-
-    self->data = self_new;
-    other->data = other_new;
-    NAD_SWAP(self->len, other->len);
-    self->cap = self->len;
-    other->cap = other->len;
-    self->head = 0;
-    other->head = 0;
+    NAD_SWAP(*self, *other);
 
     ASSERT_DEQUE(self);
     ASSERT_DEQUE(other);
-
-    return NAD_STATUS_OK;
 }
 
 void nad_deque_swap_elems(nad_Deque *self, size_t i, size_t j) {

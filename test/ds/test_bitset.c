@@ -581,6 +581,45 @@ static void test_move_assign_of_itself_changes_nothing() {
     nad_bitset_drop(b);
 }
 
+static void test_swap_exchanges_the_contents() {
+    nad_TestProbe probe;
+    nad_test_probe_reset(&probe);
+    nad_Al al = nad_test_probe_full(&probe);
+
+    nad_BitSet *a = nullptr;
+    NAD_TEST_OK(nad_bitset_new(129, &al, &a));
+    nad_bitset_set(a, 128);
+
+    nad_BitSet *b = nullptr;
+    NAD_TEST_OK(nad_bitset_new(8, &al, &b));
+    nad_bitset_set(b, 3);
+
+    const size_t requests = nad_test_probe_requests(&probe);
+    nad_bitset_swap(a, b);
+
+    // the words change hands where they lie: nothing is asked of the allocator
+    TEST_ASSERT_EQUAL_size_t(requests, nad_test_probe_requests(&probe));
+
+    // the universe travels with the words, so the two swap lengths as well as members
+    assert_members(a, 8, (const size_t[]){3}, 1);
+    assert_members(b, 129, (const size_t[]){128}, 1);
+
+    nad_bitset_drop(a);
+    nad_bitset_drop(b);
+    TEST_ASSERT_EQUAL_size_t(0, probe.live);
+}
+
+static void test_swap_of_itself_changes_nothing() {
+    constexpr size_t want[] = {0, 64, 128};
+    nad_BitSet *b = make_bitset(129, want, 3);
+
+    nad_bitset_swap(b, b);
+
+    assert_members(b, 129, want, 3);
+
+    nad_bitset_drop(b);
+}
+
 static void test_copy_of_an_empty_universe() {
     nad_BitSet *b = make_bitset(0, nullptr, 0);
 
@@ -1031,6 +1070,8 @@ int main() {
     RUN_TEST(test_move_assign_across_allocators_empties_the_source);
     RUN_TEST(test_move_assign_across_allocators_reports_an_exhausted_arena);
     RUN_TEST(test_move_assign_of_itself_changes_nothing);
+    RUN_TEST(test_swap_exchanges_the_contents);
+    RUN_TEST(test_swap_of_itself_changes_nothing);
     RUN_TEST(test_copy_of_an_empty_universe);
     RUN_TEST(test_copy_assign_grow_shrink_empty);
     RUN_TEST(test_copy_assign_self_is_noop);

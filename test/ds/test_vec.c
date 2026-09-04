@@ -1217,7 +1217,7 @@ static void test_swap_self_is_noop() {
     nad_Vec *v = make_vec(3);
     const void *before = nad_vec_data(v);
 
-    NAD_TEST_OK(nad_vec_swap(v, v));
+    nad_vec_swap(v, v);
 
     TEST_ASSERT_EQUAL_PTR(before, nad_vec_data(v));
     TEST_ASSERT_EQUAL_size_t(3, nad_vec_len(v));
@@ -1234,7 +1234,7 @@ static void test_swap_same_allocator_hands_over_buffers() {
     const void *pa = nad_vec_data(a);
     const void *pb = nad_vec_data(b);
 
-    NAD_TEST_OK(nad_vec_swap(a, b));
+    nad_vec_swap(a, b);
 
     TEST_ASSERT_EQUAL_PTR(pb, nad_vec_data(a));
     TEST_ASSERT_EQUAL_PTR(pa, nad_vec_data(b));
@@ -1252,7 +1252,7 @@ static void test_swap_same_allocator_carries_the_capacity() {
 
     nad_Vec *b = make_vec(3);
 
-    NAD_TEST_OK(nad_vec_swap(a, b));
+    nad_vec_swap(a, b);
 
     TEST_ASSERT_EQUAL_size_t(3, nad_vec_len(a));
     TEST_ASSERT_EQUAL_size_t(3, nad_vec_cap(a));
@@ -1261,117 +1261,6 @@ static void test_swap_same_allocator_carries_the_capacity() {
 
     nad_vec_drop(b);
     nad_vec_drop(a);
-}
-
-// two allocators: buffers cannot be handed over, the bytes are reallocated
-static void test_swap_across_allocators_moves_the_bytes() {
-    nad_Al *arena = nad_al_arena_new(nad_al_default(), 1024);
-    TEST_ASSERT_NOT_NULL(arena);
-
-    nad_Vec *a = make_vec(2); // default: 0, 1
-
-    nad_Vec *b = nullptr;
-    NAD_TEST_OK(NAD_VEC_OF(int32_t, arena, &b, 10, 20, 30));
-
-    NAD_TEST_OK(nad_vec_swap(a, b));
-
-    TEST_ASSERT_EQUAL_size_t(3, nad_vec_len(a));
-    TEST_ASSERT_EQUAL_size_t(2, nad_vec_len(b));
-    TEST_ASSERT_EQUAL_INT32(10, *NAD_VEC_GET_AS(int32_t, a, 0));
-    TEST_ASSERT_EQUAL_INT32(30, *NAD_VEC_GET_AS(int32_t, a, 2));
-    TEST_ASSERT_EQUAL_INT32(0, *NAD_VEC_GET_AS(int32_t, b, 0));
-    TEST_ASSERT_EQUAL_INT32(1, *NAD_VEC_GET_AS(int32_t, b, 1));
-
-    // contents move, ownership does not: each vec keeps its own allocator
-    TEST_ASSERT_EQUAL_PTR(nad_al_default(), nad_vec_al(a));
-    TEST_ASSERT_EQUAL_PTR(arena, nad_vec_al(b));
-
-    nad_vec_drop(b);
-    nad_vec_drop(a);
-    nad_al_arena_drop(arena);
-}
-
-// this path reallocates, so each side comes out fitted to what it received
-static void test_swap_across_allocators_fits_each_side_to_its_content() {
-    nad_Al *arena = nad_al_arena_new(nad_al_default(), 1024);
-    TEST_ASSERT_NOT_NULL(arena);
-
-    nad_Vec *a = make_vec_cap(16); // default, len 1 of cap 16
-    push_int(a, 7);
-
-    nad_Vec *b = nullptr;
-    NAD_TEST_OK(NAD_VEC_OF(int32_t, arena, &b, 1, 2, 3));
-
-    NAD_TEST_OK(nad_vec_swap(a, b));
-
-    TEST_ASSERT_EQUAL_size_t(3, nad_vec_len(a));
-    TEST_ASSERT_EQUAL_size_t(3, nad_vec_cap(a));
-    TEST_ASSERT_EQUAL_size_t(1, nad_vec_len(b));
-    TEST_ASSERT_EQUAL_size_t(1, nad_vec_cap(b));
-
-    nad_vec_drop(b);
-    nad_vec_drop(a);
-    nad_al_arena_drop(arena);
-}
-
-// the empty side allocates nothing and must end up with no buffer at all
-static void test_swap_across_allocators_with_an_empty_side() {
-    nad_Al *arena = nad_al_arena_new(nad_al_default(), 1024);
-    TEST_ASSERT_NOT_NULL(arena);
-
-    nad_Vec *a = make_vec_cap(8); // room, but no content
-
-    nad_Vec *b = nullptr;
-    NAD_TEST_OK(NAD_VEC_OF(int32_t, arena, &b, 1, 2, 3));
-
-    NAD_TEST_OK(nad_vec_swap(a, b));
-
-    TEST_ASSERT_EQUAL_size_t(3, nad_vec_len(a));
-    TEST_ASSERT_EQUAL_INT32(2, *NAD_VEC_GET_AS(int32_t, a, 1));
-
-    TEST_ASSERT_EQUAL_size_t(0, nad_vec_len(b));
-    TEST_ASSERT_EQUAL_size_t(0, nad_vec_cap(b));
-    TEST_ASSERT_NULL(nad_vec_data(b));
-
-    nad_vec_drop(b);
-    nad_vec_drop(a);
-    nad_al_arena_drop(arena);
-}
-
-// The second allocation fails: the first must be given back and both vecs left as they
-// were. The order matters for what this can observe — a's side allocates first, through
-// the default allocator, so a skipped rollback leaks a real block and LeakSanitizer
-// reports it. Run this under ASan or the rollback itself goes unchecked; an arena on that
-// side would swallow it, since its dealloc is a no-op.
-static void test_swap_across_allocators_rolls_back_a_failed_second_alloc() {
-    nad_Al *arena = nad_al_arena_new(nad_al_default(), 1024);
-    TEST_ASSERT_NOT_NULL(arena);
-
-    nad_Vec *a = nullptr;
-    NAD_TEST_OK(NAD_VEC_OF(int32_t, nad_al_default(), &a, 1, 2));
-
-    nad_Vec *b = nullptr;
-    NAD_TEST_OK(NAD_VEC_OF(int32_t, arena, &b, 10, 20, 30));
-
-    const void *pa = nad_vec_data(a);
-    const void *pb = nad_vec_data(b);
-
-    // b's side has nothing left to give
-    nad_test_arena_leave(arena, 0);
-
-    NAD_TEST_STATUS(NAD_STATUS_ERR_NO_MEM, nad_vec_swap(a, b));
-
-    // both vecs untouched
-    TEST_ASSERT_EQUAL_size_t(2, nad_vec_len(a));
-    TEST_ASSERT_EQUAL_size_t(3, nad_vec_len(b));
-    TEST_ASSERT_EQUAL_PTR(pa, nad_vec_data(a));
-    TEST_ASSERT_EQUAL_PTR(pb, nad_vec_data(b));
-    TEST_ASSERT_EQUAL_INT32(1, *NAD_VEC_GET_AS(int32_t, a, 0));
-    TEST_ASSERT_EQUAL_INT32(2, *NAD_VEC_GET_AS(int32_t, a, 1));
-    TEST_ASSERT_EQUAL_INT32(30, *NAD_VEC_GET_AS(int32_t, b, 2));
-
-    nad_vec_drop(a);
-    nad_al_arena_drop(arena);
 }
 
 /* ========== swap_elems ========== */
@@ -1936,10 +1825,6 @@ int main() {
     RUN_TEST(test_swap_self_is_noop);
     RUN_TEST(test_swap_same_allocator_hands_over_buffers);
     RUN_TEST(test_swap_same_allocator_carries_the_capacity);
-    RUN_TEST(test_swap_across_allocators_moves_the_bytes);
-    RUN_TEST(test_swap_across_allocators_fits_each_side_to_its_content);
-    RUN_TEST(test_swap_across_allocators_with_an_empty_side);
-    RUN_TEST(test_swap_across_allocators_rolls_back_a_failed_second_alloc);
 
     RUN_TEST(test_swap_elems_exchanges_the_pair);
     RUN_TEST(test_swap_elems_same_index_is_noop);

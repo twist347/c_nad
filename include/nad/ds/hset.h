@@ -317,6 +317,10 @@ nad_Status nad_hset_shrink_to_fit(nad_HSet *self);
 /// @param other must have the same key_size and the same allocator: the nodes change set
 ///              without moving, so every borrowed node stays valid — the same trade
 ///              ds/hmap and ds/list make
+/// @note two allocators are a broken precondition, not a runtime state — a node belongs to
+///       the allocator that made it. To exchange across two, build each side on the other's
+///       allocator with nad_hset_copy_with and hand the results over with
+///       nad_hset_move_assign
 /// @bigo{1}
 NAD_API
 void nad_hset_swap(nad_HSet *self, nad_HSet *other);

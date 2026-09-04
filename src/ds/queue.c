@@ -250,13 +250,13 @@ nad_Status nad_queue_shrink_to_fit(nad_Queue *self) {
     return nad_deque_shrink_to_fit(self->deque);
 }
 
-nad_Status nad_queue_swap(nad_Queue *self, nad_Queue *other) {
+void nad_queue_swap(nad_Queue *self, nad_Queue *other) {
     ASSERT_QUEUE(self);
     ASSERT_QUEUE(other);
     assert(nad_deque_elem_size(self->deque) == nad_deque_elem_size(other->deque));
 
     // as in copy_assign, swapping a queue with itself is the deque's early return
-    return nad_deque_swap(self->deque, other->deque);
+    nad_deque_swap(self->deque, other->deque);
 }
 
 /* ========== print ========== */

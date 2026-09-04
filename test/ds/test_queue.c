@@ -730,7 +730,7 @@ static void test_swap_exchanges_the_elems() {
     NAD_TEST_OK(NAD_QUEUE_OF(int32_t, nad_al_default(), &a, 1, 2, 3));
     NAD_TEST_OK(NAD_QUEUE_OF(int32_t, nad_al_default(), &b, 10, 20));
 
-    NAD_TEST_OK(nad_queue_swap(a, b));
+    nad_queue_swap(a, b);
 
     constexpr int32_t want_a[2] = {10, 20};
     constexpr int32_t want_b[3] = {1, 2, 3};
@@ -744,44 +744,11 @@ static void test_swap_exchanges_the_elems() {
 static void test_swap_self_is_noop() {
     nad_Queue *q = make_queue_from(SPREAD, SPREAD_LEN);
 
-    NAD_TEST_OK(nad_queue_swap(q, q));
+    nad_queue_swap(q, q);
 
     assert_elems(q, SPREAD, SPREAD_LEN);
 
     nad_queue_drop(q);
-}
-
-// two allocators: neither may free the other's memory, so the bytes move and each side
-// keeps the allocator it was built with. Both rings are split, which is what makes the
-// move a copy in queue order rather than a copy of the raw block
-static void test_swap_across_allocators_moves_the_bytes() {
-    nad_Al *arena = nad_al_arena_new(nad_al_default(), 1024);
-    TEST_ASSERT_NOT_NULL(arena);
-
-    nad_Queue *a = make_wrapped();
-
-    nad_Queue *b = nullptr;
-    NAD_TEST_OK(NAD_QUEUE_NEW_CAP(int32_t, 3, arena, &b));
-    push_int(b, 1);
-    push_int(b, 100);
-    push_int(b, 200);
-    nad_queue_pop(b);
-    push_int(b, 300);
-    TEST_ASSERT_EQUAL_size_t(3, nad_queue_cap(b));
-
-    NAD_TEST_OK(nad_queue_swap(a, b));
-
-    TEST_ASSERT_EQUAL_PTR(nad_al_default(), nad_queue_al(a));
-    TEST_ASSERT_EQUAL_PTR(arena, nad_queue_al(b));
-
-    constexpr int32_t want_a[3] = {100, 200, 300};
-    constexpr int32_t want_b[4] = {10, 20, 30, 40};
-    assert_elems(a, want_a, 3);
-    assert_elems(b, want_b, 4);
-
-    nad_queue_drop(a);
-    nad_queue_drop(b);
-    nad_al_arena_drop(arena);
 }
 
 /* ========== failures ========== */
@@ -1120,7 +1087,6 @@ int main() {
 
     RUN_TEST(test_swap_exchanges_the_elems);
     RUN_TEST(test_swap_self_is_noop);
-    RUN_TEST(test_swap_across_allocators_moves_the_bytes);
 
     RUN_TEST(test_new_reports_an_exhausted_arena);
     RUN_TEST(test_from_data_reports_an_exhausted_arena);

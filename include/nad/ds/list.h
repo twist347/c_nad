@@ -354,6 +354,10 @@ nad_Status nad_list_splice_back(nad_List *self, nad_List *src);
 /// @param self one list
 /// @param other must have the same elem_size and the same allocator: the nodes change
 ///              list without moving, so every borrowed position stays valid
+/// @note two allocators are a broken precondition, not a runtime state — a node belongs to
+///       the allocator that made it. To exchange across two, build each side on the other's
+///       allocator with nad_list_copy_with and hand the results over with
+///       nad_list_move_assign
 /// @bigo{1}
 NAD_API
 void nad_list_swap(nad_List *self, nad_List *other);

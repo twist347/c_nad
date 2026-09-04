@@ -88,10 +88,9 @@ int main() {
     nad_arr_print(shorter, nad_fprint_i32); // [0, 2, 3, 4, 5]
 
     // and the one operation that moves a block: the two are exchanged whole, lengths and
-    // all, so a pointer into either of them now points into the other
-    if (NAD_STATUS_IS_ERR(nad_arr_swap(a, shorter))) {
-        goto out;
-    }
+    // all, so a pointer into either of them now points into the other. Both were built on
+    // 'al', which is what makes the exchange an exchange and not a copy
+    nad_arr_swap(a, shorter);
 
     rc = 0;
 out:

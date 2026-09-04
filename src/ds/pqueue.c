@@ -260,23 +260,17 @@ nad_Status nad_pqueue_shrink_to_fit(nad_PQueue *self) {
     return nad_vec_shrink_to_fit(self->vec);
 }
 
-nad_Status nad_pqueue_swap(nad_PQueue *self, nad_PQueue *other) {
+void nad_pqueue_swap(nad_PQueue *self, nad_PQueue *other) {
     ASSERT_PQUEUE(self);
     ASSERT_PQUEUE(other);
     assert(nad_vec_elem_size(self->vec) == nad_vec_elem_size(other->vec));
 
     if (self == other) {
-        return NAD_STATUS_OK;
+        return;
     }
 
-    const nad_Status st = nad_vec_swap(self->vec, other->vec);
-    if (NAD_STATUS_IS_ERR(st)) {
-        return st;
-    }
-
+    nad_vec_swap(self->vec, other->vec);
     NAD_SWAP(self->cmp, other->cmp);
-
-    return NAD_STATUS_OK;
 }
 
 /* ========== to span ========== */
