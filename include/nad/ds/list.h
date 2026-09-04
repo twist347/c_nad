@@ -102,6 +102,16 @@ void nad_list_drop(nad_List *self);
 [[nodiscard]] NAD_API
 nad_Status nad_list_copy(const nad_List *self, nad_List **out);
 
+/// a new list with the same elems in the same order, on 'al'
+/// @param self the list to copy
+/// @param al where the copy lives; nad_list_copy is this one with the allocator of 'self'
+/// @param[out] out the new list, written only on success
+/// @retval NAD_STATUS_OK on success
+/// @retval NAD_STATUS_ERR_NO_MEM when the header or any node cannot be allocated
+/// @bigo{n}
+[[nodiscard]] NAD_API
+nad_Status nad_list_copy_with(const nad_List *self, nad_Al *al, nad_List **out);
+
 /// overwrites the elems of 'other' with those of 'self', reusing the nodes it already has
 /// and taking or releasing the difference
 /// @param self the list to copy from

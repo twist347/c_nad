@@ -98,9 +98,6 @@ static nad_HMapNode *first_from(const nad_HMap *self, size_t start);
 
 static void clear_nodes(nad_HMap *self);
 
-[[nodiscard]]
-static nad_Status clone_into(const nad_HMap *self, nad_Al *al, nad_HMap **out);
-
 /// the walk both compare doors take, with 'val_eq' null standing for the bytes
 [[nodiscard]]
 static bool eq_impl(const nad_HMap *a, const nad_HMap *b, nad_Eq val_eq);
@@ -184,9 +181,33 @@ void nad_hmap_drop(nad_HMap *self) {
 
 nad_Status nad_hmap_copy(const nad_HMap *self, nad_HMap **out) {
     ASSERT_HMAP(self);
+
+    return nad_hmap_copy_with(self, self->al, out);
+}
+
+nad_Status nad_hmap_copy_with(const nad_HMap *self, nad_Al *al, nad_HMap **out) {
+    ASSERT_HMAP(self);
+    assert(al);
     assert(out);
 
-    return clone_into(self, self->al, out);
+    nad_HMap *obj;
+    nad_Status st = nad_hmap_new_raw_(self->len, self->key_size, self->val_size, self->hasher, self->eq, al, &obj);
+    if (NAD_STATUS_IS_ERR(st)) {
+        return st;
+    }
+
+    for (const nad_HMapNode *node = first_from(self, 0); node; node = nad_hmap_node_next(self, node)) {
+        const void *val = self->val_size > 0 ? node_val(self, node) : nullptr;
+        st = nad_hmap_insert(obj, node_key(node), val, nullptr);
+        if (NAD_STATUS_IS_ERR(st)) {
+            nad_hmap_drop(obj);
+            return st;
+        }
+    }
+
+    *out = obj;
+
+    return NAD_STATUS_OK;
 }
 
 nad_Status nad_hmap_copy_assign(const nad_HMap *self, nad_HMap *other) {
@@ -202,7 +223,7 @@ nad_Status nad_hmap_copy_assign(const nad_HMap *self, nad_HMap *other) {
     // the whole clone is built before anything of 'other' is touched, so a refusal
     // halfway through leaves the target exactly as it was
     nad_HMap *clone;
-    const nad_Status st = clone_into(self, other->al, &clone);
+    const nad_Status st = nad_hmap_copy_with(self, other->al, &clone);
     if (NAD_STATUS_IS_ERR(st)) {
         return st;
     }
@@ -744,30 +765,6 @@ static void clear_nodes(nad_HMap *self) {
             node = next;
         }
     }
-}
-
-static nad_Status clone_into(const nad_HMap *self, nad_Al *al, nad_HMap **out) {
-    assert(al);
-    assert(out);
-
-    nad_HMap *clone;
-    nad_Status st = nad_hmap_new_raw_(self->len, self->key_size, self->val_size, self->hasher, self->eq, al, &clone);
-    if (NAD_STATUS_IS_ERR(st)) {
-        return st;
-    }
-
-    for (const nad_HMapNode *node = first_from(self, 0); node; node = nad_hmap_node_next(self, node)) {
-        const void *val = self->val_size > 0 ? node_val(self, node) : nullptr;
-        st = nad_hmap_insert(clone, node_key(node), val, nullptr);
-        if (NAD_STATUS_IS_ERR(st)) {
-            nad_hmap_drop(clone);
-            return st;
-        }
-    }
-
-    *out = clone;
-
-    return NAD_STATUS_OK;
 }
 
 static bool eq_impl(const nad_HMap *a, const nad_HMap *b, nad_Eq val_eq) {

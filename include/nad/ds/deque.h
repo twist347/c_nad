@@ -122,6 +122,16 @@ void nad_deque_drop(nad_Deque *self);
 [[nodiscard]] NAD_API
 nad_Status nad_deque_copy(const nad_Deque *self, nad_Deque **out);
 
+/// a new deque with the same elems in the same order, on 'al'
+/// @param self the deque to copy
+/// @param al where the copy lives; nad_deque_copy is this one with the allocator of 'self'
+/// @param[out] out the new deque, written only on success
+/// @retval NAD_STATUS_OK on success
+/// @retval NAD_STATUS_ERR_NO_MEM when the header or the block cannot be allocated
+/// @bigo{n}
+[[nodiscard]] NAD_API
+nad_Status nad_deque_copy_with(const nad_Deque *self, nad_Al *al, nad_Deque **out);
+
 /// overwrites the elems of 'other' with those of 'self', growing its block when it must
 /// @param self the deque to copy from
 /// @param[in,out] other must have the same elem_size; keeps its own allocator, and

@@ -93,6 +93,16 @@ void nad_hset_drop(nad_HSet *self);
 [[nodiscard]] NAD_API
 nad_Status nad_hset_copy(const nad_HSet *self, nad_HSet **out);
 
+/// a new set with the same keys, hasher and equality, on 'al'
+/// @param self the set to copy
+/// @param al where the copy lives; nad_hset_copy is this one with the allocator of 'self'
+/// @param[out] out the new set, written only on success
+/// @retval NAD_STATUS_OK on success
+/// @retval NAD_STATUS_ERR_NO_MEM when the buckets or any node cannot be allocated
+/// @bigo{n}
+[[nodiscard]] NAD_API
+nad_Status nad_hset_copy_with(const nad_HSet *self, nad_Al *al, nad_HSet **out);
+
 /// overwrites the keys of 'other' with those of 'self'
 /// @param self the set to copy from
 /// @param[in,out] other must have the same key_size; receives the hasher and the equality

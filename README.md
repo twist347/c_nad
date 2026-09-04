@@ -63,6 +63,7 @@ nad_al_arena_drop(arena); // the vec went with it
 | `default.h` | malloc and friends |
 | `arena.h` | bump allocation, freed all at once |
 | `pool.h` | fixed-size blocks off a free list |
+| `aligned.h` | wraps another allocator and over-aligns every block it hands out |
 | `log.h` | wraps another allocator and writes down what it is asked |
 
 **`algo`** — operations over spans, customized only through function pointers.

@@ -109,10 +109,17 @@ nad_Vec *nad_pqueue_into_vec(nad_PQueue *self) {
 
 nad_Status nad_pqueue_copy(const nad_PQueue *self, nad_PQueue **out) {
     ASSERT_PQUEUE(self);
+
+    return nad_pqueue_copy_with(self, nad_vec_al(self->vec), out);
+}
+
+nad_Status nad_pqueue_copy_with(const nad_PQueue *self, nad_Al *al, nad_PQueue **out) {
+    ASSERT_PQUEUE(self);
+    assert(al);
     assert(out);
 
     nad_Vec *vec;
-    const nad_Status st = nad_vec_copy(self->vec, &vec);
+    const nad_Status st = nad_vec_copy_with(self->vec, al, &vec);
     if (NAD_STATUS_IS_ERR(st)) {
         return st;
     }

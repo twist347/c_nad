@@ -456,6 +456,46 @@ static void test_copy_is_independent() {
     nad_bitset_drop(copy);
 }
 
+static void test_copy_with_builds_on_the_given_allocator() {
+    nad_Al *arena = nad_al_arena_new(nad_al_default(), 1024);
+    TEST_ASSERT_NOT_NULL(arena);
+
+    constexpr size_t want[] = {0, 64, 128};
+    nad_BitSet *src = make_bitset(129, want, 3);
+
+    nad_BitSet *dst = nullptr;
+    NAD_TEST_OK(nad_bitset_copy_with(src, arena, &dst));
+
+    TEST_ASSERT_EQUAL_PTR(arena, nad_bitset_al(dst));
+    TEST_ASSERT_EQUAL_PTR(nad_al_default(), nad_bitset_al(src));
+    TEST_ASSERT_TRUE(nad_bitset_eq(src, dst));
+
+    // the source is gone and the copy still holds the members: the words are its own
+    nad_bitset_drop(src);
+    assert_members(dst, 129, want, 3);
+
+    nad_bitset_drop(dst);
+    nad_al_arena_drop(arena);
+}
+
+// the words are asked of the allocator the copy is going to, not of the source's
+static void test_copy_with_reports_an_exhausted_target_arena() {
+    nad_Al *arena = nad_al_arena_new(nad_al_default(), 1024);
+    TEST_ASSERT_NOT_NULL(arena);
+    nad_test_arena_leave(arena, 0);
+
+    constexpr size_t want[] = {0, 64, 128};
+    nad_BitSet *src = make_bitset(129, want, 3);
+
+    nad_BitSet *dst = nullptr;
+    NAD_TEST_STATUS(NAD_STATUS_ERR_NO_MEM, nad_bitset_copy_with(src, arena, &dst));
+    TEST_ASSERT_NULL(dst);
+    assert_members(src, 129, want, 3);
+
+    nad_bitset_drop(src);
+    nad_al_arena_drop(arena);
+}
+
 static void test_copy_of_an_empty_universe() {
     nad_BitSet *b = make_bitset(0, nullptr, 0);
 
@@ -900,6 +940,8 @@ int main() {
     RUN_TEST(test_the_scans_cross_whole_words);
 
     RUN_TEST(test_copy_is_independent);
+    RUN_TEST(test_copy_with_builds_on_the_given_allocator);
+    RUN_TEST(test_copy_with_reports_an_exhausted_target_arena);
     RUN_TEST(test_copy_of_an_empty_universe);
     RUN_TEST(test_copy_assign_grow_shrink_empty);
     RUN_TEST(test_copy_assign_self_is_noop);

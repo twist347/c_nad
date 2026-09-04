@@ -117,6 +117,16 @@ nad_Vec *nad_stack_into_vec(nad_Stack *self);
 [[nodiscard]] NAD_API
 nad_Status nad_stack_copy(const nad_Stack *self, nad_Stack **out);
 
+/// a new stack with the same elems in the same order, on 'al'
+/// @param self the stack to copy
+/// @param al where the copy lives; nad_stack_copy is this one with the allocator of 'self'
+/// @param[out] out the new stack, written only on success
+/// @retval NAD_STATUS_OK on success
+/// @retval NAD_STATUS_ERR_NO_MEM when the header or the block cannot be allocated
+/// @bigo{n}
+[[nodiscard]] NAD_API
+nad_Status nad_stack_copy_with(const nad_Stack *self, nad_Al *al, nad_Stack **out);
+
 /// overwrites the elems of 'other' with those of 'self', growing its block when it must
 /// @param self the stack to copy from
 /// @param[in,out] other must have the same elem_size; keeps its own allocator, and

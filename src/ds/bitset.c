@@ -106,10 +106,17 @@ void nad_bitset_drop(nad_BitSet *self) {
 
 nad_Status nad_bitset_copy(const nad_BitSet *self, nad_BitSet **out) {
     ASSERT_BITSET(self);
+
+    return nad_bitset_copy_with(self, self->al, out);
+}
+
+nad_Status nad_bitset_copy_with(const nad_BitSet *self, nad_Al *al, nad_BitSet **out) {
+    ASSERT_BITSET(self);
+    assert(al);
     assert(out);
 
     nad_BitSet *copy;
-    const nad_Status st = nad_bitset_new(self->nbits, self->al, &copy);
+    const nad_Status st = nad_bitset_new(self->nbits, al, &copy);
     if (NAD_STATUS_IS_ERR(st)) {
         return st;
     }

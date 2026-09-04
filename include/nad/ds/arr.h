@@ -103,6 +103,16 @@ void nad_arr_drop(nad_Arr *self);
 [[nodiscard]] NAD_API
 nad_Status nad_arr_copy(const nad_Arr *self, nad_Arr **out);
 
+/// a new arr with the same elems, on 'al'
+/// @param self the arr to copy
+/// @param al where the copy lives; nad_arr_copy is this one with the allocator of 'self'
+/// @param[out] out the new arr, written only on success
+/// @retval NAD_STATUS_OK on success
+/// @retval NAD_STATUS_ERR_NO_MEM when the header or the block cannot be allocated
+/// @bigo{n}
+[[nodiscard]] NAD_API
+nad_Status nad_arr_copy_with(const nad_Arr *self, nad_Al *al, nad_Arr **out);
+
 /// overwrites the elems of 'other' with those of 'self', resizing its block when the two
 /// lengths differ
 /// @param self the arr to copy from

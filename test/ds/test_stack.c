@@ -435,6 +435,44 @@ static void test_copy_inherits_the_allocator() {
     nad_al_arena_drop(arena);
 }
 
+static void test_copy_with_builds_on_the_given_allocator() {
+    nad_Al *arena = nad_al_arena_new(nad_al_default(), 1024);
+    TEST_ASSERT_NOT_NULL(arena);
+
+    nad_Stack *src = make_stack_from(SPREAD, SPREAD_LEN);
+
+    nad_Stack *dst = nullptr;
+    NAD_TEST_OK(nad_stack_copy_with(src, arena, &dst));
+
+    TEST_ASSERT_EQUAL_PTR(arena, nad_stack_al(dst));
+    TEST_ASSERT_EQUAL_PTR(nad_al_default(), nad_stack_al(src));
+    TEST_ASSERT_TRUE(nad_stack_eq(src, dst));
+
+    // the header goes to the same allocator as the elems, so the copy outlives the source
+    nad_stack_drop(src);
+    TEST_ASSERT_EQUAL_INT32(SPREAD[SPREAD_LEN - 1], *NAD_STACK_TOP_AS(int32_t, dst));
+
+    nad_stack_drop(dst);
+    nad_al_arena_drop(arena);
+}
+
+// the blocks are asked of the allocator the copy is going to, not of the source's
+static void test_copy_with_reports_an_exhausted_target_arena() {
+    nad_Al *arena = nad_al_arena_new(nad_al_default(), 1024);
+    TEST_ASSERT_NOT_NULL(arena);
+    nad_test_arena_leave(arena, 0);
+
+    nad_Stack *src = make_stack_from(SPREAD, SPREAD_LEN);
+
+    nad_Stack *dst = nullptr;
+    NAD_TEST_STATUS(NAD_STATUS_ERR_NO_MEM, nad_stack_copy_with(src, arena, &dst));
+    TEST_ASSERT_NULL(dst);
+    TEST_ASSERT_EQUAL_size_t(SPREAD_LEN, nad_stack_len(src));
+
+    nad_stack_drop(src);
+    nad_al_arena_drop(arena);
+}
+
 static void test_copy_drains_the_same_as_its_source() {
     nad_Stack *src = make_stack_from(SPREAD, SPREAD_LEN);
 
@@ -907,6 +945,8 @@ int main() {
 
     RUN_TEST(test_copy_is_independent);
     RUN_TEST(test_copy_inherits_the_allocator);
+    RUN_TEST(test_copy_with_builds_on_the_given_allocator);
+    RUN_TEST(test_copy_with_reports_an_exhausted_target_arena);
     RUN_TEST(test_copy_drains_the_same_as_its_source);
     RUN_TEST(test_copy_of_empty_stays_empty);
     RUN_TEST(test_copy_assign_overwrites_the_target);

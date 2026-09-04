@@ -127,6 +127,16 @@ nad_Vec *nad_pqueue_into_vec(nad_PQueue *self);
 [[nodiscard]] NAD_API
 nad_Status nad_pqueue_copy(const nad_PQueue *self, nad_PQueue **out);
 
+/// a new queue with the same elems and comparator, on 'al'
+/// @param self the queue to copy
+/// @param al where the copy lives; nad_pqueue_copy is this one with the allocator of 'self'
+/// @param[out] out the new queue, written only on success
+/// @retval NAD_STATUS_OK on success
+/// @retval NAD_STATUS_ERR_NO_MEM when the header or the block cannot be allocated
+/// @bigo{n} — the arrangement is copied as it is, so nothing is reheapified
+[[nodiscard]] NAD_API
+nad_Status nad_pqueue_copy_with(const nad_PQueue *self, nad_Al *al, nad_PQueue **out);
+
 /// overwrites the elems of 'other' with those of 'self', growing its block when it must
 /// @param self the queue to copy from
 /// @param[in,out] other must have the same elem_size; receives the comparator along with

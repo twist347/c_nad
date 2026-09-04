@@ -151,10 +151,17 @@ void nad_deque_drop(nad_Deque *self) {
 
 nad_Status nad_deque_copy(const nad_Deque *self, nad_Deque **out) {
     ASSERT_DEQUE(self);
+
+    return nad_deque_copy_with(self, self->al, out);
+}
+
+nad_Status nad_deque_copy_with(const nad_Deque *self, nad_Al *al, nad_Deque **out) {
+    ASSERT_DEQUE(self);
+    assert(al);
     assert(out);
 
     nad_Deque *copy;
-    const nad_Status st = new_impl(false, self->len, self->len, self->elem_size, self->al, &copy);
+    const nad_Status st = new_impl(false, self->len, self->len, self->elem_size, al, &copy);
     if (NAD_STATUS_IS_ERR(st)) {
         return st;
     }

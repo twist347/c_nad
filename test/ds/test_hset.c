@@ -573,6 +573,46 @@ static void test_a_copy_keeps_the_smaller_node() {
     TEST_ASSERT_EQUAL_size_t(0, probe.live);
 }
 
+static void test_copy_with_builds_on_the_given_allocator() {
+    nad_Al *arena = nad_al_arena_new(nad_al_default(), 4096);
+    TEST_ASSERT_NOT_NULL(arena);
+
+    nad_HSet *src = make_filled(nad_hash_i32, 8);
+
+    nad_HSet *dst = nullptr;
+    NAD_TEST_OK(nad_hset_copy_with(src, arena, &dst));
+
+    TEST_ASSERT_EQUAL_PTR(arena, nad_hset_al(dst));
+    TEST_ASSERT_EQUAL_PTR(nad_al_default(), nad_hset_al(src));
+    TEST_ASSERT_EQUAL_PTR(nad_hash_i32, nad_hset_hasher(dst));
+    TEST_ASSERT_EQUAL_PTR(nad_eq_i32, nad_hset_key_eq(dst));
+    TEST_ASSERT_TRUE(nad_hset_eq(src, dst));
+
+    // the source is gone and the copy still answers: the nodes are its own
+    nad_hset_drop(src);
+    assert_has(dst, 3);
+
+    nad_hset_drop(dst);
+    nad_al_arena_drop(arena);
+}
+
+// the buckets and the nodes are asked of the allocator the copy is going to
+static void test_copy_with_reports_an_exhausted_target_arena() {
+    nad_Al *arena = nad_al_arena_new(nad_al_default(), 4096);
+    TEST_ASSERT_NOT_NULL(arena);
+    nad_test_arena_leave(arena, 0);
+
+    nad_HSet *src = make_filled(nad_hash_i32, 8);
+
+    nad_HSet *dst = nullptr;
+    NAD_TEST_STATUS(NAD_STATUS_ERR_NO_MEM, nad_hset_copy_with(src, arena, &dst));
+    TEST_ASSERT_NULL(dst);
+    TEST_ASSERT_EQUAL_size_t(8, nad_hset_len(src));
+
+    nad_hset_drop(src);
+    nad_al_arena_drop(arena);
+}
+
 static void test_copy_of_empty_stays_empty() {
     nad_HSet *src = make_set(nad_hash_i32);
 
@@ -908,6 +948,8 @@ int main() {
 
     RUN_TEST(test_copy_is_independent);
     RUN_TEST(test_copy_carries_the_hasher_and_the_allocator);
+    RUN_TEST(test_copy_with_builds_on_the_given_allocator);
+    RUN_TEST(test_copy_with_reports_an_exhausted_target_arena);
     RUN_TEST(test_a_copy_keeps_the_smaller_node);
     RUN_TEST(test_copy_of_empty_stays_empty);
     RUN_TEST(test_copy_assign_overwrites_the_target);

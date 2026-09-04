@@ -221,6 +221,44 @@ static void test_copy_inherits_the_source_allocator() {
     nad_al_arena_drop(arena);
 }
 
+static void test_copy_with_builds_on_the_given_allocator() {
+    nad_Al *arena = nad_al_arena_new(nad_al_default(), 1024);
+    TEST_ASSERT_NOT_NULL(arena);
+
+    nad_List *src = make_list(4);
+
+    nad_List *dst = nullptr;
+    NAD_TEST_OK(nad_list_copy_with(src, arena, &dst));
+
+    TEST_ASSERT_EQUAL_PTR(arena, nad_list_al(dst));
+    TEST_ASSERT_EQUAL_PTR(nad_al_default(), nad_list_al(src));
+    TEST_ASSERT_TRUE(nad_list_eq(src, dst));
+
+    // the source is gone and the copy still holds the elems: every node is its own
+    nad_list_drop(src);
+    assert_elems(dst, (int32_t[]){0, 1, 2, 3}, 4);
+
+    nad_list_drop(dst);
+    nad_al_arena_drop(arena);
+}
+
+// the nodes are asked of the allocator the copy is going to, not of the source's
+static void test_copy_with_reports_an_exhausted_target_arena() {
+    nad_Al *arena = nad_al_arena_new(nad_al_default(), 1024);
+    TEST_ASSERT_NOT_NULL(arena);
+    nad_test_arena_leave(arena, 0);
+
+    nad_List *src = make_list(4);
+
+    nad_List *dst = nullptr;
+    NAD_TEST_STATUS(NAD_STATUS_ERR_NO_MEM, nad_list_copy_with(src, arena, &dst));
+    TEST_ASSERT_NULL(dst);
+    TEST_ASSERT_EQUAL_size_t(4, nad_list_len(src));
+
+    nad_list_drop(src);
+    nad_al_arena_drop(arena);
+}
+
 static void test_copy_of_empty_is_empty() {
     nad_List *l = make_list(0);
     nad_List *c = nullptr;
@@ -1753,6 +1791,8 @@ int main() {
 
     RUN_TEST(test_copy_is_independent);
     RUN_TEST(test_copy_inherits_the_source_allocator);
+    RUN_TEST(test_copy_with_builds_on_the_given_allocator);
+    RUN_TEST(test_copy_with_reports_an_exhausted_target_arena);
     RUN_TEST(test_copy_of_empty_is_empty);
     RUN_TEST(test_copy_assign_grows_the_target);
     RUN_TEST(test_copy_assign_shrinks_the_target);

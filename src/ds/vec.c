@@ -130,7 +130,14 @@ void nad_vec_drop(nad_Vec *self) {
 nad_Status nad_vec_copy(const nad_Vec *self, nad_Vec **out) {
     ASSERT_VEC(self);
 
-    return nad_vec_from_span(nad_vec_to_span(self), self->al, out);
+    return nad_vec_copy_with(self, self->al, out);
+}
+
+nad_Status nad_vec_copy_with(const nad_Vec *self, nad_Al *al, nad_Vec **out) {
+    ASSERT_VEC(self);
+    assert(al);
+
+    return nad_vec_from_span(nad_vec_to_span(self), al, out);
 }
 
 nad_Status nad_vec_copy_assign(const nad_Vec *self, nad_Vec *other) {

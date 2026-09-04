@@ -63,10 +63,17 @@ void nad_hset_drop(nad_HSet *self) {
 
 nad_Status nad_hset_copy(const nad_HSet *self, nad_HSet **out) {
     ASSERT_HSET(self);
+
+    return nad_hset_copy_with(self, nad_hmap_al(self->map), out);
+}
+
+nad_Status nad_hset_copy_with(const nad_HSet *self, nad_Al *al, nad_HSet **out) {
+    ASSERT_HSET(self);
+    assert(al);
     assert(out);
 
     nad_HMap *map;
-    const nad_Status st = nad_hmap_copy(self->map, &map);
+    const nad_Status st = nad_hmap_copy_with(self->map, al, &map);
     if (NAD_STATUS_IS_ERR(st)) {
         return st;
     }

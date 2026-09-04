@@ -58,9 +58,6 @@ static void swap_contents(nad_List *a, nad_List *b);
 
 static void clear_nodes(nad_List *self);
 
-[[nodiscard]]
-static nad_Status clone_into(const nad_List *self, nad_Al *al, nad_List **out);
-
 [[nodiscard]] [[maybe_unused]]
 static bool owns_node(const nad_List *self, const nad_ListNode *node);
 
@@ -154,9 +151,32 @@ void nad_list_drop(nad_List *self) {
 
 nad_Status nad_list_copy(const nad_List *self, nad_List **out) {
     ASSERT_LIST(self);
+
+    return nad_list_copy_with(self, self->al, out);
+}
+
+nad_Status nad_list_copy_with(const nad_List *self, nad_Al *al, nad_List **out) {
+    ASSERT_LIST(self);
+    assert(al);
     assert(out);
 
-    return clone_into(self, self->al, out);
+    nad_List *obj;
+    nad_Status st = nad_list_new(self->elem_size, al, &obj);
+    if (NAD_STATUS_IS_ERR(st)) {
+        return st;
+    }
+
+    for (const nad_ListNode *node = self->head; node; node = node->next) {
+        st = nad_list_push_back(obj, node->elem);
+        if (NAD_STATUS_IS_ERR(st)) {
+            nad_list_drop(obj);
+            return st;
+        }
+    }
+
+    *out = obj;
+
+    return NAD_STATUS_OK;
 }
 
 nad_Status nad_list_copy_assign(const nad_List *self, nad_List *other) {
@@ -460,7 +480,7 @@ nad_Status nad_list_splice_front(nad_List *self, nad_List *src) {
     }
 
     nad_List *copy;
-    const nad_Status st = clone_into(src, self->al, &copy);
+    const nad_Status st = nad_list_copy_with(src, self->al, &copy);
     if (NAD_STATUS_IS_ERR(st)) {
         return st;
     }
@@ -491,7 +511,7 @@ nad_Status nad_list_splice_back(nad_List *self, nad_List *src) {
     }
 
     nad_List *copy;
-    const nad_Status st = clone_into(src, self->al, &copy);
+    const nad_Status st = nad_list_copy_with(src, self->al, &copy);
     if (NAD_STATUS_IS_ERR(st)) {
         return st;
     }
@@ -608,7 +628,7 @@ nad_Status nad_list_merge(nad_List *self, nad_List *src, nad_Cmp cmp) {
     }
 
     nad_List *copy;
-    const nad_Status st = clone_into(src, self->al, &copy);
+    const nad_Status st = nad_list_copy_with(src, self->al, &copy);
     if (NAD_STATUS_IS_ERR(st)) {
         return st;
     }
@@ -818,29 +838,6 @@ static void clear_nodes(nad_List *self) {
     self->head = nullptr;
     self->tail = nullptr;
     self->len = 0;
-}
-
-static nad_Status clone_into(const nad_List *self, nad_Al *al, nad_List **out) {
-    assert(al);
-    assert(out);
-
-    nad_List *list;
-    nad_Status st = nad_list_new(self->elem_size, al, &list);
-    if (NAD_STATUS_IS_ERR(st)) {
-        return st;
-    }
-
-    for (const nad_ListNode *node = self->head; node; node = node->next) {
-        st = nad_list_push_back(list, node->elem);
-        if (NAD_STATUS_IS_ERR(st)) {
-            nad_list_drop(list);
-            return st;
-        }
-    }
-
-    *out = list;
-
-    return NAD_STATUS_OK;
 }
 
 static nad_ListNode *merge_chains(nad_ListNode *a, nad_ListNode *b, nad_Cmp cmp) {

@@ -97,6 +97,16 @@ void nad_hmap_drop(nad_HMap *self);
 [[nodiscard]] NAD_API
 nad_Status nad_hmap_copy(const nad_HMap *self, nad_HMap **out);
 
+/// a new map with the same entries, hasher and equality, on 'al'
+/// @param self the map to copy
+/// @param al where the copy lives; nad_hmap_copy is this one with the allocator of 'self'
+/// @param[out] out the new map, written only on success
+/// @retval NAD_STATUS_OK on success
+/// @retval NAD_STATUS_ERR_NO_MEM when the buckets or any node cannot be allocated
+/// @bigo{n}
+[[nodiscard]] NAD_API
+nad_Status nad_hmap_copy_with(const nad_HMap *self, nad_Al *al, nad_HMap **out);
+
 /// overwrites the entries of 'other' with those of 'self'
 /// @param self the map to copy from
 /// @param[in,out] other must have the same key_size and val_size; receives the hasher and

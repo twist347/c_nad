@@ -94,7 +94,14 @@ void nad_arr_drop(nad_Arr *self) {
 nad_Status nad_arr_copy(const nad_Arr *self, nad_Arr **out) {
     ASSERT_ARR(self);
 
-    return nad_arr_from_span(nad_arr_to_span(self), self->al, out);
+    return nad_arr_copy_with(self, self->al, out);
+}
+
+nad_Status nad_arr_copy_with(const nad_Arr *self, nad_Al *al, nad_Arr **out) {
+    ASSERT_ARR(self);
+    assert(al);
+
+    return nad_arr_from_span(nad_arr_to_span(self), al, out);
 }
 
 nad_Status nad_arr_copy_assign(const nad_Arr *self, nad_Arr *other) {

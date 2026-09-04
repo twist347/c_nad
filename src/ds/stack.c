@@ -100,10 +100,17 @@ nad_Vec *nad_stack_into_vec(nad_Stack *self) {
 
 nad_Status nad_stack_copy(const nad_Stack *self, nad_Stack **out) {
     ASSERT_STACK(self);
+
+    return nad_stack_copy_with(self, nad_vec_al(self->vec), out);
+}
+
+nad_Status nad_stack_copy_with(const nad_Stack *self, nad_Al *al, nad_Stack **out) {
+    ASSERT_STACK(self);
+    assert(al);
     assert(out);
 
     nad_Vec *vec;
-    const nad_Status st = nad_vec_copy(self->vec, &vec);
+    const nad_Status st = nad_vec_copy_with(self->vec, al, &vec);
     if (NAD_STATUS_IS_ERR(st)) {
         return st;
     }

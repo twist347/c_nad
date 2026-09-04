@@ -119,6 +119,16 @@ nad_Deque *nad_queue_into_deque(nad_Queue *self);
 [[nodiscard]] NAD_API
 nad_Status nad_queue_copy(const nad_Queue *self, nad_Queue **out);
 
+/// a new queue with the same elems in the same order, on 'al'
+/// @param self the queue to copy
+/// @param al where the copy lives; nad_queue_copy is this one with the allocator of 'self'
+/// @param[out] out the new queue, written only on success
+/// @retval NAD_STATUS_OK on success
+/// @retval NAD_STATUS_ERR_NO_MEM when the header or the block cannot be allocated
+/// @bigo{n}
+[[nodiscard]] NAD_API
+nad_Status nad_queue_copy_with(const nad_Queue *self, nad_Al *al, nad_Queue **out);
+
 /// overwrites the elems of 'other' with those of 'self', growing its block when it must
 /// @param self the queue to copy from
 /// @param[in,out] other must have the same elem_size; keeps its own allocator, and

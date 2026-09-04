@@ -122,6 +122,16 @@ void nad_vec_drop(nad_Vec *self);
 [[nodiscard]] NAD_API
 nad_Status nad_vec_copy(const nad_Vec *self, nad_Vec **out);
 
+/// a new vec with the same elems, on 'al'
+/// @param self the vec to copy
+/// @param al where the copy lives; nad_vec_copy is this one with the allocator of 'self'
+/// @param[out] out the new vec, written only on success
+/// @retval NAD_STATUS_OK on success
+/// @retval NAD_STATUS_ERR_NO_MEM when the header or the block cannot be allocated
+/// @bigo{n}
+[[nodiscard]] NAD_API
+nad_Status nad_vec_copy_with(const nad_Vec *self, nad_Al *al, nad_Vec **out);
+
 /// overwrites the elems of 'other' with those of 'self', growing its block when it must
 /// @param self the vec to copy from
 /// @param[in,out] other must have the same elem_size; keeps its own allocator, and

@@ -493,6 +493,44 @@ static void test_copy_inherits_the_allocator() {
     nad_al_arena_drop(arena);
 }
 
+static void test_copy_with_builds_on_the_given_allocator() {
+    nad_Al *arena = nad_al_arena_new(nad_al_default(), 1024);
+    TEST_ASSERT_NOT_NULL(arena);
+
+    nad_Queue *src = make_wrapped();
+
+    nad_Queue *dst = nullptr;
+    NAD_TEST_OK(nad_queue_copy_with(src, arena, &dst));
+
+    TEST_ASSERT_EQUAL_PTR(arena, nad_queue_al(dst));
+    TEST_ASSERT_EQUAL_PTR(nad_al_default(), nad_queue_al(src));
+    TEST_ASSERT_TRUE(nad_queue_eq(src, dst));
+
+    // the header goes to the same allocator as the elems, so the copy outlives the source
+    nad_queue_drop(src);
+    TEST_ASSERT_EQUAL_INT32(10, *NAD_QUEUE_FRONT_AS(int32_t, dst));
+
+    nad_queue_drop(dst);
+    nad_al_arena_drop(arena);
+}
+
+// the blocks are asked of the allocator the copy is going to, not of the source's
+static void test_copy_with_reports_an_exhausted_target_arena() {
+    nad_Al *arena = nad_al_arena_new(nad_al_default(), 1024);
+    TEST_ASSERT_NOT_NULL(arena);
+    nad_test_arena_leave(arena, 0);
+
+    nad_Queue *src = make_queue_from(SPREAD, SPREAD_LEN);
+
+    nad_Queue *dst = nullptr;
+    NAD_TEST_STATUS(NAD_STATUS_ERR_NO_MEM, nad_queue_copy_with(src, arena, &dst));
+    TEST_ASSERT_NULL(dst);
+    TEST_ASSERT_EQUAL_size_t(SPREAD_LEN, nad_queue_len(src));
+
+    nad_queue_drop(src);
+    nad_al_arena_drop(arena);
+}
+
 // the copy of a split ring must come out in queue order, not in buffer order
 static void test_copy_of_a_wrapped_queue_keeps_the_order() {
     nad_Queue *src = make_wrapped();
@@ -982,6 +1020,8 @@ int main() {
 
     RUN_TEST(test_copy_is_independent);
     RUN_TEST(test_copy_inherits_the_allocator);
+    RUN_TEST(test_copy_with_builds_on_the_given_allocator);
+    RUN_TEST(test_copy_with_reports_an_exhausted_target_arena);
     RUN_TEST(test_copy_of_a_wrapped_queue_keeps_the_order);
     RUN_TEST(test_copy_of_empty_stays_empty);
     RUN_TEST(test_copy_assign_overwrites_the_target);

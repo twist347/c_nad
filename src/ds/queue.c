@@ -100,10 +100,17 @@ nad_Deque *nad_queue_into_deque(nad_Queue *self) {
 
 nad_Status nad_queue_copy(const nad_Queue *self, nad_Queue **out) {
     ASSERT_QUEUE(self);
+
+    return nad_queue_copy_with(self, nad_deque_al(self->deque), out);
+}
+
+nad_Status nad_queue_copy_with(const nad_Queue *self, nad_Al *al, nad_Queue **out) {
+    ASSERT_QUEUE(self);
+    assert(al);
     assert(out);
 
     nad_Deque *deque;
-    const nad_Status st = nad_deque_copy(self->deque, &deque);
+    const nad_Status st = nad_deque_copy_with(self->deque, al, &deque);
     if (NAD_STATUS_IS_ERR(st)) {
         return st;
     }
