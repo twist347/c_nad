@@ -26,6 +26,14 @@ int main() {
 
     // writing through the view writes the source: this is the same elem
     printf("%" PRId32 "\n", nums[0]); // 2
+
+    // the walk that goes with a view. The elem type has to be named: a span carries
+    // sizes, not types, and this is the one place that shows
+    int32_t total = 0;
+    NAD_SPAN_FOR_EACH_AS (int32_t, elem, nad_span_mut_to_span(s)) {
+        total += *elem;
+    }
+    printf("%" PRId32 "\n", total); // 19
     /// [access]
 
     /// [sub]

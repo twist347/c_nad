@@ -38,16 +38,17 @@ int main() {
 
     /// [scan]
     // find_next takes where to start, so a walk of the members needs no bound of its own:
-    // a start past the universe is a miss and not an assert
-    size_t idx;
-    for (size_t from = 0; nad_bitset_find_next(a, from, &idx); from = idx + 1) {
+    // a start past the universe is a miss and not an assert. Its two-variable loop is what
+    // NAD_BITSET_FOR_EACH hides
+    NAD_BITSET_FOR_EACH (idx, a) {
         printf("%zu ", idx); // 0 7
     }
     putchar('\n');
 
-    // and the same for what is not in it
-    if (nad_bitset_find_next_clear(a, 0, &idx)) {
-        printf("first gap at %zu\n", idx); // first gap at 1
+    // and the same for what is not in it, which has no walk of its own
+    size_t gap;
+    if (nad_bitset_find_next_clear(a, 0, &gap)) {
+        printf("first gap at %zu\n", gap); // first gap at 1
     }
     /// [scan]
 

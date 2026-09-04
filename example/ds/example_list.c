@@ -34,7 +34,7 @@ int main() {
 
     /// [walk]
     // there is no index: a walk is how an elem is reached, and null is what ends it
-    for (const nad_ListNode *node = nad_list_first_node(l); node; node = nad_list_node_next(node)) {
+    NAD_LIST_FOR_EACH (node, l) {
         printf("%" PRId32 " ", *NAD_LIST_NODE_ELEM_AS(int32_t, node));
     }
     putchar('\n'); // 4 3 1 2 5

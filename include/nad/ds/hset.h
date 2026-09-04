@@ -398,6 +398,24 @@ void nad_hset_print(const nad_HSet *self, nad_FPrint fprint);
 #define NAD_HSET_REMOVE(K, self, key) \
     nad_hset_remove((self), &(K){ (key) })
 
+/// walks every key of the set, binding 'node' to each in turn. The order is unspecified:
+/// it follows the buckets, not the insertions
+/// @param node the name the loop variable takes; it is a const nad_HSetNode *
+/// @param self the set
+/// @note the step to the next key happens after the body, through the node the body saw —
+///       so removing that key inside the loop cuts the walk
+#define NAD_HSET_FOR_EACH(node, self)                          \
+    for (const nad_HSetNode *node = nad_hset_first_node(self); \
+         node;                                                 \
+         node = nad_hset_node_next((self), node))
+
+/// the same walk over positions the set can be removed through
+/// @copydetails NAD_HSET_FOR_EACH
+#define NAD_HSET_FOR_EACH_MUT(node, self)                         \
+    for (nad_HSetNode *node = nad_hset_first_node_mut(self);      \
+         node;                                                    \
+         node = nad_hset_node_next_mut((self), node))
+
 /// nad_hset_node_key as a const K *
 /// @param K the key type
 /// @param node the position

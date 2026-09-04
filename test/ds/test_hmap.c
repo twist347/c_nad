@@ -114,7 +114,7 @@ static void assert_missing(const nad_HMap *m, int32_t key) {
 // value it carries. The order is unspecified, so that is all a walk can promise
 static void assert_walk_sees_everything(const nad_HMap *m) {
     size_t seen = 0;
-    for (const nad_HMapNode *node = nad_hmap_first_node(m); node; node = nad_hmap_node_next(m, node)) {
+    NAD_HMAP_FOR_EACH (node, m) {
         const int32_t key = *NAD_HMAP_NODE_KEY_AS(int32_t, node);
         const int32_t val = *NAD_HMAP_NODE_VAL_AS(int32_t, m, node);
         assert_has(m, key, val);

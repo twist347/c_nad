@@ -82,7 +82,7 @@ static void assert_missing(const nad_HSet *s, int32_t key) {
 // the walk reaches exactly 'len' keys and every one of them is in the set
 static void assert_walk_sees_everything(const nad_HSet *s) {
     size_t seen = 0;
-    for (const nad_HSetNode *node = nad_hset_first_node(s); node; node = nad_hset_node_next(s, node)) {
+    NAD_HSET_FOR_EACH (node, s) {
         assert_has(s, *NAD_HSET_NODE_KEY_AS(int32_t, node));
         ++seen;
     }

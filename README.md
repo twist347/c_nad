@@ -1,6 +1,6 @@
 # nadc — naive algorithms and data structures in C23
 
-[![CI](https://github.com/twist347/c-naive-algorithms-and-data-structures/actions/workflows/ci.yml/badge.svg)](https://github.com/twist347/c-naive-algorithms-and-data-structures/actions/workflows/ci.yml)
+[![CI](https://github.com/twist347/c_nad/actions/workflows/ci.yml/badge.svg)](https://github.com/twist347/c_nad/actions/workflows/ci.yml)
 
 Classic containers and algorithms, written plainly. No dependencies.
 
@@ -38,6 +38,9 @@ A container is built on one `nad_Al *` and never touches another:
 
 ```c
 nad_Al *arena = nad_al_arena_new(nad_al_default(), 1024);
+if (!arena) {
+    return 1;
+}
 
 nad_Vec *v = nullptr;
 if (NAD_STATUS_IS_ERR(NAD_VEC_OF(int32_t, arena, &v, 5, 3, 1, 4, 2))) {
@@ -55,6 +58,9 @@ nad_al_arena_drop(arena); // the vec went with it
 ```
 
 ## Layout
+
+`nad/nad.h` includes every header below at once; naming the modules a file actually
+uses stays the better habit.
 
 **`core`** — the vocabulary the rest is written in.
 

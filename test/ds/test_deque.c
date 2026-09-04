@@ -1,6 +1,7 @@
 #include "nad/ds/deque.h"
 #include "nad/algo/sort.h"
 #include "nad/alloc/arena.h"
+#include "nad/core/util.h"
 #include "nad/alloc/default.h"
 #include "nad/core/cmp.h"
 
@@ -364,6 +365,51 @@ static void test_copy_with_reports_an_exhausted_target_arena() {
 
     nad_deque_drop(src);
     nad_al_arena_drop(arena);
+}
+
+static void test_for_each_walks_a_split_ring_in_order() {
+    // the contents wrap, so a walk that went by the block instead of by the index would
+    // hand back the two runs the wrong way round
+    nad_Deque *d = make_wrapped();
+    TEST_ASSERT_TRUE(wraps(d));
+
+    int32_t seen[4];
+    size_t n = 0;
+    NAD_DEQUE_FOR_EACH_AS (int32_t, elem, d) {
+        TEST_ASSERT_TRUE(n < 4);
+        seen[n++] = *elem;
+    }
+
+    TEST_ASSERT_EQUAL_size_t(4, n);
+    TEST_ASSERT_EQUAL_INT32_ARRAY(((int32_t[]){10, 20, 30, 40}), seen, 4);
+
+    nad_deque_drop(d);
+}
+
+static void test_for_each_over_an_empty_deque_runs_no_body() {
+    nad_Deque *d = make_deque(0);
+
+    size_t n = 0;
+    NAD_DEQUE_FOR_EACH_AS (int32_t, elem, d) {
+        NAD_UNUSED(elem);
+        ++n;
+    }
+
+    TEST_ASSERT_EQUAL_size_t(0, n);
+
+    nad_deque_drop(d);
+}
+
+static void test_for_each_mut_writes_through_every_slot() {
+    nad_Deque *d = make_wrapped();
+
+    NAD_DEQUE_FOR_EACH_MUT_AS (int32_t, elem, d) {
+        *elem += 1;
+    }
+
+    assert_elems(d, (int32_t[]){11, 21, 31, 41}, 4);
+
+    nad_deque_drop(d);
 }
 
 static void test_move_assign_hands_over_the_contents_on_one_allocator() {
@@ -1098,6 +1144,10 @@ int main() {
     RUN_TEST(test_copy_is_independent_of_a_wrapped_source);
     RUN_TEST(test_copy_with_builds_on_the_given_allocator);
     RUN_TEST(test_copy_with_reports_an_exhausted_target_arena);
+    RUN_TEST(test_for_each_walks_a_split_ring_in_order);
+    RUN_TEST(test_for_each_over_an_empty_deque_runs_no_body);
+    RUN_TEST(test_for_each_mut_writes_through_every_slot);
+
     RUN_TEST(test_move_assign_hands_over_the_contents_on_one_allocator);
     RUN_TEST(test_move_assign_across_allocators_empties_the_source);
     RUN_TEST(test_move_assign_across_allocators_reports_an_exhausted_arena);

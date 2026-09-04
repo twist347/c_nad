@@ -512,6 +512,24 @@ void nad_hmap_print(const nad_HMap *self, nad_FPrint key_fprint, nad_FPrint val_
 #define NAD_HMAP_REMOVE(K, self, key) \
     nad_hmap_remove((self), &(K){ (key) })
 
+/// walks every entry of the map, binding 'node' to each in turn. The order is
+/// unspecified: it follows the buckets, not the insertions
+/// @param node the name the loop variable takes; it is a const nad_HMapNode *
+/// @param self the map
+/// @note the step to the next entry happens after the body, through the node the body
+///       saw — so removing that entry inside the loop cuts the walk
+#define NAD_HMAP_FOR_EACH(node, self)                                \
+    for (const nad_HMapNode *node = nad_hmap_first_node(self);       \
+         node;                                                       \
+         node = nad_hmap_node_next((self), node))
+
+/// the same walk over entries whose values may be written through
+/// @copydetails NAD_HMAP_FOR_EACH
+#define NAD_HMAP_FOR_EACH_MUT(node, self)                            \
+    for (nad_HMapNode *node = nad_hmap_first_node_mut(self);         \
+         node;                                                       \
+         node = nad_hmap_node_next_mut((self), node))
+
 /// nad_hmap_node_key as a const K *
 /// @param K the key type
 /// @param node the position

@@ -1,4 +1,5 @@
 #include "nad/core/span.h"
+#include "nad/core/util.h"
 
 #include "support/pair.h"
 
@@ -13,6 +14,58 @@ void tearDown() {
 }
 
 /* ========== construction ========== */
+
+/* ========== walk ========== */
+
+static void test_for_each_binds_every_elem_in_order() {
+    constexpr int32_t buf[4] = {10, 20, 30, 40};
+    const nad_Span s = NAD_SPAN_NEW(int32_t, buf, 4);
+
+    int32_t seen[4];
+    size_t n = 0;
+    NAD_SPAN_FOR_EACH_AS (int32_t, elem, s) {
+        seen[n++] = *elem;
+    }
+
+    TEST_ASSERT_EQUAL_size_t(4, n);
+    TEST_ASSERT_EQUAL_INT32_ARRAY(buf, seen, 4);
+}
+
+// the empty view carries a null data pointer, and the walk must not touch it
+static void test_for_each_over_an_empty_view_runs_no_body() {
+    const nad_Span s = NAD_SPAN_NEW(int32_t, nullptr, 0);
+
+    size_t n = 0;
+    NAD_SPAN_FOR_EACH_AS (int32_t, elem, s) {
+        NAD_UNUSED(elem);
+        ++n;
+    }
+
+    TEST_ASSERT_EQUAL_size_t(0, n);
+}
+
+// the view is taken once: a walk over nad_span_sub of a call would otherwise redo it
+static void test_for_each_evaluates_the_view_once() {
+    constexpr int32_t buf[4] = {1, 2, 3, 4};
+
+    int32_t total = 0;
+    NAD_SPAN_FOR_EACH_AS (int32_t, elem, nad_span_sub(NAD_SPAN_NEW(int32_t, buf, 4), 1, 3)) {
+        total += *elem;
+    }
+
+    TEST_ASSERT_EQUAL_INT32(9, total); // 2 + 3 + 4, and the sub was taken once
+}
+
+static void test_for_each_mut_writes_through_the_view() {
+    int32_t buf[3] = {1, 2, 3};
+    const nad_SpanMut s = NAD_SPAN_NEW_MUT(int32_t, buf, 3);
+
+    NAD_SPAN_FOR_EACH_MUT_AS (int32_t, elem, s) {
+        *elem *= 10;
+    }
+
+    TEST_ASSERT_EQUAL_INT32_ARRAY(((int32_t[]){10, 20, 30}), buf, 3);
+}
 
 static void test_new_keeps_fields() {
     constexpr int32_t buf[3] = {10, 20, 30};
@@ -269,6 +322,11 @@ static void test_swap_elems_moves_whole_element() {
 
 int main() {
     UNITY_BEGIN();
+
+    RUN_TEST(test_for_each_binds_every_elem_in_order);
+    RUN_TEST(test_for_each_over_an_empty_view_runs_no_body);
+    RUN_TEST(test_for_each_evaluates_the_view_once);
+    RUN_TEST(test_for_each_mut_writes_through_the_view);
 
     RUN_TEST(test_new_keeps_fields);
     RUN_TEST(test_new_empty_over_null);

@@ -56,6 +56,11 @@ static void splice_nodes(nad_List *self, nad_List *src, bool front);
 
 static void swap_contents(nad_List *a, nad_List *b);
 
+/// the walk both find doors take. The node comes back mutable and the const door hands it
+/// out as const: the walk is the same either way
+[[nodiscard]]
+static nad_ListNode *find_node(const nad_List *self, const void *key, nad_Eq eq);
+
 static void clear_nodes(nad_List *self);
 
 [[nodiscard]] [[maybe_unused]]
@@ -425,6 +430,22 @@ nad_ListNode *nad_list_node_prev_mut(nad_ListNode *node) {
     ASSERT_NODE(node);
 
     return node->prev;
+}
+
+const nad_ListNode *nad_list_find(const nad_List *self, const void *key, nad_Eq eq) {
+    ASSERT_LIST(self);
+    assert(key);
+    assert(eq);
+
+    return find_node(self, key, eq);
+}
+
+nad_ListNode *nad_list_find_mut(nad_List *self, const void *key, nad_Eq eq) {
+    ASSERT_LIST(self);
+    assert(key);
+    assert(eq);
+
+    return find_node(self, key, eq);
 }
 
 const void *nad_list_node_elem(const nad_ListNode *node) {
@@ -864,6 +885,16 @@ static void swap_contents(nad_List *a, nad_List *b) {
     NAD_SWAP(a->head, b->head);
     NAD_SWAP(a->tail, b->tail);
     NAD_SWAP(a->len, b->len);
+}
+
+static nad_ListNode *find_node(const nad_List *self, const void *key, nad_Eq eq) {
+    for (nad_ListNode *node = self->head; node; node = node->next) {
+        if (eq(node->elem, key)) {
+            return node;
+        }
+    }
+
+    return nullptr;
 }
 
 static void clear_nodes(nad_List *self) {

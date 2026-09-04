@@ -36,6 +36,7 @@
 /// @snippet ds/example_vec.c grow
 /// @snippet ds/example_vec.c bulk
 /// @snippet ds/example_vec.c algo
+/// @snippet ds/example_vec.c allocators
 /// @{
 
 /// Owning array that grows.

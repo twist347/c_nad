@@ -239,6 +239,22 @@ const nad_ListNode *nad_list_last_node(const nad_List *self);
 [[nodiscard]] NAD_API
 nad_ListNode *nad_list_last_node_mut(nad_List *self);
 
+/// the first node from the front whose elem is equal to 'key'
+/// @param self the list
+/// @param key the address of the value looked for
+/// @param eq the equality, asked here rather than fixed at construction: a list keeps no
+///           order of its own and so was never told how its elems compare
+/// @return the node, or null when no elem is equal. Hold it to read the elem, or to
+///         insert or remove at that position
+/// @bigo{n}
+[[nodiscard]] NAD_API
+const nad_ListNode *nad_list_find(const nad_List *self, const void *key, nad_Eq eq);
+
+/// the same position as one to write, insert or remove through
+/// @copydetails nad_list_find
+[[nodiscard]] NAD_API
+nad_ListNode *nad_list_find_mut(nad_List *self, const void *key, nad_Eq eq);
+
 /// the position after 'node'
 /// @param node the position to step from
 /// @return the next node, or null at the back — which is what ends a walk
@@ -507,6 +523,38 @@ void nad_list_print(const nad_List *self, nad_FPrint fprint);
 /// @copydetails NAD_LIST_FIRST_AS
 #define NAD_LIST_LAST_MUT_AS(T, self) \
     ((T *) nad_list_last_mut((self)))
+
+/// walks the list front to back, binding 'node' to each position in turn
+/// @param node the name the loop variable takes; it is a const nad_ListNode *
+/// @param self the list
+/// @note the step to the next position happens after the body, through the node the body
+///       saw — so removing that node inside the loop cuts the walk. Take the next
+///       position first, or walk by hand
+#define NAD_LIST_FOR_EACH(node, self)                          \
+    for (const nad_ListNode *node = nad_list_first_node(self); \
+         node;                                                 \
+         node = nad_list_node_next(node))
+
+/// the same walk over positions that may be written through
+/// @copydetails NAD_LIST_FOR_EACH
+#define NAD_LIST_FOR_EACH_MUT(node, self)                         \
+    for (nad_ListNode *node = nad_list_first_node_mut(self);      \
+         node;                                                    \
+         node = nad_list_node_next_mut(node))
+
+/// nad_list_find from a value rather than an address
+/// @param T the elem type; a scalar, since 'val' becomes a compound literal
+/// @param self the list
+/// @param val the value looked for
+/// @param eq the equality
+/// @bigo{n}
+#define NAD_LIST_FIND(T, self, val, eq) \
+    nad_list_find((self), &(T){ (val) }, (eq))
+
+/// nad_list_find_mut from a value rather than an address
+/// @copydetails NAD_LIST_FIND
+#define NAD_LIST_FIND_MUT(T, self, val, eq) \
+    nad_list_find_mut((self), &(T){ (val) }, (eq))
 
 /// nad_list_node_elem as a const T *
 /// @param T the elem type

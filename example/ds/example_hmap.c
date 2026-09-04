@@ -78,7 +78,7 @@ int main() {
     // the walk needs the map as well as the node, because a chain ends long before the
     // buckets do. The order is unspecified: it follows the buckets
     int32_t total = 0;
-    for (const nad_HMapNode *at = nad_hmap_first_node(m); at; at = nad_hmap_node_next(m, at)) {
+    NAD_HMAP_FOR_EACH (at, m) {
         total += *NAD_HMAP_NODE_VAL_AS(int32_t, m, at);
     }
     printf("%zu keys, %" PRId32 " counted\n", nad_hmap_len(m), total); // 2 keys, 5 counted

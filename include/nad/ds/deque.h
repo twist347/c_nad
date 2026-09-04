@@ -482,6 +482,24 @@ void nad_deque_print(const nad_Deque *self, nad_FPrint fprint);
 #define NAD_DEQUE_LAST_MUT_AS(T, self) \
     ((T *) nad_deque_last_mut((self)))
 
+/// walks the deque front to back, binding 'elem' to each elem in turn. A ring has no
+/// view to hand out, so this is the walk that copies nothing
+/// @param T the elem type
+/// @param elem the name the loop variable takes; it is a const T *
+/// @param self the deque
+/// @note the length is read on every step, so pushing or popping inside the body changes
+///       what the walk covers — and a growth moves the elems out from under 'elem'
+/// @bigo{n} over the whole walk
+#define NAD_DEQUE_FOR_EACH_AS(T, elem, self)                                       \
+    for (size_t idx_ = 0, step_ = 0; idx_ < nad_deque_len(self); ++idx_, step_ = 0) \
+        for (const T *elem = NAD_DEQUE_GET_AS(T, (self), idx_); !step_; step_ = 1)
+
+/// the same walk over elems that may be written through
+/// @copydetails NAD_DEQUE_FOR_EACH_AS
+#define NAD_DEQUE_FOR_EACH_MUT_AS(T, elem, self)                                   \
+    for (size_t idx_ = 0, step_ = 0; idx_ < nad_deque_len(self); ++idx_, step_ = 0) \
+        for (T *elem = NAD_DEQUE_GET_MUT_AS(T, (self), idx_); !step_; step_ = 1)
+
 /// nad_deque_get as a const T *
 /// @param T the elem type
 /// @param self the deque

@@ -753,7 +753,7 @@ static nad_Status rehash(nad_HMap *self, size_t new_count) {
         nad_HMapNode *node = self->buckets[i];
         while (node) {
             nad_HMapNode *next = node->next;
-            const size_t bucket = (size_t) node->hash & (new_count - 1);
+            const size_t bucket = node->hash & (new_count - 1);
             node->next = buckets[bucket];
             buckets[bucket] = node;
             node = next;

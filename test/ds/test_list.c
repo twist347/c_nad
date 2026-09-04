@@ -4,6 +4,7 @@
 #include "nad/alloc/arena.h"
 #include "nad/alloc/default.h"
 #include "nad/core/cmp.h"
+#include "nad/core/util.h"
 
 #include "support/arena.h"
 #include "support/pair.h"
@@ -19,6 +20,15 @@ void setUp() {
 }
 
 void tearDown() {
+}
+
+// an equality that sees less than the bytes do, to show that find asks for one rather
+// than comparing the elems itself
+static bool eq_abs_i32(const void *lhs, const void *rhs) {
+    const int32_t a = *(const int32_t *) lhs;
+    const int32_t b = *(const int32_t *) rhs;
+
+    return (a < 0 ? -a : a) == (b < 0 ? -b : b);
 }
 
 static void push_int(nad_List *l, int32_t val) {
@@ -945,6 +955,105 @@ static void test_splice_across_allocators_copies_the_elems() {
 }
 
 /* ========== swap ========== */
+
+static void test_find_returns_the_first_node_holding_the_elem() {
+    nad_List *l = nullptr;
+    NAD_TEST_OK(NAD_LIST_OF(int32_t, nad_al_default(), &l, 1, 2, 3, 2));
+
+    const nad_ListNode *node = NAD_LIST_FIND(int32_t, l, 2, nad_eq_i32);
+    TEST_ASSERT_NOT_NULL(node);
+
+    // the first of the two, not just any: the one whose next holds 3
+    TEST_ASSERT_EQUAL_INT32(3, *NAD_LIST_NODE_ELEM_AS(int32_t, nad_list_node_next(node)));
+
+    nad_list_drop(l);
+}
+
+static void test_find_of_a_missing_elem_is_null() {
+    nad_List *l = make_list(4);
+
+    TEST_ASSERT_NULL(NAD_LIST_FIND(int32_t, l, 99, nad_eq_i32));
+
+    nad_list_drop(l);
+}
+
+static void test_find_of_an_empty_list_is_null() {
+    nad_List *l = make_list(0);
+
+    TEST_ASSERT_NULL(NAD_LIST_FIND(int32_t, l, 0, nad_eq_i32));
+
+    nad_list_drop(l);
+}
+
+// what the mut door is for: the position it hands back is what insert and remove take
+static void test_find_mut_gives_a_position_to_write_through() {
+    nad_List *l = make_list(4);
+
+    nad_ListNode *at = NAD_LIST_FIND_MUT(int32_t, l, 2, nad_eq_i32);
+    TEST_ASSERT_NOT_NULL(at);
+
+    *NAD_LIST_NODE_ELEM_MUT_AS(int32_t, at) = 20;
+    NAD_TEST_OK(NAD_LIST_INSERT_BEFORE(int32_t, l, at, 9));
+
+    assert_elems(l, (int32_t[]){0, 1, 9, 20, 3}, 5);
+
+    nad_list_remove(l, at);
+    assert_elems(l, (int32_t[]){0, 1, 9, 3}, 4);
+
+    nad_list_drop(l);
+}
+
+// the equality is the caller's, so find answers by whatever it means by equal
+static void test_find_asks_the_equality_it_is_given() {
+    nad_List *l = nullptr;
+    NAD_TEST_OK(NAD_LIST_OF(int32_t, nad_al_default(), &l, 1, -2, 3));
+
+    TEST_ASSERT_NULL(NAD_LIST_FIND(int32_t, l, 2, nad_eq_i32));
+    TEST_ASSERT_NOT_NULL(NAD_LIST_FIND(int32_t, l, 2, eq_abs_i32));
+
+    nad_list_drop(l);
+}
+
+static void test_for_each_walks_front_to_back() {
+    nad_List *l = make_list(4);
+
+    int32_t seen[4];
+    size_t n = 0;
+    NAD_LIST_FOR_EACH (node, l) {
+        seen[n++] = *NAD_LIST_NODE_ELEM_AS(int32_t, node);
+    }
+
+    TEST_ASSERT_EQUAL_size_t(4, n);
+    TEST_ASSERT_EQUAL_INT32_ARRAY(((int32_t[]){0, 1, 2, 3}), seen, 4);
+
+    nad_list_drop(l);
+}
+
+static void test_for_each_over_an_empty_list_runs_no_body() {
+    nad_List *l = make_list(0);
+
+    size_t n = 0;
+    NAD_LIST_FOR_EACH (node, l) {
+        NAD_UNUSED(node);
+        ++n;
+    }
+
+    TEST_ASSERT_EQUAL_size_t(0, n);
+
+    nad_list_drop(l);
+}
+
+static void test_for_each_mut_writes_through_every_position() {
+    nad_List *l = make_list(4);
+
+    NAD_LIST_FOR_EACH_MUT (node, l) {
+        *NAD_LIST_NODE_ELEM_MUT_AS(int32_t, node) *= 10;
+    }
+
+    assert_elems(l, (int32_t[]){0, 10, 20, 30}, 4);
+
+    nad_list_drop(l);
+}
 
 static void test_swap_exchanges_the_contents() {
     nad_List *a = make_list(3);
@@ -1935,6 +2044,15 @@ int main() {
     RUN_TEST(test_splice_from_an_empty_list_is_noop);
     RUN_TEST(test_splice_moves_the_nodes_without_allocating);
     RUN_TEST(test_splice_across_allocators_copies_the_elems);
+
+    RUN_TEST(test_find_returns_the_first_node_holding_the_elem);
+    RUN_TEST(test_find_of_a_missing_elem_is_null);
+    RUN_TEST(test_find_of_an_empty_list_is_null);
+    RUN_TEST(test_find_mut_gives_a_position_to_write_through);
+    RUN_TEST(test_find_asks_the_equality_it_is_given);
+    RUN_TEST(test_for_each_walks_front_to_back);
+    RUN_TEST(test_for_each_over_an_empty_list_runs_no_body);
+    RUN_TEST(test_for_each_mut_writes_through_every_position);
 
     RUN_TEST(test_swap_exchanges_the_contents);
     RUN_TEST(test_swap_keeps_the_nodes_alive);

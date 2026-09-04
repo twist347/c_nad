@@ -9,8 +9,6 @@
 
 /* ========== internals ========== */
 
-static constexpr size_t POOL_ALIGNMENT = alignof(max_align_t);
-
 typedef struct PoolNode PoolNode;
 
 struct PoolNode {
@@ -39,6 +37,13 @@ static void pool_build_free_list(PoolCtx *ctx);
 [[nodiscard]] [[maybe_unused]]
 static bool pool_owns(const PoolCtx *ctx, const void *ptr);
 
+// the alloc hook is this allocator's identity: every pool shares it and nothing else
+// has it. The ctx cannot say it — it is a void * to a struct only this file knows
+#define ASSERT_POOL(al)                 \
+    (assert(al),                        \
+     assert((al)->alloc == pool_alloc), \
+     assert((al)->ctx))
+
 /* ========== lifetime ========== */
 
 nad_Al *nad_al_pool_new(nad_Al *parent, size_t block_size, size_t block_count) {
@@ -51,12 +56,12 @@ nad_Al *nad_al_pool_new(nad_Al *parent, size_t block_size, size_t block_count) {
         block_size = sizeof(PoolNode);
     }
 
-    if (block_size > SIZE_MAX - (POOL_ALIGNMENT - 1)) {
+    if (block_size > SIZE_MAX - (NAD_DEFAULT_ALIGNMENT - 1)) {
         return nullptr;
     }
 
     // align up
-    block_size = nad_align_up(block_size, POOL_ALIGNMENT);
+    block_size = nad_align_up(block_size, NAD_DEFAULT_ALIGNMENT);
 
     // allocate backing buffer
     size_t total_bytes;
@@ -76,7 +81,7 @@ nad_Al *nad_al_pool_new(nad_Al *parent, size_t block_size, size_t block_count) {
         return nullptr;
     }
 
-    assert(nad_ptr_is_aligned(data, POOL_ALIGNMENT));
+    assert(nad_ptr_is_aligned(data, NAD_DEFAULT_ALIGNMENT));
 
     pool_ctx->parent_al = parent;
     pool_ctx->data = data;
@@ -109,7 +114,7 @@ void nad_al_pool_drop(nad_Al *al) {
         return;
     }
 
-    assert(al->ctx);
+    ASSERT_POOL(al);
 
     PoolCtx *pool_ctx = al->ctx;
     nad_Al *parent_al = pool_ctx->parent_al;
@@ -121,8 +126,7 @@ void nad_al_pool_drop(nad_Al *al) {
 }
 
 void nad_al_pool_reset(nad_Al *al) {
-    assert(al);
-    assert(al->ctx);
+    ASSERT_POOL(al);
 
     PoolCtx *pool_ctx = al->ctx;
     pool_ctx->used = 0;
@@ -130,8 +134,7 @@ void nad_al_pool_reset(nad_Al *al) {
 }
 
 nad_AlPoolStats nad_al_pool_stats(const nad_Al *al) {
-    assert(al);
-    assert(al->ctx);
+    ASSERT_POOL(al);
 
     const PoolCtx *pool_ctx = al->ctx;
 

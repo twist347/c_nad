@@ -17,6 +17,8 @@ function(nad_add_test target_name source_file)
         ENVIRONMENT "ASAN_OPTIONS=allocator_may_return_null=1")
 endfunction()
 
+nad_add_test(test_nad test_nad.c)
+
 add_subdirectory(algo)
 add_subdirectory(alloc)
 add_subdirectory(core)

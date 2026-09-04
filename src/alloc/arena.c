@@ -10,8 +10,6 @@
 
 /* ========== internals ========== */
 
-static constexpr size_t DEFAULT_ALIGNMENT = alignof(max_align_t);
-
 [[nodiscard]]
 static void *arena_alloc(void *ctx, size_t size);
 
@@ -26,6 +24,11 @@ typedef struct {
     size_t cap;
     size_t offset;
 } ArenaCtx;
+
+#define ASSERT_ARENA(al)                 \
+    (assert(al),                         \
+     assert((al)->alloc == arena_alloc), \
+     assert((al)->ctx))
 
 /* ========== lifetime ========== */
 
@@ -51,7 +54,7 @@ nad_Al *nad_al_arena_new(nad_Al *parent, size_t cap) {
         return nullptr;
     }
 
-    assert(nad_ptr_is_aligned(data, DEFAULT_ALIGNMENT));
+    assert(nad_ptr_is_aligned(data, NAD_DEFAULT_ALIGNMENT));
 
     arena_ctx->parent_al = parent;
     arena_ctx->data = data;
@@ -72,7 +75,7 @@ void nad_al_arena_drop(nad_Al *al) {
         return;
     }
 
-    assert(al->ctx);
+    ASSERT_ARENA(al);
 
     ArenaCtx *arena_ctx = al->ctx;
     nad_Al *parent_al = arena_ctx->parent_al;
@@ -86,8 +89,7 @@ void nad_al_arena_drop(nad_Al *al) {
 /* ========== mods ========== */
 
 void nad_al_arena_reset(nad_Al *al) {
-    assert(al);
-    assert(al->ctx);
+    ASSERT_ARENA(al);
 
     ArenaCtx *arena_ctx = al->ctx;
     arena_ctx->offset = 0;
@@ -96,8 +98,7 @@ void nad_al_arena_reset(nad_Al *al) {
 /* ========== stats ========== */
 
 nad_AlArenaStats nad_al_arena_stats(const nad_Al *al) {
-    assert(al);
-    assert(al->ctx);
+    ASSERT_ARENA(al);
 
     const ArenaCtx *arena_ctx = al->ctx;
 
@@ -119,10 +120,10 @@ static void *arena_alloc(void *ctx, size_t size) {
         return nullptr;
     }
 
-    if (size > SIZE_MAX - (DEFAULT_ALIGNMENT - 1)) {
+    if (size > SIZE_MAX - (NAD_DEFAULT_ALIGNMENT - 1)) {
         return nullptr;
     }
-    const size_t aligned_size = nad_align_up(size, DEFAULT_ALIGNMENT);
+    const size_t aligned_size = nad_align_up(size, NAD_DEFAULT_ALIGNMENT);
     size_t end;
     if (ckd_add(&end, arena_ctx->offset, aligned_size) || end > arena_ctx->cap) {
         return nullptr;

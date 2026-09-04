@@ -2,6 +2,7 @@
 
 #include "nad/algo/search.h"
 #include "nad/algo/sort.h"
+#include "nad/alloc/arena.h"
 #include "nad/alloc/default.h"
 #include "nad/core/cmp.h"
 #include "nad/core/print.h"
@@ -67,6 +68,8 @@ int main() {
     // failure path jumps to a common exit instead of returning early
     nad_Arr *copy = nullptr;
     nad_Arr *shorter = nullptr;
+    nad_Arr *in_arena = nullptr;
+    nad_Al *arena = nullptr;
     int rc = 1;
 
     // one way to copy: a fresh arr with the same elems, on the same allocator as 'a'
@@ -87,14 +90,39 @@ int main() {
     }
     nad_arr_print(shorter, nad_fprint_i32); // [0, 2, 3, 4, 5]
 
+    // a copy is born where its source lives; copy_with names another allocator instead.
+    // The arena bumps a pointer and gives everything back at once, so what it holds must
+    // not outlive it
+    arena = nad_al_arena_new(al, 1024);
+    if (!arena) {
+        goto out;
+    }
+
+    if (NAD_STATUS_IS_ERR(nad_arr_copy_with(a, arena, &in_arena))) {
+        goto out;
+    }
+    nad_arr_print(in_arena, nad_fprint_i32); // [0, 2, 3, 4, 5]
+
+    // a move hands the elems over and leaves the source empty. These two sit on different
+    // allocators, so it costs n and may refuse; on one it would be a handover that cannot
+    if (NAD_STATUS_IS_ERR(nad_arr_move_assign(in_arena, shorter))) {
+        goto out;
+    }
+    printf("%zu <- %zu\n", nad_arr_len(shorter), nad_arr_len(in_arena)); // 5 <- 0
+
     // and the one operation that moves a block: the two are exchanged whole, lengths and
-    // all, so a pointer into either of them now points into the other. Both were built on
-    // 'al', which is what makes the exchange an exchange and not a copy
+    // all, so a pointer into either of them now points into the other. It wants both on
+    // one allocator — 'a' and 'shorter' are on 'al' — since it exchanges the blocks where
+    // they lie instead of copying anything, and so has nothing to report
     nad_arr_swap(a, shorter);
 
     rc = 0;
 out:
-    // a null handle is a no-op, so this exit is safe from anywhere above
+    // a null handle is a no-op, so this exit is safe from anywhere above. What the arena
+    // gave out goes back before the arena itself
+    nad_arr_drop(in_arena);
+    nad_al_arena_drop(arena);
+
     nad_arr_drop(shorter);
     nad_arr_drop(copy);
     nad_arr_drop(a);

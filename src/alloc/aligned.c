@@ -21,13 +21,18 @@ typedef struct {
     size_t alignment;
 } AlignedCtx;
 
+#define ASSERT_ALIGNED(al)                       \
+    (assert(al),                                 \
+     assert((al)->alloc == aligned_alloc_block), \
+     assert((al)->ctx))
+
 /* ========== lifetime ========== */
 
 nad_Al *nad_al_aligned_new(nad_Al *parent, size_t alignment) {
     assert(parent);
     assert(alignment > 0);
     assert((alignment & (alignment - 1)) == 0);
-    assert(alignment >= alignof(max_align_t));
+    assert(alignment >= NAD_DEFAULT_ALIGNMENT);
 
     AlignedCtx *aligned_ctx = nad_alloc(parent, sizeof(AlignedCtx));
     if (!aligned_ctx) {
@@ -57,7 +62,7 @@ void nad_al_aligned_drop(nad_Al *al) {
         return;
     }
 
-    assert(al->ctx);
+    ASSERT_ALIGNED(al);
 
     AlignedCtx *aligned_ctx = al->ctx;
     nad_Al *parent_al = aligned_ctx->parent_al;
@@ -88,8 +93,7 @@ static void *aligned_alloc_block(void *ctx, size_t size) {
         return nullptr;
     }
 
-    const uintptr_t addr = (uintptr_t) (base + sizeof(void *));
-    unsigned char *ptr = (unsigned char *) ((addr + (alignment - 1)) & ~(alignment - 1));
+    unsigned char *ptr = nad_ptr_align_up(base + sizeof(void *), alignment);
 
     ((void **) ptr)[-1] = base;
 

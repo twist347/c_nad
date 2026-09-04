@@ -55,7 +55,7 @@ int main() {
     // the walk needs the set as well as the node, because a chain ends long before the
     // buckets do. The order is unspecified: it follows the buckets
     int32_t sum = 0;
-    for (const nad_HSetNode *node = nad_hset_first_node(s); node; node = nad_hset_node_next(s, node)) {
+    NAD_HSET_FOR_EACH (node, s) {
         sum += *NAD_HSET_NODE_KEY_AS(int32_t, node);
     }
     printf("%" PRId32 "\n", sum); // 80

@@ -2,6 +2,7 @@
 
 #include "nad/algo/modify.h"
 #include "nad/algo/sort.h"
+#include "nad/alloc/arena.h"
 #include "nad/alloc/default.h"
 #include "nad/core/cmp.h"
 #include "nad/core/print.h"
@@ -10,7 +11,84 @@
 #include <inttypes.h>
 #include <stdio.h>
 
+// the recipe nad_vec_swap points at. Two vecs on different allocators cannot be exchanged
+// in place — a block belongs to the allocator that made it — so each side is copied onto
+// the other's allocator and the copies are handed over
+/// [allocators]
+[[nodiscard]]
+static nad_Status exchange(nad_Vec *a, nad_Vec *b) {
+    nad_Vec *for_a = nullptr;
+    nad_Vec *for_b = nullptr;
+
+    // both copies are made before either vec is touched, so a refusal here leaves the
+    // pair exactly as it was
+    nad_Status st = nad_vec_copy_with(b, nad_vec_al(a), &for_a);
+    if (NAD_STATUS_IS_ERR(st)) {
+        return st;
+    }
+
+    st = nad_vec_copy_with(a, nad_vec_al(b), &for_b);
+    if (NAD_STATUS_IS_ERR(st)) {
+        goto out;
+    }
+
+    // from here every move stays inside one allocator: the block changes hands, and the
+    // status is still checked because the operation as such can fail, not this call
+    st = nad_vec_move_assign(for_a, a);
+    if (NAD_STATUS_IS_ERR(st)) {
+        goto out;
+    }
+    st = nad_vec_move_assign(for_b, b);
+
+out:
+    // each copy is left empty by its move and is dropped either way
+    nad_vec_drop(for_a);
+    nad_vec_drop(for_b);
+
+    return st;
+}
+/// [allocators]
+
+// the pair the recipe is shown on: one vec on the default allocator, one in an arena
+static int show_exchange() {
+    nad_Al *al = nad_al_default();
+
+    nad_Al *arena = nad_al_arena_new(al, 1024);
+    if (!arena) {
+        return 1;
+    }
+
+    nad_Vec *a = nullptr;
+    nad_Vec *b = nullptr;
+    int rc = 1;
+
+    if (NAD_STATUS_IS_ERR(NAD_VEC_OF(int32_t, al, &a, 1, 2, 3))) {
+        goto out;
+    }
+    if (NAD_STATUS_IS_ERR(NAD_VEC_OF(int32_t, arena, &b, 7, 8))) {
+        goto out;
+    }
+
+    if (NAD_STATUS_IS_ERR(exchange(a, b))) {
+        goto out;
+    }
+    nad_vec_print(a, nad_fprint_i32); // [7, 8]
+    nad_vec_print(b, nad_fprint_i32); // [1, 2, 3]
+
+    rc = 0;
+out:
+    nad_vec_drop(a);
+    nad_vec_drop(b);
+    nad_al_arena_drop(arena);
+
+    return rc;
+}
+
 int main() {
+    if (show_exchange() != 0) {
+        return 1;
+    }
+
     /// [build]
     // the handle comes back through 'out', and the status cannot be ignored
     nad_Al *al = nad_al_default();

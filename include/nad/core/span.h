@@ -262,6 +262,25 @@ void nad_span_mut_print(nad_SpanMut self, nad_FPrint fprint);
 #define NAD_SPAN_GET_MUT_AS(T, s, idx) \
     ((T *) nad_span_get_mut((s), (idx)))
 
+/// walks the span front to back, binding 'elem' to each elem in turn
+/// @param T the elem type: a span carries sizes, not types, so the walk has to be told
+/// @param elem the name the loop variable takes; it is a const T *
+/// @param s the view, evaluated once — nad_vec_to_span(v) and its kin belong here
+/// @bigo{n} over the whole walk
+#define NAD_SPAN_FOR_EACH_AS(T, elem, s)                                \
+    for (nad_Span span_ = (s), *once_ = &span_; once_; once_ = nullptr) \
+        for (const T *elem = span_.data, *end_ = elem + span_.len;      \
+             elem != end_;                                              \
+             ++elem)
+
+/// the same walk over elems that may be written through
+/// @copydetails NAD_SPAN_FOR_EACH_AS
+#define NAD_SPAN_FOR_EACH_MUT_AS(T, elem, s)                               \
+    for (nad_SpanMut span_ = (s), *once_ = &span_; once_; once_ = nullptr) \
+        for (T *elem = span_.data, *end_ = elem + span_.len;               \
+             elem != end_;                                                 \
+             ++elem)
+
 /// nad_span_set from a value rather than its address
 /// @param T the elem type — scalars only, (T){ val } takes nothing else
 /// @param s the view

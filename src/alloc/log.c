@@ -24,6 +24,11 @@ typedef struct {
     FILE *stream;
 } LogCtx;
 
+#define ASSERT_LOG(al)                 \
+    (assert(al),                       \
+     assert((al)->alloc == log_alloc), \
+     assert((al)->ctx))
+
 /* ========== lifetime ========== */
 
 nad_Al *nad_al_log_new(nad_Al *wrapped, FILE *stream) {
@@ -64,8 +69,9 @@ void nad_al_log_drop(nad_Al *self) {
         return;
     }
 
+    ASSERT_LOG(self);
+
     LogCtx *log_ctx = self->ctx;
-    assert(log_ctx);
 
     fprintf(
         log_ctx->stream,

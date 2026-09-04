@@ -1,4 +1,5 @@
 #include "nad/ds/bitset.h"
+#include "nad/core/util.h"
 #include "nad/alloc/arena.h"
 #include "nad/alloc/default.h"
 
@@ -581,6 +582,38 @@ static void test_move_assign_of_itself_changes_nothing() {
     nad_bitset_drop(b);
 }
 
+static void test_for_each_walks_the_members_in_order() {
+    // members on both sides of a word seam: the walk has to cross it
+    constexpr size_t want[] = {0, 63, 64, 128};
+    nad_BitSet *b = make_bitset(129, want, 4);
+
+    size_t seen[4];
+    size_t n = 0;
+    NAD_BITSET_FOR_EACH (idx, b) {
+        TEST_ASSERT_TRUE(n < 4);
+        seen[n++] = idx;
+    }
+
+    TEST_ASSERT_EQUAL_size_t(4, n);
+    TEST_ASSERT_EQUAL_size_t_ARRAY(want, seen, 4);
+
+    nad_bitset_drop(b);
+}
+
+static void test_for_each_over_an_empty_set_runs_no_body() {
+    nad_BitSet *b = make_bitset(129, nullptr, 0);
+
+    size_t n = 0;
+    NAD_BITSET_FOR_EACH (idx, b) {
+        NAD_UNUSED(idx);
+        ++n;
+    }
+
+    TEST_ASSERT_EQUAL_size_t(0, n);
+
+    nad_bitset_drop(b);
+}
+
 static void test_swap_exchanges_the_contents() {
     nad_TestProbe probe;
     nad_test_probe_reset(&probe);
@@ -1070,6 +1103,9 @@ int main() {
     RUN_TEST(test_move_assign_across_allocators_empties_the_source);
     RUN_TEST(test_move_assign_across_allocators_reports_an_exhausted_arena);
     RUN_TEST(test_move_assign_of_itself_changes_nothing);
+    RUN_TEST(test_for_each_walks_the_members_in_order);
+    RUN_TEST(test_for_each_over_an_empty_set_runs_no_body);
+
     RUN_TEST(test_swap_exchanges_the_contents);
     RUN_TEST(test_swap_of_itself_changes_nothing);
     RUN_TEST(test_copy_of_an_empty_universe);

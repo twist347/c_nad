@@ -47,6 +47,10 @@ static inline size_t nad_ptr_distance(const void *a, const void *b, size_t strid
 
 /* ========== alignment ========== */
 
+/// what every allocator here hands out when nothing wider is asked for: the alignment
+/// malloc itself promises, and the floor under alloc/aligned's parameter
+static constexpr size_t NAD_DEFAULT_ALIGNMENT = alignof(max_align_t);
+
 [[nodiscard]]
 static inline size_t nad_align_up(size_t val, size_t alignment) {
     assert(alignment > 0);
@@ -62,6 +66,21 @@ static inline size_t nad_align_down(size_t val, size_t alignment) {
     assert((alignment & (alignment - 1)) == 0);
 
     return val & ~(alignment - 1);
+}
+
+/// the first address at or after 'ptr' that is aligned to 'alignment'. The mask is built
+/// in uintptr_t: spelled over size_t it would be a narrower type wherever the two differ,
+/// and the address would be cut down instead of rounded up
+[[nodiscard]]
+static inline void *nad_ptr_align_up(void *ptr, size_t alignment) {
+    assert(ptr);
+    assert(alignment > 0);
+    assert((alignment & (alignment - 1)) == 0);
+
+    const uintptr_t addr = (uintptr_t) ptr;
+    assert(addr <= UINTPTR_MAX - (alignment - 1));
+
+    return (void *) ((addr + ((uintptr_t) alignment - 1)) & ~((uintptr_t) alignment - 1));
 }
 
 [[nodiscard]]

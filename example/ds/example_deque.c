@@ -67,6 +67,13 @@ int main() {
 
     nad_deque_remove(d, 1);
     nad_deque_print(d, nad_fprint_i32); // [3, 9, 5]
+
+    // the walk goes by index too, so the seam is never visible — and nothing is copied,
+    // which a to_span would have had to do
+    NAD_DEQUE_FOR_EACH_AS (int32_t, elem, d) {
+        printf("%" PRId32 " ", *elem); // 3 9 5
+    }
+    putchar('\n');
     /// [index]
 
     /// [algo]

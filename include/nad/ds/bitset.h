@@ -322,4 +322,20 @@ void nad_bitset_print(const nad_BitSet *self);
 
 /// @}
 
+/// @name macros
+/// @{
+
+/// walks the indices in the set, smallest first, binding 'idx' to each in turn
+/// @param idx the name the loop variable takes; it is a size_t
+/// @param self the bitset
+/// @note the step past the current index happens after the body, so clearing that index
+///       inside the loop is safe, while setting a smaller one no longer changes the walk
+/// @bigo{n/64} over the whole walk
+#define NAD_BITSET_FOR_EACH(idx, self)              \
+    for (size_t idx = 0, from_ = 0;                 \
+         nad_bitset_find_next((self), from_, &idx); \
+         from_ = idx + 1)
+
+/// @}
+
 /// @}
