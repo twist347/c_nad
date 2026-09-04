@@ -42,19 +42,20 @@ if (!arena) {
     return 1;
 }
 
-nad_Vec *v = nullptr;
-if (NAD_STATUS_IS_ERR(NAD_VEC_OF(int32_t, arena, &v, 5, 3, 1, 4, 2))) {
+nad_Vec *vec = nullptr;
+if (NAD_STATUS_IS_ERR(NAD_VEC_OF(int32_t, arena, &vec, 5, 3, 1, 4, 2))) {
     return 1;
 }
 
-nad_span_sort(nad_vec_to_span_mut(v), nad_cmp_i32);
+nad_span_sort(nad_vec_to_span_mut(vec), nad_cmp_i32);
 
 size_t idx;
-if (nad_span_binary_search(nad_vec_to_span(v), &(int32_t){4}, nad_cmp_i32, &idx)) {
+if (nad_span_binary_search(nad_vec_to_span(vec), &(int32_t){4}, nad_cmp_i32, &idx)) {
     printf("4 is at %zu\n", idx); // 4 is at 3
 }
 
-nad_al_arena_drop(arena); // the vec went with it
+nad_vec_drop(vec);
+nad_al_arena_drop(arena);
 ```
 
 ## Layout
