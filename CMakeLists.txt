@@ -88,7 +88,6 @@ add_library(nadc::nadc ALIAS nadc)
 
 target_include_directories(nadc
         PUBLIC $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
-               $<INSTALL_INTERFACE:include>
         PRIVATE ${PROJECT_SOURCE_DIR}/src
 )
 target_compile_features(nadc PUBLIC c_std_${NAD_C_STANDARD})

@@ -115,8 +115,12 @@ nad_Status nad_hmap_new_cap(size_t cap, size_t key_size, size_t val_size, nad_Ha
     return nad_hmap_new_raw_(cap, key_size, val_size, hasher, eq, al, out);
 }
 
-nad_Status nad_hmap_new_raw_(size_t cap, size_t key_size, size_t val_size, nad_Hasher hasher, nad_Eq eq, nad_Al *al,
-                             nad_HMap **out) {
+nad_Status nad_hmap_new_raw_(
+    size_t cap, size_t key_size, size_t val_size,
+    nad_Hasher hasher, nad_Eq eq,
+    nad_Al *al,
+    nad_HMap **out
+) {
     assert(key_size > 0);
     assert(hasher);
     assert(eq);
@@ -126,8 +130,8 @@ nad_Status nad_hmap_new_raw_(size_t cap, size_t key_size, size_t val_size, nad_H
     // with no value to follow the key there is nothing to align it to, so a set's node is
     // the header plus the key and not a byte more
     const size_t val_offset = val_size == 0
-        ? key_size
-        : nad_align_up(key_size, alignof(max_align_t));
+                                  ? key_size
+                                  : nad_align_up(key_size, alignof(max_align_t));
 
     size_t kv_bytes;
     if (ckd_add(&kv_bytes, val_offset, val_size)) {

@@ -28,7 +28,7 @@ void tearDown() {
 // test state that it really is exercising a split ring instead of assuming it
 [[nodiscard]]
 static bool wraps(const nad_Deque *d) {
-    return (const unsigned char *) nad_deque_first(d) > (const unsigned char *) nad_deque_last(d);
+    return (const unsigned char *) nad_deque_front(d) > (const unsigned char *) nad_deque_back(d);
 }
 
 static void assert_elems(const nad_Deque *d, const int32_t *want, size_t n) {
@@ -198,18 +198,18 @@ static void test_pop_front_and_pop_back_take_from_their_own_ends() {
 static void test_first_and_last_follow_the_ends() {
     nad_Deque *d = make_deque(3);
 
-    TEST_ASSERT_EQUAL_INT32(0, *NAD_DEQUE_FIRST_AS(int32_t, d));
-    TEST_ASSERT_EQUAL_INT32(2, *NAD_DEQUE_LAST_AS(int32_t, d));
+    TEST_ASSERT_EQUAL_INT32(0, *NAD_DEQUE_FRONT_AS(int32_t, d));
+    TEST_ASSERT_EQUAL_INT32(2, *NAD_DEQUE_BACK_AS(int32_t, d));
 
     push_front_int(d, 9);
     push_back_int(d, 8);
 
-    TEST_ASSERT_EQUAL_INT32(9, *NAD_DEQUE_FIRST_AS(int32_t, d));
-    TEST_ASSERT_EQUAL_INT32(8, *NAD_DEQUE_LAST_AS(int32_t, d));
+    TEST_ASSERT_EQUAL_INT32(9, *NAD_DEQUE_FRONT_AS(int32_t, d));
+    TEST_ASSERT_EQUAL_INT32(8, *NAD_DEQUE_BACK_AS(int32_t, d));
 
     // a single elem is both ends at once
     nad_Deque *one = make_deque(1);
-    TEST_ASSERT_EQUAL_PTR(nad_deque_first(one), nad_deque_last(one));
+    TEST_ASSERT_EQUAL_PTR(nad_deque_front(one), nad_deque_back(one));
 
     nad_deque_drop(one);
     nad_deque_drop(d);
@@ -221,8 +221,8 @@ static void test_the_ring_wraps_and_get_stays_relative_to_the_front() {
     nad_Deque *d = make_wrapped();
 
     assert_elems(d, (int32_t[]){10, 20, 30, 40}, 4);
-    TEST_ASSERT_EQUAL_INT32(10, *NAD_DEQUE_FIRST_AS(int32_t, d));
-    TEST_ASSERT_EQUAL_INT32(40, *NAD_DEQUE_LAST_AS(int32_t, d));
+    TEST_ASSERT_EQUAL_INT32(10, *NAD_DEQUE_FRONT_AS(int32_t, d));
+    TEST_ASSERT_EQUAL_INT32(40, *NAD_DEQUE_BACK_AS(int32_t, d));
 
     nad_deque_drop(d);
 }
@@ -259,7 +259,7 @@ static void test_push_front_on_an_empty_deque_allocates() {
 
     TEST_ASSERT_EQUAL_size_t(1, nad_deque_len(d));
     TEST_ASSERT_TRUE(nad_deque_cap(d) >= 1);
-    TEST_ASSERT_EQUAL_INT32(42, *NAD_DEQUE_FIRST_AS(int32_t, d));
+    TEST_ASSERT_EQUAL_INT32(42, *NAD_DEQUE_FRONT_AS(int32_t, d));
 
     nad_deque_drop(d);
 }
@@ -302,8 +302,8 @@ static void test_get_mut_and_set_write_through_to_the_ring() {
 
     *NAD_DEQUE_GET_MUT_AS(int32_t, d, 0) = -1;
     NAD_DEQUE_SET(int32_t, d, 3, -4);
-    *(int32_t *) nad_deque_first_mut(d) -= 100;
-    *(int32_t *) nad_deque_last_mut(d) -= 100;
+    *(int32_t *) nad_deque_front_mut(d) -= 100;
+    *(int32_t *) nad_deque_back_mut(d) -= 100;
 
     assert_elems(d, (int32_t[]){-101, 20, 30, -104}, 4);
 
@@ -721,17 +721,17 @@ static void test_insert_then_remove_restores_the_deque() {
 static void test_insert_shifts_the_shorter_side() {
     nad_Deque *front_half = make_deque(8);
     NAD_TEST_OK(nad_deque_reserve(front_half, 16));
-    const void *back_elem = nad_deque_last(front_half);
+    const void *back_elem = nad_deque_back(front_half);
 
     NAD_TEST_OK(NAD_DEQUE_INSERT(int32_t, front_half, 2, 99));
-    TEST_ASSERT_EQUAL_PTR(back_elem, nad_deque_last(front_half));
+    TEST_ASSERT_EQUAL_PTR(back_elem, nad_deque_back(front_half));
 
     nad_Deque *back_half = make_deque(8);
     NAD_TEST_OK(nad_deque_reserve(back_half, 16));
-    const void *front_elem = nad_deque_first(back_half);
+    const void *front_elem = nad_deque_front(back_half);
 
     NAD_TEST_OK(NAD_DEQUE_INSERT(int32_t, back_half, 6, 99));
-    TEST_ASSERT_EQUAL_PTR(front_elem, nad_deque_first(back_half));
+    TEST_ASSERT_EQUAL_PTR(front_elem, nad_deque_front(back_half));
 
     nad_deque_drop(back_half);
     nad_deque_drop(front_half);
@@ -739,16 +739,16 @@ static void test_insert_shifts_the_shorter_side() {
 
 static void test_remove_shifts_the_shorter_side() {
     nad_Deque *front_half = make_deque(8);
-    const void *back_elem = nad_deque_last(front_half);
+    const void *back_elem = nad_deque_back(front_half);
 
     nad_deque_remove(front_half, 1);
-    TEST_ASSERT_EQUAL_PTR(back_elem, nad_deque_last(front_half));
+    TEST_ASSERT_EQUAL_PTR(back_elem, nad_deque_back(front_half));
 
     nad_Deque *back_half = make_deque(8);
-    const void *front_elem = nad_deque_first(back_half);
+    const void *front_elem = nad_deque_front(back_half);
 
     nad_deque_remove(back_half, 6);
-    TEST_ASSERT_EQUAL_PTR(front_elem, nad_deque_first(back_half));
+    TEST_ASSERT_EQUAL_PTR(front_elem, nad_deque_front(back_half));
 
     nad_deque_drop(back_half);
     nad_deque_drop(front_half);
@@ -1091,7 +1091,7 @@ static void test_eq_is_order_sensitive() {
     nad_Deque *a = make_deque(4);
     nad_Deque *b = make_deque(4);
 
-    const int32_t front = *NAD_DEQUE_FIRST_AS(int32_t, b);
+    const int32_t front = *NAD_DEQUE_FRONT_AS(int32_t, b);
     nad_deque_pop_front(b);
     push_back_int(b, front);
 

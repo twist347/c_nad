@@ -58,7 +58,12 @@ nad_Status nad_pqueue_new_cap(size_t cap, size_t elem_size, nad_Cmp cmp, nad_Al 
     return wrap(vec, cmp, out);
 }
 
-nad_Status nad_pqueue_from_data(const void *data, size_t len, size_t elem_size, nad_Cmp cmp, nad_Al *al, nad_PQueue **out) {
+nad_Status nad_pqueue_from_data(
+    const void *data, size_t len, size_t elem_size,
+    nad_Cmp cmp,
+    nad_Al *al,
+    nad_PQueue **out
+) {
     assert(elem_size > 0);
     assert(cmp);
     assert(al);
@@ -212,7 +217,7 @@ const void *nad_pqueue_top(const nad_PQueue *self) {
     ASSERT_PQUEUE(self);
     assert(nad_vec_len(self->vec) > 0);
 
-    return nad_vec_first(self->vec);
+    return nad_vec_front(self->vec);
 }
 
 /* ========== mods ========== */

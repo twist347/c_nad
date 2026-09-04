@@ -222,28 +222,28 @@ nad_Al *nad_arr_al(const nad_Arr *self) {
 
 /* ========== access ========== */
 
-const void *nad_arr_first(const nad_Arr *self) {
+const void *nad_arr_front(const nad_Arr *self) {
     ASSERT_ARR(self);
     assert(self->len > 0);
 
     return arr_offset(self, 0);
 }
 
-void *nad_arr_first_mut(nad_Arr *self) {
+void *nad_arr_front_mut(nad_Arr *self) {
     ASSERT_ARR(self);
     assert(self->len > 0);
 
     return arr_offset_mut(self, 0);
 }
 
-const void *nad_arr_last(const nad_Arr *self) {
+const void *nad_arr_back(const nad_Arr *self) {
     ASSERT_ARR(self);
     assert(self->len > 0);
 
     return arr_offset(self, self->len - 1);
 }
 
-void *nad_arr_last_mut(nad_Arr *self) {
+void *nad_arr_back_mut(nad_Arr *self) {
     ASSERT_ARR(self);
     assert(self->len > 0);
 

@@ -45,7 +45,6 @@ void nad_span_insertion_sort(nad_SpanMut s, nad_Cmp cmp) {
         for (size_t j = i; j > 0; --j) {
             const void *prev = nad_span_get(cs, j - 1);
             const void *cur = nad_span_get(cs, j);
-
             if (cmp(prev, cur) <= 0) {
                 break;
             }

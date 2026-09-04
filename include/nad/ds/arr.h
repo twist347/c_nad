@@ -198,28 +198,28 @@ nad_Al *nad_arr_al(const nad_Arr *self);
 /// @name access
 /// @{
 
-/// the first elem
+/// the front elem
 /// @param self asserts the arr is not empty
 /// @return a pointer into the block, good until the arr is dropped, swapped or
 ///         copy-assigned into
 /// @bigo{1}
 [[nodiscard]] NAD_API
-const void *nad_arr_first(const nad_Arr *self);
+const void *nad_arr_front(const nad_Arr *self);
 
-/// the first elem, to write through
-/// @copydetails nad_arr_first
+/// the front elem, to write through
+/// @copydetails nad_arr_front
 [[nodiscard]] NAD_API
-void *nad_arr_first_mut(nad_Arr *self);
+void *nad_arr_front_mut(nad_Arr *self);
 
-/// the last elem
-/// @copydetails nad_arr_first
+/// the back elem
+/// @copydetails nad_arr_front
 [[nodiscard]] NAD_API
-const void *nad_arr_last(const nad_Arr *self);
+const void *nad_arr_back(const nad_Arr *self);
 
-/// the last elem, to write through
-/// @copydetails nad_arr_first
+/// the back elem, to write through
+/// @copydetails nad_arr_front
 [[nodiscard]] NAD_API
-void *nad_arr_last_mut(nad_Arr *self);
+void *nad_arr_back_mut(nad_Arr *self);
 
 /// the elem at 'idx'
 /// @param self the arr
@@ -355,27 +355,27 @@ void nad_arr_print(const nad_Arr *self, nad_FPrint fprint);
         sizeof((const T[]){ __VA_ARGS__ }) / sizeof(T), \
         sizeof(T), (al), (out))
 
-/// nad_arr_first as a const T *
+/// nad_arr_front as a const T *
 /// @param T the elem type
 /// @param self the arr
 /// @bigo{1}
-#define NAD_ARR_FIRST_AS(T, self) \
-    ((const T *) nad_arr_first((self)))
+#define NAD_ARR_FRONT_AS(T, self) \
+    ((const T *) nad_arr_front((self)))
 
-/// nad_arr_first_mut as a T *
-/// @copydetails NAD_ARR_FIRST_AS
-#define NAD_ARR_FIRST_MUT_AS(T, self) \
-    ((T *) nad_arr_first_mut((self)))
+/// nad_arr_front_mut as a T *
+/// @copydetails NAD_ARR_FRONT_AS
+#define NAD_ARR_FRONT_MUT_AS(T, self) \
+    ((T *) nad_arr_front_mut((self)))
 
-/// nad_arr_last as a const T *
-/// @copydetails NAD_ARR_FIRST_AS
-#define NAD_ARR_LAST_AS(T, self) \
-    ((const T *) nad_arr_last((self)))
+/// nad_arr_back as a const T *
+/// @copydetails NAD_ARR_FRONT_AS
+#define NAD_ARR_BACK_AS(T, self) \
+    ((const T *) nad_arr_back((self)))
 
-/// nad_arr_last_mut as a T *
-/// @copydetails NAD_ARR_FIRST_AS
-#define NAD_ARR_LAST_MUT_AS(T, self) \
-    ((T *) nad_arr_last_mut((self)))
+/// nad_arr_back_mut as a T *
+/// @copydetails NAD_ARR_FRONT_AS
+#define NAD_ARR_BACK_MUT_AS(T, self) \
+    ((T *) nad_arr_back_mut((self)))
 
 /// nad_arr_get as a const T *
 /// @param T the elem type

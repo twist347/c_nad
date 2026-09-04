@@ -59,9 +59,9 @@ void nad_al_arena_reset(nad_Al *al);
 
 /// What an arena is holding.
 typedef struct {
-    size_t cap;        ///< the block it was built with
-    size_t used;       ///< how far the pointer is bumped, alignment padding and all
-    size_t available;  ///< cap - used, an upper bound on the next request
+    size_t cap;       ///< the block it was built with
+    size_t used;      ///< how far the pointer is bumped, alignment padding and all
+    size_t available; ///< cap - used, an upper bound on the next request
 } nad_AlArenaStats;
 
 /// what the arena is holding

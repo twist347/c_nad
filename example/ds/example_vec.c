@@ -156,8 +156,8 @@ int main() {
     nad_vec_print(v, nad_fprint_i32); // [1, 2, 4, 5]
 
     printf(
-        "%" PRId32 " .. %" PRId32 "\n", *NAD_VEC_FIRST_AS(int32_t, v),
-        *NAD_VEC_LAST_AS(int32_t, v)
+        "%" PRId32 " .. %" PRId32 "\n", *NAD_VEC_FRONT_AS(int32_t, v),
+        *NAD_VEC_BACK_AS(int32_t, v)
     ); // 1 .. 5
 
     rc = 0;

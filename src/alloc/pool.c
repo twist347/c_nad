@@ -37,8 +37,6 @@ static void pool_build_free_list(PoolCtx *ctx);
 [[nodiscard]] [[maybe_unused]]
 static bool pool_owns(const PoolCtx *ctx, const void *ptr);
 
-// the alloc hook is this allocator's identity: every pool shares it and nothing else
-// has it. The ctx cannot say it — it is a void * to a struct only this file knows
 #define ASSERT_POOL(al)                 \
     (assert(al),                        \
      assert((al)->alloc == pool_alloc), \

@@ -40,7 +40,7 @@ int main() {
     putchar('\n'); // 4 3 1 2 5
 
     // and back the other way, which is what the second pointer in a node buys
-    for (const nad_ListNode *node = nad_list_last_node(l); node; node = nad_list_node_prev(node)) {
+    for (const nad_ListNode *node = nad_list_back_node(l); node; node = nad_list_node_prev(node)) {
         printf("%" PRId32 " ", *NAD_LIST_NODE_ELEM_AS(int32_t, node));
     }
     putchar('\n'); // 5 2 1 3 4
@@ -49,7 +49,7 @@ int main() {
     /// [positions]
     // a position is a node, and a node never moves: this one keeps naming its elem
     // through everything that follows
-    nad_ListNode *at = nad_list_node_next_mut(nad_list_first_node_mut(l)); // the 3
+    nad_ListNode *at = nad_list_node_next_mut(nad_list_front_node_mut(l)); // the 3
 
     // with a position in hand, inserting and removing cost nothing; the walk to it is
     // what the caller pays for
@@ -63,7 +63,7 @@ int main() {
 
     // removing another elem does not disturb this one
     nad_list_pop_front(l);
-    nad_list_remove(l, nad_list_first_node_mut(l));
+    nad_list_remove(l, nad_list_front_node_mut(l));
     nad_list_print(l, nad_fprint_i32); // [3, 8, 1, 2, 5]
     printf("%" PRId32 "\n", *NAD_LIST_NODE_ELEM_AS(int32_t, at)); // 3
     /// [positions]

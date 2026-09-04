@@ -81,8 +81,12 @@ nad_Status nad_pqueue_new_cap(size_t cap, size_t elem_size, nad_Cmp cmp, nad_Al 
 ///         len * elem_size overflows
 /// @bigo{n} — heapifying in one pass is cheaper than 'len' pushes, which cost O(n log n)
 [[nodiscard]] NAD_API
-nad_Status nad_pqueue_from_data(const void *data, size_t len, size_t elem_size, nad_Cmp cmp, nad_Al *al,
-                                nad_PQueue **out);
+nad_Status nad_pqueue_from_data(
+    const void *data, size_t len, size_t elem_size,
+    nad_Cmp cmp,
+    nad_Al *al,
+    nad_PQueue **out
+);
 
 /// a queue over a copy of what 's' views, taking its elem_size
 /// @param s the view to copy, in any order

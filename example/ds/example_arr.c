@@ -59,8 +59,8 @@ int main() {
 
     /// [access]
     NAD_ARR_SET(int32_t, a, 0, 0);
-    printf("%" PRId32 " .. %" PRId32 " over %zu elems\n", *NAD_ARR_FIRST_AS(int32_t, a),
-           *NAD_ARR_LAST_AS(int32_t, a), nad_arr_len(a)); // 0 .. 5 over 5 elems
+    printf("%" PRId32 " .. %" PRId32 " over %zu elems\n", *NAD_ARR_FRONT_AS(int32_t, a),
+           *NAD_ARR_BACK_AS(int32_t, a), nad_arr_len(a)); // 0 .. 5 over 5 elems
     /// [access]
 
     /// [copy]

@@ -272,10 +272,10 @@ static void test_from_span_of_an_arr_round_trips() {
 static void test_first_and_last_address_the_ends() {
     nad_Arr *a = make_arr(4);
 
-    TEST_ASSERT_EQUAL_INT32(0, *NAD_ARR_FIRST_AS(int32_t, a));
-    TEST_ASSERT_EQUAL_INT32(3, *NAD_ARR_LAST_AS(int32_t, a));
-    TEST_ASSERT_EQUAL_PTR(nad_arr_data(a), nad_arr_first(a));
-    TEST_ASSERT_EQUAL_PTR(NAD_ARR_GET_AS(int32_t, a, 3), nad_arr_last(a));
+    TEST_ASSERT_EQUAL_INT32(0, *NAD_ARR_FRONT_AS(int32_t, a));
+    TEST_ASSERT_EQUAL_INT32(3, *NAD_ARR_BACK_AS(int32_t, a));
+    TEST_ASSERT_EQUAL_PTR(nad_arr_data(a), nad_arr_front(a));
+    TEST_ASSERT_EQUAL_PTR(NAD_ARR_GET_AS(int32_t, a, 3), nad_arr_back(a));
 
     nad_arr_drop(a);
 }
@@ -283,8 +283,8 @@ static void test_first_and_last_address_the_ends() {
 static void test_first_and_last_mut_write_through() {
     nad_Arr *a = make_arr(4);
 
-    *NAD_ARR_FIRST_MUT_AS(int32_t, a) = 10;
-    *NAD_ARR_LAST_MUT_AS(int32_t, a) = 20;
+    *NAD_ARR_FRONT_MUT_AS(int32_t, a) = 10;
+    *NAD_ARR_BACK_MUT_AS(int32_t, a) = 20;
 
     TEST_ASSERT_EQUAL_INT32(10, *NAD_ARR_GET_AS(int32_t, a, 0));
     TEST_ASSERT_EQUAL_INT32(20, *NAD_ARR_GET_AS(int32_t, a, 3));
@@ -295,8 +295,8 @@ static void test_first_and_last_mut_write_through() {
 static void test_first_and_last_coincide_on_a_single_elem() {
     nad_Arr *a = make_arr(1);
 
-    TEST_ASSERT_EQUAL_PTR(nad_arr_first(a), nad_arr_last(a));
-    TEST_ASSERT_EQUAL_PTR(nad_arr_first_mut(a), nad_arr_last_mut(a));
+    TEST_ASSERT_EQUAL_PTR(nad_arr_front(a), nad_arr_back(a));
+    TEST_ASSERT_EQUAL_PTR(nad_arr_front_mut(a), nad_arr_back_mut(a));
 
     nad_arr_drop(a);
 }

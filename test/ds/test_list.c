@@ -52,7 +52,7 @@ static void assert_elems(const nad_List *l, const int32_t *want, size_t n) {
     TEST_ASSERT_EQUAL_size_t(n, nad_list_len(l));
 
     size_t seen = 0;
-    for (const nad_ListNode *node = nad_list_first_node(l); node; node = nad_list_node_next(node)) {
+    for (const nad_ListNode *node = nad_list_front_node(l); node; node = nad_list_node_next(node)) {
         TEST_ASSERT_TRUE_MESSAGE(seen < n, "forward walk is longer than expected");
         TEST_ASSERT_EQUAL_INT32(want[seen], *NAD_LIST_NODE_ELEM_AS(int32_t, node));
         ++seen;
@@ -60,7 +60,7 @@ static void assert_elems(const nad_List *l, const int32_t *want, size_t n) {
     TEST_ASSERT_EQUAL_size_t(n, seen);
 
     seen = 0;
-    for (const nad_ListNode *node = nad_list_last_node(l); node; node = nad_list_node_prev(node)) {
+    for (const nad_ListNode *node = nad_list_back_node(l); node; node = nad_list_node_prev(node)) {
         TEST_ASSERT_TRUE_MESSAGE(seen < n, "backward walk is longer than expected");
         TEST_ASSERT_EQUAL_INT32(want[n - seen - 1], *NAD_LIST_NODE_ELEM_AS(int32_t, node));
         ++seen;
@@ -68,11 +68,11 @@ static void assert_elems(const nad_List *l, const int32_t *want, size_t n) {
     TEST_ASSERT_EQUAL_size_t(n, seen);
 
     if (n > 0) {
-        TEST_ASSERT_EQUAL_INT32(want[0], *NAD_LIST_FIRST_AS(int32_t, l));
-        TEST_ASSERT_EQUAL_INT32(want[n - 1], *NAD_LIST_LAST_AS(int32_t, l));
+        TEST_ASSERT_EQUAL_INT32(want[0], *NAD_LIST_FRONT_AS(int32_t, l));
+        TEST_ASSERT_EQUAL_INT32(want[n - 1], *NAD_LIST_BACK_AS(int32_t, l));
     } else {
-        TEST_ASSERT_NULL(nad_list_first_node(l));
-        TEST_ASSERT_NULL(nad_list_last_node(l));
+        TEST_ASSERT_NULL(nad_list_front_node(l));
+        TEST_ASSERT_NULL(nad_list_back_node(l));
     }
 }
 
@@ -83,7 +83,7 @@ static int cmp_pair_a(const void *lhs, const void *rhs) {
 
 [[nodiscard]]
 static nad_ListNode *node_at(nad_List *l, size_t idx) {
-    nad_ListNode *node = nad_list_first_node_mut(l);
+    nad_ListNode *node = nad_list_front_node_mut(l);
     for (size_t i = 0; i < idx; ++i) {
         node = nad_list_node_next_mut(node);
     }
@@ -97,7 +97,7 @@ static void collect_nodes(const nad_List *l, const nad_ListNode **dst, size_t n)
     TEST_ASSERT_EQUAL_size_t(n, nad_list_len(l));
 
     size_t i = 0;
-    for (const nad_ListNode *node = nad_list_first_node(l); node; node = nad_list_node_next(node)) {
+    for (const nad_ListNode *node = nad_list_front_node(l); node; node = nad_list_node_next(node)) {
         dst[i++] = node;
     }
 }
@@ -108,7 +108,7 @@ static void assert_same_nodes(const nad_List *l, const nad_ListNode **want, size
 
     for (size_t i = 0; i < n; ++i) {
         bool found = false;
-        for (const nad_ListNode *node = nad_list_first_node(l); node; node = nad_list_node_next(node)) {
+        for (const nad_ListNode *node = nad_list_front_node(l); node; node = nad_list_node_next(node)) {
             if (node == want[i]) {
                 found = true;
                 break;
@@ -174,8 +174,8 @@ static void test_from_data_copies_whole_elems() {
     nad_List *l = nullptr;
     NAD_TEST_OK(NAD_LIST_FROM_DATA(Pair, src, 2, nad_al_default(), &l));
 
-    const Pair *first = NAD_LIST_FIRST_AS(Pair, l);
-    const Pair *last = NAD_LIST_LAST_AS(Pair, l);
+    const Pair *first = NAD_LIST_FRONT_AS(Pair, l);
+    const Pair *last = NAD_LIST_BACK_AS(Pair, l);
 
     TEST_ASSERT_EQUAL_INT64(1, first->a);
     TEST_ASSERT_EQUAL_INT64(2, first->b);
@@ -282,7 +282,7 @@ static void test_move_assign_hands_over_the_contents_on_one_allocator() {
 
     // a position borrowed from the source before the move: on one allocator the nodes are
     // relinked where they lie, so it must still be good afterwards — and belong to 'dst'
-    const nad_ListNode *node = nad_list_first_node(src);
+    const nad_ListNode *node = nad_list_front_node(src);
 
     const size_t requests = nad_test_probe_requests(&probe);
     NAD_TEST_OK(nad_list_move_assign(src, dst));
@@ -290,11 +290,11 @@ static void test_move_assign_hands_over_the_contents_on_one_allocator() {
     TEST_ASSERT_EQUAL_size_t(requests, nad_test_probe_requests(&probe));
 
     assert_elems(dst, (int32_t[]){1, 2, 3}, 3);
-    TEST_ASSERT_EQUAL_PTR(node, nad_list_first_node(dst));
+    TEST_ASSERT_EQUAL_PTR(node, nad_list_front_node(dst));
     TEST_ASSERT_EQUAL_INT32(1, *NAD_LIST_NODE_ELEM_AS(int32_t, node));
 
     TEST_ASSERT_EQUAL_size_t(0, nad_list_len(src));
-    TEST_ASSERT_NULL(nad_list_first_node(src));
+    TEST_ASSERT_NULL(nad_list_front_node(src));
 
     nad_list_drop(src);
     nad_list_drop(dst);
@@ -453,15 +453,15 @@ static void test_copy_assign_reuses_the_target_nodes() {
     nad_List *dst = nullptr;
     NAD_TEST_OK(NAD_LIST_OF(int32_t, &al, &dst, 7, 8));
 
-    const nad_ListNode *head = nad_list_first_node(dst);
-    const nad_ListNode *tail = nad_list_last_node(dst);
+    const nad_ListNode *head = nad_list_front_node(dst);
+    const nad_ListNode *tail = nad_list_back_node(dst);
     const size_t before = nad_test_probe_requests(&probe);
 
     NAD_TEST_OK(nad_list_copy_assign(src, dst));
 
     TEST_ASSERT_EQUAL_size_t(before, nad_test_probe_requests(&probe));
-    TEST_ASSERT_EQUAL_PTR(head, nad_list_first_node(dst));
-    TEST_ASSERT_EQUAL_PTR(tail, nad_list_last_node(dst));
+    TEST_ASSERT_EQUAL_PTR(head, nad_list_front_node(dst));
+    TEST_ASSERT_EQUAL_PTR(tail, nad_list_back_node(dst));
     assert_elems(dst, (int32_t[]){0, 1}, 2);
 
     nad_list_drop(dst);
@@ -509,8 +509,8 @@ static void test_al_is_the_ctor_arg() {
 static void test_first_and_last_see_both_ends() {
     nad_List *l = make_list(3);
 
-    TEST_ASSERT_EQUAL_INT32(0, *NAD_LIST_FIRST_AS(int32_t, l));
-    TEST_ASSERT_EQUAL_INT32(2, *NAD_LIST_LAST_AS(int32_t, l));
+    TEST_ASSERT_EQUAL_INT32(0, *NAD_LIST_FRONT_AS(int32_t, l));
+    TEST_ASSERT_EQUAL_INT32(2, *NAD_LIST_BACK_AS(int32_t, l));
 
     nad_list_drop(l);
 }
@@ -518,7 +518,7 @@ static void test_first_and_last_see_both_ends() {
 static void test_first_and_last_meet_on_a_single_elem() {
     nad_List *l = make_list(1);
 
-    TEST_ASSERT_EQUAL_PTR(nad_list_first(l), nad_list_last(l));
+    TEST_ASSERT_EQUAL_PTR(nad_list_front(l), nad_list_back(l));
 
     nad_list_drop(l);
 }
@@ -526,7 +526,7 @@ static void test_first_and_last_meet_on_a_single_elem() {
 static void test_first_mut_writes_through() {
     nad_List *l = make_list(3);
 
-    *NAD_LIST_FIRST_MUT_AS(int32_t, l) = 9;
+    *NAD_LIST_FRONT_MUT_AS(int32_t, l) = 9;
 
     assert_elems(l, (int32_t[]){9, 1, 2}, 3);
 
@@ -536,7 +536,7 @@ static void test_first_mut_writes_through() {
 static void test_last_mut_writes_through() {
     nad_List *l = make_list(3);
 
-    *NAD_LIST_LAST_MUT_AS(int32_t, l) = 9;
+    *NAD_LIST_BACK_MUT_AS(int32_t, l) = 9;
 
     assert_elems(l, (int32_t[]){0, 1, 9}, 3);
 
@@ -548,8 +548,8 @@ static void test_last_mut_writes_through() {
 static void test_nodes_of_an_empty_list_are_null() {
     nad_List *l = make_list(0);
 
-    TEST_ASSERT_NULL(nad_list_first_node(l));
-    TEST_ASSERT_NULL(nad_list_last_node(l));
+    TEST_ASSERT_NULL(nad_list_front_node(l));
+    TEST_ASSERT_NULL(nad_list_back_node(l));
 
     nad_list_drop(l);
 }
@@ -557,9 +557,9 @@ static void test_nodes_of_an_empty_list_are_null() {
 static void test_the_ends_are_the_same_node_on_a_single_elem() {
     nad_List *l = make_list(1);
 
-    TEST_ASSERT_EQUAL_PTR(nad_list_first_node(l), nad_list_last_node(l));
-    TEST_ASSERT_NULL(nad_list_node_next(nad_list_first_node(l)));
-    TEST_ASSERT_NULL(nad_list_node_prev(nad_list_first_node(l)));
+    TEST_ASSERT_EQUAL_PTR(nad_list_front_node(l), nad_list_back_node(l));
+    TEST_ASSERT_NULL(nad_list_node_next(nad_list_front_node(l)));
+    TEST_ASSERT_NULL(nad_list_node_prev(nad_list_front_node(l)));
 
     nad_list_drop(l);
 }
@@ -567,11 +567,11 @@ static void test_the_ends_are_the_same_node_on_a_single_elem() {
 static void test_next_and_prev_are_each_others_inverse() {
     nad_List *l = make_list(3);
 
-    const nad_ListNode *head = nad_list_first_node(l);
+    const nad_ListNode *head = nad_list_front_node(l);
     const nad_ListNode *mid = nad_list_node_next(head);
     const nad_ListNode *tail = nad_list_node_next(mid);
 
-    TEST_ASSERT_EQUAL_PTR(tail, nad_list_last_node(l));
+    TEST_ASSERT_EQUAL_PTR(tail, nad_list_back_node(l));
     TEST_ASSERT_NULL(nad_list_node_next(tail));
     TEST_ASSERT_EQUAL_PTR(mid, nad_list_node_prev(tail));
     TEST_ASSERT_EQUAL_PTR(head, nad_list_node_prev(mid));
@@ -583,7 +583,7 @@ static void test_next_and_prev_are_each_others_inverse() {
 static void test_node_elem_mut_writes_through() {
     nad_List *l = make_list(3);
 
-    nad_ListNode *mid = nad_list_node_next_mut(nad_list_first_node_mut(l));
+    nad_ListNode *mid = nad_list_node_next_mut(nad_list_front_node_mut(l));
     *NAD_LIST_NODE_ELEM_MUT_AS(int32_t, mid) = 9;
 
     assert_elems(l, (int32_t[]){0, 9, 2}, 3);
@@ -678,7 +678,7 @@ static void test_push_after_emptying_works() {
 
 static void test_insert_before_the_middle() {
     nad_List *l = make_list(3);
-    nad_ListNode *mid = nad_list_node_next_mut(nad_list_first_node_mut(l));
+    nad_ListNode *mid = nad_list_node_next_mut(nad_list_front_node_mut(l));
 
     NAD_TEST_OK(NAD_LIST_INSERT_BEFORE(int32_t, l, mid, 9));
 
@@ -689,7 +689,7 @@ static void test_insert_before_the_middle() {
 
 static void test_insert_after_the_middle() {
     nad_List *l = make_list(3);
-    nad_ListNode *mid = nad_list_node_next_mut(nad_list_first_node_mut(l));
+    nad_ListNode *mid = nad_list_node_next_mut(nad_list_front_node_mut(l));
 
     NAD_TEST_OK(NAD_LIST_INSERT_AFTER(int32_t, l, mid, 9));
 
@@ -701,7 +701,7 @@ static void test_insert_after_the_middle() {
 static void test_insert_before_the_head_moves_the_head() {
     nad_List *l = make_list(2);
 
-    NAD_TEST_OK(NAD_LIST_INSERT_BEFORE(int32_t, l, nad_list_first_node_mut(l), 9));
+    NAD_TEST_OK(NAD_LIST_INSERT_BEFORE(int32_t, l, nad_list_front_node_mut(l), 9));
 
     assert_elems(l, (int32_t[]){9, 0, 1}, 3);
 
@@ -711,7 +711,7 @@ static void test_insert_before_the_head_moves_the_head() {
 static void test_insert_after_the_tail_moves_the_tail() {
     nad_List *l = make_list(2);
 
-    NAD_TEST_OK(NAD_LIST_INSERT_AFTER(int32_t, l, nad_list_last_node_mut(l), 9));
+    NAD_TEST_OK(NAD_LIST_INSERT_AFTER(int32_t, l, nad_list_back_node_mut(l), 9));
 
     assert_elems(l, (int32_t[]){0, 1, 9}, 3);
 
@@ -721,7 +721,7 @@ static void test_insert_after_the_tail_moves_the_tail() {
 // the header promises where the new node lands
 static void test_the_new_node_is_reachable_from_the_anchor() {
     nad_List *l = make_list(3);
-    nad_ListNode *mid = nad_list_node_next_mut(nad_list_first_node_mut(l));
+    nad_ListNode *mid = nad_list_node_next_mut(nad_list_front_node_mut(l));
 
     NAD_TEST_OK(NAD_LIST_INSERT_BEFORE(int32_t, l, mid, 7));
     NAD_TEST_OK(NAD_LIST_INSERT_AFTER(int32_t, l, mid, 8));
@@ -734,7 +734,7 @@ static void test_the_new_node_is_reachable_from_the_anchor() {
 
 static void test_insert_into_a_single_elem_list() {
     nad_List *l = make_list(1);
-    nad_ListNode *only = nad_list_first_node_mut(l);
+    nad_ListNode *only = nad_list_front_node_mut(l);
 
     NAD_TEST_OK(NAD_LIST_INSERT_BEFORE(int32_t, l, only, -1));
     NAD_TEST_OK(NAD_LIST_INSERT_AFTER(int32_t, l, only, 1));
@@ -746,7 +746,7 @@ static void test_insert_into_a_single_elem_list() {
 
 static void test_remove_from_the_middle() {
     nad_List *l = make_list(3);
-    nad_ListNode *mid = nad_list_node_next_mut(nad_list_first_node_mut(l));
+    nad_ListNode *mid = nad_list_node_next_mut(nad_list_front_node_mut(l));
 
     nad_list_remove(l, mid);
 
@@ -758,7 +758,7 @@ static void test_remove_from_the_middle() {
 static void test_remove_the_head() {
     nad_List *l = make_list(3);
 
-    nad_list_remove(l, nad_list_first_node_mut(l));
+    nad_list_remove(l, nad_list_front_node_mut(l));
 
     assert_elems(l, (int32_t[]){1, 2}, 2);
 
@@ -768,7 +768,7 @@ static void test_remove_the_head() {
 static void test_remove_the_tail() {
     nad_List *l = make_list(3);
 
-    nad_list_remove(l, nad_list_last_node_mut(l));
+    nad_list_remove(l, nad_list_back_node_mut(l));
 
     assert_elems(l, (int32_t[]){0, 1}, 2);
 
@@ -778,7 +778,7 @@ static void test_remove_the_tail() {
 static void test_remove_the_only_node_empties_the_list() {
     nad_List *l = make_list(1);
 
-    nad_list_remove(l, nad_list_first_node_mut(l));
+    nad_list_remove(l, nad_list_front_node_mut(l));
 
     assert_empty(l);
 
@@ -918,13 +918,13 @@ static void test_splice_moves_the_nodes_without_allocating() {
     NAD_TEST_OK(NAD_LIST_OF(int32_t, &al, &dst, 1, 2));
     NAD_TEST_OK(NAD_LIST_OF(int32_t, &al, &src, 3, 4));
 
-    const nad_ListNode *src_head = nad_list_first_node(src);
+    const nad_ListNode *src_head = nad_list_front_node(src);
     const size_t before = nad_test_probe_requests(&probe);
 
     NAD_TEST_OK(nad_list_splice_back(dst, src));
 
     TEST_ASSERT_EQUAL_size_t(before, nad_test_probe_requests(&probe));
-    TEST_ASSERT_EQUAL_PTR(src_head, nad_list_node_next(nad_list_node_next(nad_list_first_node(dst))));
+    TEST_ASSERT_EQUAL_PTR(src_head, nad_list_node_next(nad_list_node_next(nad_list_front_node(dst))));
     assert_elems(dst, (int32_t[]){1, 2, 3, 4}, 4);
 
     nad_list_drop(src);
@@ -1075,13 +1075,13 @@ static void test_swap_keeps_the_nodes_alive() {
     nad_List *a = make_list(2);
     nad_List *b = make_list(1);
 
-    const nad_ListNode *a_head = nad_list_first_node(a);
-    const nad_ListNode *b_head = nad_list_first_node(b);
+    const nad_ListNode *a_head = nad_list_front_node(a);
+    const nad_ListNode *b_head = nad_list_front_node(b);
 
     nad_list_swap(a, b);
 
-    TEST_ASSERT_EQUAL_PTR(a_head, nad_list_first_node(b));
-    TEST_ASSERT_EQUAL_PTR(b_head, nad_list_first_node(a));
+    TEST_ASSERT_EQUAL_PTR(a_head, nad_list_front_node(b));
+    TEST_ASSERT_EQUAL_PTR(b_head, nad_list_front_node(a));
 
     nad_list_drop(b);
     nad_list_drop(a);
@@ -1142,7 +1142,7 @@ static void test_splice_node_keeps_the_node_address() {
     const nad_ListNode *moved = node_at(a, 2);
     NAD_TEST_OK(nad_list_splice_node(b, nullptr, a, node_at(a, 2)));
 
-    TEST_ASSERT_EQUAL_PTR(moved, nad_list_last_node(b));
+    TEST_ASSERT_EQUAL_PTR(moved, nad_list_back_node(b));
     TEST_ASSERT_EQUAL_INT32(2, *NAD_LIST_NODE_ELEM_AS(int32_t, moved));
 
     nad_list_drop(a);
@@ -1206,7 +1206,7 @@ static void test_splice_node_of_the_only_node_empties_the_source() {
     nad_List *a = make_list(1);
     nad_List *b = make_list(2);
 
-    NAD_TEST_OK(nad_list_splice_node(b, nad_list_first_node_mut(b), a, node_at(a, 0)));
+    NAD_TEST_OK(nad_list_splice_node(b, nad_list_front_node_mut(b), a, node_at(a, 0)));
 
     assert_empty(a);
     constexpr int32_t want_b[3] = {0, 0, 1};
@@ -1233,7 +1233,7 @@ static void test_splice_node_across_allocators_copies_the_elem() {
     constexpr int32_t want_b[2] = {9, 1};
     assert_elems(a, want_a, 2);
     assert_elems(b, want_b, 2);
-    TEST_ASSERT_TRUE(before != nad_list_last_node(b));
+    TEST_ASSERT_TRUE(before != nad_list_back_node(b));
 
     nad_list_drop(a);
     nad_list_drop(b);
@@ -1276,8 +1276,8 @@ static void test_reverse_keeps_every_node_address() {
     nad_list_reverse(l);
 
     assert_same_nodes(l, before, 4);
-    TEST_ASSERT_EQUAL_PTR(before[3], nad_list_first_node(l));
-    TEST_ASSERT_EQUAL_PTR(before[0], nad_list_last_node(l));
+    TEST_ASSERT_EQUAL_PTR(before[3], nad_list_front_node(l));
+    TEST_ASSERT_EQUAL_PTR(before[0], nad_list_back_node(l));
 
     nad_list_drop(l);
 }
@@ -1362,7 +1362,7 @@ static void test_sort_works_at_every_length() {
         TEST_ASSERT_EQUAL_size_t(n, nad_list_len(l));
         int32_t prev = 0;
         size_t seen = 0;
-        for (const nad_ListNode *node = nad_list_first_node(l); node; node = nad_list_node_next(node)) {
+        for (const nad_ListNode *node = nad_list_front_node(l); node; node = nad_list_node_next(node)) {
             const int32_t val = *NAD_LIST_NODE_ELEM_AS(int32_t, node);
             if (seen > 0) {
                 TEST_ASSERT_TRUE_MESSAGE(prev <= val, "the sorted list is out of order");
@@ -1390,7 +1390,7 @@ static void test_sort_is_stable() {
 
     constexpr Pair want[6] = {{1, 1}, {1, 2}, {1, 3}, {2, 1}, {2, 2}, {2, 3}};
     size_t i = 0;
-    for (const nad_ListNode *node = nad_list_first_node(l); node; node = nad_list_node_next(node)) {
+    for (const nad_ListNode *node = nad_list_front_node(l); node; node = nad_list_node_next(node)) {
         const Pair *got = NAD_LIST_NODE_ELEM_AS(Pair, node);
         TEST_ASSERT_EQUAL_INT64(want[i].a, got->a);
         TEST_ASSERT_EQUAL_INT64(want[i].b, got->b);
@@ -1415,7 +1415,7 @@ static void test_sort_keeps_every_node_and_its_elem() {
 
     assert_same_nodes(l, before, 4);
     TEST_ASSERT_EQUAL_INT32(9, *NAD_LIST_NODE_ELEM_AS(int32_t, node_of_nine));
-    TEST_ASSERT_EQUAL_PTR(node_of_nine, nad_list_last_node(l));
+    TEST_ASSERT_EQUAL_PTR(node_of_nine, nad_list_back_node(l));
 
     nad_list_drop(l);
 }
@@ -1505,7 +1505,7 @@ static void test_merge_keeps_equal_elems_of_self_first() {
 
     constexpr Pair want[4] = {{1, 100}, {1, 200}, {2, 100}, {2, 200}};
     size_t i = 0;
-    for (const nad_ListNode *node = nad_list_first_node(a); node; node = nad_list_node_next(node)) {
+    for (const nad_ListNode *node = nad_list_front_node(a); node; node = nad_list_node_next(node)) {
         const Pair *got = NAD_LIST_NODE_ELEM_AS(Pair, node);
         TEST_ASSERT_EQUAL_INT64(want[i].a, got->a);
         TEST_ASSERT_EQUAL_INT64(want[i].b, got->b);
@@ -1697,7 +1697,7 @@ static void test_insert_reports_an_exhausted_arena() {
 
     NAD_TEST_STATUS(
         NAD_STATUS_ERR_NO_MEM,
-        NAD_LIST_INSERT_AFTER(int32_t, l, nad_list_first_node_mut(l), 9)
+        NAD_LIST_INSERT_AFTER(int32_t, l, nad_list_front_node_mut(l), 9)
     );
 
     assert_elems(l, (int32_t[]){1, 2}, 2);
@@ -1854,8 +1854,8 @@ static void test_macro_of_carries_wide_elems() {
     NAD_TEST_OK(NAD_LIST_OF(Pair, nad_al_default(), &l, {1, 2}, {3, 4}));
 
     TEST_ASSERT_EQUAL_size_t(2, nad_list_len(l));
-    TEST_ASSERT_EQUAL_INT64(2, NAD_LIST_FIRST_AS(Pair, l)->b);
-    TEST_ASSERT_EQUAL_INT64(3, NAD_LIST_LAST_AS(Pair, l)->a);
+    TEST_ASSERT_EQUAL_INT64(2, NAD_LIST_FRONT_AS(Pair, l)->b);
+    TEST_ASSERT_EQUAL_INT64(3, NAD_LIST_BACK_AS(Pair, l)->a);
 
     nad_list_drop(l);
 }
@@ -1876,7 +1876,7 @@ static void test_macro_push_evaluates_its_value_once() {
 
 static void test_macro_node_elem_as_reads_and_writes() {
     nad_List *l = make_list(2);
-    nad_ListNode *head = nad_list_first_node_mut(l);
+    nad_ListNode *head = nad_list_front_node_mut(l);
 
     TEST_ASSERT_EQUAL_INT32(0, *NAD_LIST_NODE_ELEM_AS(int32_t, head));
     *NAD_LIST_NODE_ELEM_MUT_AS(int32_t, head) = 5;

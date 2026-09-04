@@ -24,5 +24,9 @@
 /// like nad_hmap_new_cap, but 'val_size' may be 0. Not NAD_API: the library's default
 /// hidden visibility keeps it out of the shared object's symbol table
 [[nodiscard]]
-nad_Status nad_hmap_new_raw_(size_t cap, size_t key_size, size_t val_size, nad_Hasher hasher, nad_Eq eq, nad_Al *al,
-                             nad_HMap **out);
+nad_Status nad_hmap_new_raw_(
+    size_t cap, size_t key_size, size_t val_size,
+    nad_Hasher hasher, nad_Eq eq,
+    nad_Al *al,
+    nad_HMap **out
+);

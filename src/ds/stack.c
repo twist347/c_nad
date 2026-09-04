@@ -185,14 +185,14 @@ const void *nad_stack_top(const nad_Stack *self) {
     ASSERT_STACK(self);
     assert(nad_vec_len(self->vec) > 0);
 
-    return nad_vec_last(self->vec);
+    return nad_vec_back(self->vec);
 }
 
 void *nad_stack_top_mut(nad_Stack *self) {
     ASSERT_STACK(self);
     assert(nad_vec_len(self->vec) > 0);
 
-    return nad_vec_last_mut(self->vec);
+    return nad_vec_back_mut(self->vec);
 }
 
 /* ========== mods ========== */

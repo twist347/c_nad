@@ -243,22 +243,22 @@ nad_Al *nad_deque_al(const nad_Deque *self);
 /// @return a pointer into the block, good until the next op that may reallocate
 /// @bigo{1}
 [[nodiscard]] NAD_API
-const void *nad_deque_first(const nad_Deque *self);
+const void *nad_deque_front(const nad_Deque *self);
 
 /// the front elem, to write through
-/// @copydetails nad_deque_first
+/// @copydetails nad_deque_front
 [[nodiscard]] NAD_API
-void *nad_deque_first_mut(nad_Deque *self);
+void *nad_deque_front_mut(nad_Deque *self);
 
 /// the back elem
-/// @copydetails nad_deque_first
+/// @copydetails nad_deque_front
 [[nodiscard]] NAD_API
-const void *nad_deque_last(const nad_Deque *self);
+const void *nad_deque_back(const nad_Deque *self);
 
 /// the back elem, to write through
-/// @copydetails nad_deque_first
+/// @copydetails nad_deque_front
 [[nodiscard]] NAD_API
-void *nad_deque_last_mut(nad_Deque *self);
+void *nad_deque_back_mut(nad_Deque *self);
 
 /// the elem at 'idx'
 /// @param self the deque
@@ -460,27 +460,27 @@ void nad_deque_print(const nad_Deque *self, nad_FPrint fprint);
         sizeof((const T[]){ __VA_ARGS__ }) / sizeof(T), \
         sizeof(T), (al), (out))
 
-/// nad_deque_first as a const T *
+/// nad_deque_front as a const T *
 /// @param T the elem type
 /// @param self the deque
 /// @bigo{1}
-#define NAD_DEQUE_FIRST_AS(T, self) \
-    ((const T *) nad_deque_first((self)))
+#define NAD_DEQUE_FRONT_AS(T, self) \
+    ((const T *) nad_deque_front((self)))
 
-/// nad_deque_first_mut as a T *
-/// @copydetails NAD_DEQUE_FIRST_AS
-#define NAD_DEQUE_FIRST_MUT_AS(T, self) \
-    ((T *) nad_deque_first_mut((self)))
+/// nad_deque_front_mut as a T *
+/// @copydetails NAD_DEQUE_FRONT_AS
+#define NAD_DEQUE_FRONT_MUT_AS(T, self) \
+    ((T *) nad_deque_front_mut((self)))
 
-/// nad_deque_last as a const T *
-/// @copydetails NAD_DEQUE_FIRST_AS
-#define NAD_DEQUE_LAST_AS(T, self) \
-    ((const T *) nad_deque_last((self)))
+/// nad_deque_back as a const T *
+/// @copydetails NAD_DEQUE_FRONT_AS
+#define NAD_DEQUE_BACK_AS(T, self) \
+    ((const T *) nad_deque_back((self)))
 
-/// nad_deque_last_mut as a T *
-/// @copydetails NAD_DEQUE_FIRST_AS
-#define NAD_DEQUE_LAST_MUT_AS(T, self) \
-    ((T *) nad_deque_last_mut((self)))
+/// nad_deque_back_mut as a T *
+/// @copydetails NAD_DEQUE_FRONT_AS
+#define NAD_DEQUE_BACK_MUT_AS(T, self) \
+    ((T *) nad_deque_back_mut((self)))
 
 /// walks the deque front to back, binding 'elem' to each elem in turn. A ring has no
 /// view to hand out, so this is the walk that copies nothing

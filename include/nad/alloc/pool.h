@@ -61,10 +61,10 @@ void nad_al_pool_reset(nad_Al *al);
 
 /// What a pool is holding.
 typedef struct {
-    size_t block_size;   ///< the real size of one block, after the rounding up
-    size_t block_count;  ///< how many there are in all
-    size_t used;         ///< how many are handed out
-    size_t free;         ///< how many are left
+    size_t block_size;  ///< the real size of one block, after the rounding up
+    size_t block_count; ///< how many there are in all
+    size_t used;        ///< how many are handed out
+    size_t free;        ///< how many are left
 } nad_AlPoolStats;
 
 /// what the pool is holding

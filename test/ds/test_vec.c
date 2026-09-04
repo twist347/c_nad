@@ -507,10 +507,10 @@ static void test_get_mut_writes_through() {
 static void test_first_and_last_address_the_ends() {
     nad_Vec *v = make_vec(4);
 
-    TEST_ASSERT_EQUAL_INT32(0, *NAD_VEC_FIRST_AS(int32_t, v));
-    TEST_ASSERT_EQUAL_INT32(3, *NAD_VEC_LAST_AS(int32_t, v));
-    TEST_ASSERT_EQUAL_PTR(nad_vec_data(v), nad_vec_first(v));
-    TEST_ASSERT_EQUAL_PTR(NAD_VEC_GET_AS(int32_t, v, 3), nad_vec_last(v));
+    TEST_ASSERT_EQUAL_INT32(0, *NAD_VEC_FRONT_AS(int32_t, v));
+    TEST_ASSERT_EQUAL_INT32(3, *NAD_VEC_BACK_AS(int32_t, v));
+    TEST_ASSERT_EQUAL_PTR(nad_vec_data(v), nad_vec_front(v));
+    TEST_ASSERT_EQUAL_PTR(NAD_VEC_GET_AS(int32_t, v, 3), nad_vec_back(v));
 
     nad_vec_drop(v);
 }
@@ -518,8 +518,8 @@ static void test_first_and_last_address_the_ends() {
 static void test_first_and_last_mut_write_through() {
     nad_Vec *v = make_vec(4);
 
-    *NAD_VEC_FIRST_MUT_AS(int32_t, v) = 10;
-    *NAD_VEC_LAST_MUT_AS(int32_t, v) = 20;
+    *NAD_VEC_FRONT_MUT_AS(int32_t, v) = 10;
+    *NAD_VEC_BACK_MUT_AS(int32_t, v) = 20;
 
     TEST_ASSERT_EQUAL_INT32(10, *NAD_VEC_GET_AS(int32_t, v, 0));
     TEST_ASSERT_EQUAL_INT32(20, *NAD_VEC_GET_AS(int32_t, v, 3));
@@ -530,8 +530,8 @@ static void test_first_and_last_mut_write_through() {
 static void test_first_and_last_coincide_on_a_single_elem() {
     nad_Vec *v = make_vec(1);
 
-    TEST_ASSERT_EQUAL_PTR(nad_vec_first(v), nad_vec_last(v));
-    TEST_ASSERT_EQUAL_PTR(nad_vec_first_mut(v), nad_vec_last_mut(v));
+    TEST_ASSERT_EQUAL_PTR(nad_vec_front(v), nad_vec_back(v));
+    TEST_ASSERT_EQUAL_PTR(nad_vec_front_mut(v), nad_vec_back_mut(v));
 
     nad_vec_drop(v);
 }
@@ -542,8 +542,8 @@ static void test_last_follows_the_len() {
     push_int(v, 1);
     push_int(v, 2);
 
-    TEST_ASSERT_EQUAL_INT32(2, *NAD_VEC_LAST_AS(int32_t, v));
-    TEST_ASSERT_EQUAL_PTR(NAD_VEC_GET_AS(int32_t, v, 1), nad_vec_last(v));
+    TEST_ASSERT_EQUAL_INT32(2, *NAD_VEC_BACK_AS(int32_t, v));
+    TEST_ASSERT_EQUAL_PTR(NAD_VEC_GET_AS(int32_t, v, 1), nad_vec_back(v));
 
     nad_vec_drop(v);
 }
@@ -619,7 +619,7 @@ static void test_pop_shortens_and_keeps_the_capacity() {
 
     TEST_ASSERT_EQUAL_size_t(2, nad_vec_len(v));
     TEST_ASSERT_EQUAL_size_t(cap, nad_vec_cap(v));
-    TEST_ASSERT_EQUAL_INT32(1, *NAD_VEC_LAST_AS(int32_t, v));
+    TEST_ASSERT_EQUAL_INT32(1, *NAD_VEC_BACK_AS(int32_t, v));
 
     nad_vec_pop(v);
     nad_vec_pop(v);

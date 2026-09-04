@@ -43,6 +43,10 @@ static size_t next_cap(const nad_Vec *self);
 [[nodiscard]]
 static nad_Status grow(nad_Vec *self);
 
+/// room for one more elem, growing the block when it is full
+[[nodiscard]]
+static nad_Status reserve_one(nad_Vec *self);
+
 /// room for 'new_len' elems, asked for with the growth factor when that is the bigger of
 /// the two so a run of extends keeps the amortized cost a run of pushes has. Falls back
 /// to the exact length when the eager request is refused
@@ -258,28 +262,28 @@ nad_Al *nad_vec_al(const nad_Vec *self) {
 
 /* ========== access ========== */
 
-const void *nad_vec_first(const nad_Vec *self) {
+const void *nad_vec_front(const nad_Vec *self) {
     ASSERT_VEC(self);
     assert(self->len > 0);
 
     return vec_offset(self, 0);
 }
 
-void *nad_vec_first_mut(nad_Vec *self) {
+void *nad_vec_front_mut(nad_Vec *self) {
     ASSERT_VEC(self);
     assert(self->len > 0);
 
     return vec_offset_mut(self, 0);
 }
 
-const void *nad_vec_last(const nad_Vec *self) {
+const void *nad_vec_back(const nad_Vec *self) {
     ASSERT_VEC(self);
     assert(self->len > 0);
 
     return vec_offset(self, self->len - 1);
 }
 
-void *nad_vec_last_mut(nad_Vec *self) {
+void *nad_vec_back_mut(nad_Vec *self) {
     ASSERT_VEC(self);
     assert(self->len > 0);
 
@@ -326,11 +330,9 @@ nad_Status nad_vec_push(nad_Vec *self, const void *val) {
     ASSERT_VEC(self);
     assert(val);
 
-    if (self->len == self->cap) {
-        const nad_Status st = grow(self);
-        if (NAD_STATUS_IS_ERR(st)) {
-            return st;
-        }
+    const nad_Status st = reserve_one(self);
+    if (NAD_STATUS_IS_ERR(st)) {
+        return st;
     }
 
     memcpy(vec_offset_mut(self, self->len), val, self->elem_size);
@@ -351,11 +353,9 @@ nad_Status nad_vec_insert(nad_Vec *self, size_t idx, const void *val) {
     assert(val);
     assert(idx <= self->len);
 
-    if (self->len == self->cap) {
-        const nad_Status st = grow(self);
-        if (NAD_STATUS_IS_ERR(st)) {
-            return st;
-        }
+    const nad_Status st = reserve_one(self);
+    if (NAD_STATUS_IS_ERR(st)) {
+        return st;
     }
 
     const size_t tail = self->len - idx;
@@ -654,6 +654,10 @@ static nad_Status grow(nad_Vec *self) {
     }
 
     return nad_vec_reserve(self, self->cap + 1);
+}
+
+static nad_Status reserve_one(nad_Vec *self) {
+    return self->len == self->cap ? grow(self) : NAD_STATUS_OK;
 }
 
 static nad_Status reserve_for(nad_Vec *self, size_t new_len) {

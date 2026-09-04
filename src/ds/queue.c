@@ -192,28 +192,28 @@ const void *nad_queue_front(const nad_Queue *self) {
     ASSERT_QUEUE(self);
     assert(nad_deque_len(self->deque) > 0);
 
-    return nad_deque_first(self->deque);
+    return nad_deque_front(self->deque);
 }
 
 void *nad_queue_front_mut(nad_Queue *self) {
     ASSERT_QUEUE(self);
     assert(nad_deque_len(self->deque) > 0);
 
-    return nad_deque_first_mut(self->deque);
+    return nad_deque_front_mut(self->deque);
 }
 
 const void *nad_queue_back(const nad_Queue *self) {
     ASSERT_QUEUE(self);
     assert(nad_deque_len(self->deque) > 0);
 
-    return nad_deque_last(self->deque);
+    return nad_deque_back(self->deque);
 }
 
 void *nad_queue_back_mut(nad_Queue *self) {
     ASSERT_QUEUE(self);
     assert(nad_deque_len(self->deque) > 0);
 
-    return nad_deque_last_mut(self->deque);
+    return nad_deque_back_mut(self->deque);
 }
 
 /* ========== mods ========== */

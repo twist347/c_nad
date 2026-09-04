@@ -31,8 +31,8 @@
 /// How an operation reports its outcome. Fixed at int32_t, so the value crosses an ABI
 /// boundary at a width that does not depend on the compiler.
 typedef enum : int32_t {
-    NAD_STATUS_OK = 0,         ///< success — the only value on which an 'out' is written
-    NAD_STATUS_ERR_NO_MEM,     ///< an allocation failed, or the size asked for overflowed
+    NAD_STATUS_OK = 0,     ///< success — the only value on which an 'out' is written
+    NAD_STATUS_ERR_NO_MEM, ///< an allocation failed, or the size asked for overflowed
 } nad_Status;
 
 /// @name to str

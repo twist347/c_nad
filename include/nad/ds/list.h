@@ -195,22 +195,22 @@ nad_Al *nad_list_al(const nad_List *self);
 /// @return a pointer into its node, good until that elem is removed
 /// @bigo{1}
 [[nodiscard]] NAD_API
-const void *nad_list_first(const nad_List *self);
+const void *nad_list_front(const nad_List *self);
 
 /// the front elem, to write through
-/// @copydetails nad_list_first
+/// @copydetails nad_list_front
 [[nodiscard]] NAD_API
-void *nad_list_first_mut(nad_List *self);
+void *nad_list_front_mut(nad_List *self);
 
 /// the back elem
-/// @copydetails nad_list_first
+/// @copydetails nad_list_front
 [[nodiscard]] NAD_API
-const void *nad_list_last(const nad_List *self);
+const void *nad_list_back(const nad_List *self);
 
 /// the back elem, to write through
-/// @copydetails nad_list_first
+/// @copydetails nad_list_front
 [[nodiscard]] NAD_API
-void *nad_list_last_mut(nad_List *self);
+void *nad_list_back_mut(nad_List *self);
 
 /// @}
 
@@ -222,22 +222,22 @@ void *nad_list_last_mut(nad_List *self);
 /// @return the node, or null while the list is empty
 /// @bigo{1}
 [[nodiscard]] NAD_API
-const nad_ListNode *nad_list_first_node(const nad_List *self);
+const nad_ListNode *nad_list_front_node(const nad_List *self);
 
 /// the position of the front elem, to write through
-/// @copydetails nad_list_first_node
+/// @copydetails nad_list_front_node
 [[nodiscard]] NAD_API
-nad_ListNode *nad_list_first_node_mut(nad_List *self);
+nad_ListNode *nad_list_front_node_mut(nad_List *self);
 
 /// the position of the back elem
-/// @copydetails nad_list_first_node
+/// @copydetails nad_list_front_node
 [[nodiscard]] NAD_API
-const nad_ListNode *nad_list_last_node(const nad_List *self);
+const nad_ListNode *nad_list_back_node(const nad_List *self);
 
 /// the position of the back elem, to write through
-/// @copydetails nad_list_first_node
+/// @copydetails nad_list_front_node
 [[nodiscard]] NAD_API
-nad_ListNode *nad_list_last_node_mut(nad_List *self);
+nad_ListNode *nad_list_back_node_mut(nad_List *self);
 
 /// the first node from the front whose elem is equal to 'key'
 /// @param self the list
@@ -502,27 +502,27 @@ void nad_list_print(const nad_List *self, nad_FPrint fprint);
         sizeof((const T[]){ __VA_ARGS__ }) / sizeof(T), \
         sizeof(T), (al), (out))
 
-/// nad_list_first as a const T *
+/// nad_list_front as a const T *
 /// @param T the elem type
 /// @param self the list
 /// @bigo{1}
-#define NAD_LIST_FIRST_AS(T, self) \
-    ((const T *) nad_list_first((self)))
+#define NAD_LIST_FRONT_AS(T, self) \
+    ((const T *) nad_list_front((self)))
 
-/// nad_list_first_mut as a T *
-/// @copydetails NAD_LIST_FIRST_AS
-#define NAD_LIST_FIRST_MUT_AS(T, self) \
-    ((T *) nad_list_first_mut((self)))
+/// nad_list_front_mut as a T *
+/// @copydetails NAD_LIST_FRONT_AS
+#define NAD_LIST_FRONT_MUT_AS(T, self) \
+    ((T *) nad_list_front_mut((self)))
 
-/// nad_list_last as a const T *
-/// @copydetails NAD_LIST_FIRST_AS
-#define NAD_LIST_LAST_AS(T, self) \
-    ((const T *) nad_list_last((self)))
+/// nad_list_back as a const T *
+/// @copydetails NAD_LIST_FRONT_AS
+#define NAD_LIST_BACK_AS(T, self) \
+    ((const T *) nad_list_back((self)))
 
-/// nad_list_last_mut as a T *
-/// @copydetails NAD_LIST_FIRST_AS
-#define NAD_LIST_LAST_MUT_AS(T, self) \
-    ((T *) nad_list_last_mut((self)))
+/// nad_list_back_mut as a T *
+/// @copydetails NAD_LIST_FRONT_AS
+#define NAD_LIST_BACK_MUT_AS(T, self) \
+    ((T *) nad_list_back_mut((self)))
 
 /// walks the list front to back, binding 'node' to each position in turn
 /// @param node the name the loop variable takes; it is a const nad_ListNode *
@@ -531,14 +531,14 @@ void nad_list_print(const nad_List *self, nad_FPrint fprint);
 ///       saw — so removing that node inside the loop cuts the walk. Take the next
 ///       position first, or walk by hand
 #define NAD_LIST_FOR_EACH(node, self)                          \
-    for (const nad_ListNode *node = nad_list_first_node(self); \
+    for (const nad_ListNode *node = nad_list_front_node(self); \
          node;                                                 \
          node = nad_list_node_next(node))
 
 /// the same walk over positions that may be written through
 /// @copydetails NAD_LIST_FOR_EACH
 #define NAD_LIST_FOR_EACH_MUT(node, self)                         \
-    for (nad_ListNode *node = nad_list_first_node_mut(self);      \
+    for (nad_ListNode *node = nad_list_front_node_mut(self);      \
          node;                                                    \
          node = nad_list_node_next_mut(node))
 

@@ -222,27 +222,27 @@ nad_Al *nad_vec_al(const nad_Vec *self);
 /// @name access
 /// @{
 
-/// the first elem
+/// the front elem
 /// @param self asserts the vec is not empty
 /// @return a pointer into the block, good until the next op that may reallocate
 /// @bigo{1}
 [[nodiscard]] NAD_API
-const void *nad_vec_first(const nad_Vec *self);
+const void *nad_vec_front(const nad_Vec *self);
 
-/// the first elem, to write through
-/// @copydetails nad_vec_first
+/// the front elem, to write through
+/// @copydetails nad_vec_front
 [[nodiscard]] NAD_API
-void *nad_vec_first_mut(nad_Vec *self);
+void *nad_vec_front_mut(nad_Vec *self);
 
-/// the last elem
-/// @copydetails nad_vec_first
+/// the back elem
+/// @copydetails nad_vec_front
 [[nodiscard]] NAD_API
-const void *nad_vec_last(const nad_Vec *self);
+const void *nad_vec_back(const nad_Vec *self);
 
-/// the last elem, to write through
-/// @copydetails nad_vec_first
+/// the back elem, to write through
+/// @copydetails nad_vec_front
 [[nodiscard]] NAD_API
-void *nad_vec_last_mut(nad_Vec *self);
+void *nad_vec_back_mut(nad_Vec *self);
 
 /// the elem at 'idx'
 /// @param self the vec
@@ -293,7 +293,7 @@ void *nad_vec_data_mut(nad_Vec *self);
 [[nodiscard]] NAD_API
 nad_Status nad_vec_push(nad_Vec *self, const void *val);
 
-/// drops the last elem, keeping the capacity
+/// drops the back elem, keeping the capacity
 /// @param self asserts the vec is not empty
 /// @bigo{1}
 NAD_API
@@ -498,27 +498,27 @@ void nad_vec_print(const nad_Vec *self, nad_FPrint fprint);
         sizeof((const T[]){ __VA_ARGS__ }) / sizeof(T), \
         sizeof(T), (al), (out))
 
-/// nad_vec_first as a const T *
+/// nad_vec_front as a const T *
 /// @param T the elem type
 /// @param self the vec
 /// @bigo{1}
-#define NAD_VEC_FIRST_AS(T, self) \
-    ((const T *) nad_vec_first((self)))
+#define NAD_VEC_FRONT_AS(T, self) \
+    ((const T *) nad_vec_front((self)))
 
-/// nad_vec_first_mut as a T *
-/// @copydetails NAD_VEC_FIRST_AS
-#define NAD_VEC_FIRST_MUT_AS(T, self) \
-    ((T *) nad_vec_first_mut((self)))
+/// nad_vec_front_mut as a T *
+/// @copydetails NAD_VEC_FRONT_AS
+#define NAD_VEC_FRONT_MUT_AS(T, self) \
+    ((T *) nad_vec_front_mut((self)))
 
-/// nad_vec_last as a const T *
-/// @copydetails NAD_VEC_FIRST_AS
-#define NAD_VEC_LAST_AS(T, self) \
-    ((const T *) nad_vec_last((self)))
+/// nad_vec_back as a const T *
+/// @copydetails NAD_VEC_FRONT_AS
+#define NAD_VEC_BACK_AS(T, self) \
+    ((const T *) nad_vec_back((self)))
 
-/// nad_vec_last_mut as a T *
-/// @copydetails NAD_VEC_FIRST_AS
-#define NAD_VEC_LAST_MUT_AS(T, self) \
-    ((T *) nad_vec_last_mut((self)))
+/// nad_vec_back_mut as a T *
+/// @copydetails NAD_VEC_FRONT_AS
+#define NAD_VEC_BACK_MUT_AS(T, self) \
+    ((T *) nad_vec_back_mut((self)))
 
 /// nad_vec_get as a const T *
 /// @param T the elem type

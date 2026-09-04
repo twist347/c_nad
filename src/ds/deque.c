@@ -46,6 +46,10 @@ static size_t next_cap(const nad_Deque *self);
 [[nodiscard]]
 static nad_Status grow(nad_Deque *self);
 
+/// room for one more elem, growing the ring when it is full
+[[nodiscard]]
+static nad_Status reserve_one(nad_Deque *self);
+
 [[nodiscard]]
 static size_t len_bytes(const nad_Deque *self);
 
@@ -341,28 +345,28 @@ nad_Al *nad_deque_al(const nad_Deque *self) {
 
 /* ========== access ========== */
 
-const void *nad_deque_first(const nad_Deque *self) {
+const void *nad_deque_front(const nad_Deque *self) {
     ASSERT_DEQUE(self);
     assert(self->len > 0);
 
     return elem_at(self, 0);
 }
 
-void *nad_deque_first_mut(nad_Deque *self) {
+void *nad_deque_front_mut(nad_Deque *self) {
     ASSERT_DEQUE(self);
     assert(self->len > 0);
 
     return elem_at_mut(self, 0);
 }
 
-const void *nad_deque_last(const nad_Deque *self) {
+const void *nad_deque_back(const nad_Deque *self) {
     ASSERT_DEQUE(self);
     assert(self->len > 0);
 
     return elem_at(self, self->len - 1);
 }
 
-void *nad_deque_last_mut(nad_Deque *self) {
+void *nad_deque_back_mut(nad_Deque *self) {
     ASSERT_DEQUE(self);
     assert(self->len > 0);
 
@@ -397,11 +401,9 @@ nad_Status nad_deque_push_front(nad_Deque *self, const void *val) {
     ASSERT_DEQUE(self);
     assert(val);
 
-    if (self->len == self->cap) {
-        const nad_Status st = grow(self);
-        if (NAD_STATUS_IS_ERR(st)) {
-            return st;
-        }
+    const nad_Status st = reserve_one(self);
+    if (NAD_STATUS_IS_ERR(st)) {
+        return st;
     }
 
     // the slot before the front, one lap back when the front is slot 0
@@ -416,11 +418,9 @@ nad_Status nad_deque_push_back(nad_Deque *self, const void *val) {
     ASSERT_DEQUE(self);
     assert(val);
 
-    if (self->len == self->cap) {
-        const nad_Status st = grow(self);
-        if (NAD_STATUS_IS_ERR(st)) {
-            return st;
-        }
+    const nad_Status st = reserve_one(self);
+    if (NAD_STATUS_IS_ERR(st)) {
+        return st;
     }
 
     memcpy(elem_at_mut(self, self->len), val, self->elem_size);
@@ -449,11 +449,9 @@ nad_Status nad_deque_insert(nad_Deque *self, size_t idx, const void *val) {
     assert(val);
     assert(idx <= self->len);
 
-    if (self->len == self->cap) {
-        const nad_Status st = grow(self);
-        if (NAD_STATUS_IS_ERR(st)) {
-            return st;
-        }
+    const nad_Status st = reserve_one(self);
+    if (NAD_STATUS_IS_ERR(st)) {
+        return st;
     }
 
     // whichever side is shorter gets shifted. The two sides move in opposite
@@ -715,6 +713,10 @@ static size_t next_cap(const nad_Deque *self) {
     }
 
     return grown;
+}
+
+static nad_Status reserve_one(nad_Deque *self) {
+    return self->len == self->cap ? grow(self) : NAD_STATUS_OK;
 }
 
 static nad_Status grow(nad_Deque *self) {

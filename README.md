@@ -173,8 +173,12 @@ target_link_libraries(app PRIVATE nadc::nadc)
 
 ## License
 
-MIT — see [LICENSE](https://github.com/twist347/c-naive-algorithms-and-data-structures/blob/main/LICENSE).
+MIT — see [LICENSE](https://github.com/twist347/c_nad/blob/main/LICENSE).
 
 `thirdparty/Unity-2.7.0` is Unity, the test framework, vendored as is. It is third-party
 code under its own MIT license; its copyright notice lives in
 `thirdparty/Unity-2.7.0/LICENSE.txt` and is not covered by the notice above.
+
+`thirdparty/ubench` is ubench.h, the benchmark harness, vendored the same way. There is no
+copyright to carry over: it is released into the public domain under the Unlicense, whose
+text sits at the top of `thirdparty/ubench/ubench.h`.

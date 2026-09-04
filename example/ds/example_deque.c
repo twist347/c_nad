@@ -38,8 +38,8 @@ int main() {
     nad_deque_print(d, nad_fprint_i32); // [2, 3, 4, 5, 6]
 
     printf(
-        "%" PRId32 " .. %" PRId32 "\n", *NAD_DEQUE_FIRST_AS(int32_t, d),
-        *NAD_DEQUE_LAST_AS(int32_t, d)
+        "%" PRId32 " .. %" PRId32 "\n", *NAD_DEQUE_FRONT_AS(int32_t, d),
+        *NAD_DEQUE_BACK_AS(int32_t, d)
     ); // 2 .. 6
 
     // the pops take from either end and leave the room alone

@@ -354,28 +354,28 @@ nad_Al *nad_list_al(const nad_List *self) {
 
 /* ========== access ========== */
 
-const void *nad_list_first(const nad_List *self) {
+const void *nad_list_front(const nad_List *self) {
     ASSERT_LIST(self);
     assert(self->len > 0);
 
     return self->head->elem;
 }
 
-void *nad_list_first_mut(nad_List *self) {
+void *nad_list_front_mut(nad_List *self) {
     ASSERT_LIST(self);
     assert(self->len > 0);
 
     return self->head->elem;
 }
 
-const void *nad_list_last(const nad_List *self) {
+const void *nad_list_back(const nad_List *self) {
     ASSERT_LIST(self);
     assert(self->len > 0);
 
     return self->tail->elem;
 }
 
-void *nad_list_last_mut(nad_List *self) {
+void *nad_list_back_mut(nad_List *self) {
     ASSERT_LIST(self);
     assert(self->len > 0);
 
@@ -384,25 +384,25 @@ void *nad_list_last_mut(nad_List *self) {
 
 /* ========== nodes ========== */
 
-const nad_ListNode *nad_list_first_node(const nad_List *self) {
+const nad_ListNode *nad_list_front_node(const nad_List *self) {
     ASSERT_LIST(self);
 
     return self->head;
 }
 
-nad_ListNode *nad_list_first_node_mut(nad_List *self) {
+nad_ListNode *nad_list_front_node_mut(nad_List *self) {
     ASSERT_LIST(self);
 
     return self->head;
 }
 
-const nad_ListNode *nad_list_last_node(const nad_List *self) {
+const nad_ListNode *nad_list_back_node(const nad_List *self) {
     ASSERT_LIST(self);
 
     return self->tail;
 }
 
-nad_ListNode *nad_list_last_node_mut(nad_List *self) {
+nad_ListNode *nad_list_back_node_mut(nad_List *self) {
     ASSERT_LIST(self);
 
     return self->tail;
