@@ -19,6 +19,7 @@ set(NAD_C_STANDARD 23)
 option(NAD_BUILD_SHARED "Build nadc as a shared library" ${PROJECT_IS_TOP_LEVEL})
 option(NAD_BUILD_TEST "Build unit tests" ${PROJECT_IS_TOP_LEVEL})
 option(NAD_BUILD_EXAMPLE "Build the examples the reference quotes" ${PROJECT_IS_TOP_LEVEL})
+option(NAD_BUILD_BENCH "Build the benchmarks" OFF)
 
 set(NAD_WARNINGS
         $<$<C_COMPILER_ID:GNU,Clang,AppleClang>:-Wall;-Wextra;-Wpedantic>
@@ -138,6 +139,10 @@ if (NAD_BUILD_EXAMPLE)
     add_subdirectory(example)
 endif ()
 
+if (NAD_BUILD_BENCH)
+    add_subdirectory(bench)
+endif ()
+
 if (PROJECT_IS_TOP_LEVEL)
     string(TOLOWER ${NAD_LIBRARY_TYPE} NAD_LIBRARY_TYPE_LOWER)
     message(STATUS "")
@@ -149,5 +154,6 @@ if (PROJECT_IS_TOP_LEVEL)
     message(STATUS "  C standard     : C${NAD_C_STANDARD}")
     message(STATUS "  tests          : ${NAD_BUILD_TEST}")
     message(STATUS "  examples       : ${NAD_BUILD_EXAMPLE}")
+    message(STATUS "  benchmarks     : ${NAD_BUILD_BENCH}")
     message(STATUS "")
 endif ()
