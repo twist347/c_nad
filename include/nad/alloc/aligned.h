@@ -40,12 +40,12 @@
 nad_Al *nad_al_aligned_new(nad_Al *parent, size_t alignment);
 
 /// gives its own two blocks back to the parent
-/// @param al the allocator; null is a no-op
+/// @param self the allocator; null is a no-op
 /// @warning it frees nothing it handed out — every block goes back through nad_dealloc
 ///          first, as with nad_al_default
 /// @bigo{1}
 NAD_API
-void nad_al_aligned_drop(nad_Al *al);
+void nad_al_aligned_drop(nad_Al *self);
 
 /// @}
 

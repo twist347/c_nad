@@ -91,50 +91,50 @@ nad_Al *nad_al_pool_new(nad_Al *parent, size_t block_size, size_t block_count) {
     pool_build_free_list(pool_ctx);
 
     // allocate the nad_Al itself
-    nad_Al *al = nad_alloc(parent, sizeof(nad_Al));
-    if (!al) {
+    nad_Al *obj = nad_alloc(parent, sizeof(nad_Al));
+    if (!obj) {
         nad_dealloc(parent, data, total_bytes);
         nad_dealloc(parent, pool_ctx, sizeof(PoolCtx));
         return nullptr;
     }
 
-    al->ctx = pool_ctx;
-    al->alloc = pool_alloc;
-    al->calloc = pool_calloc;
-    al->realloc = nullptr; // fallback in nad_al
-    al->dealloc = pool_dealloc;
+    obj->ctx = pool_ctx;
+    obj->alloc = pool_alloc;
+    obj->calloc = pool_calloc;
+    obj->realloc = nullptr; // fallback in nad_al
+    obj->dealloc = pool_dealloc;
 
-    return al;
+    return obj;
 }
 
-void nad_al_pool_drop(nad_Al *al) {
-    if (!al) {
+void nad_al_pool_drop(nad_Al *self) {
+    if (!self) {
         return;
     }
 
-    ASSERT_POOL(al);
+    ASSERT_POOL(self);
 
-    PoolCtx *pool_ctx = al->ctx;
+    PoolCtx *pool_ctx = self->ctx;
     nad_Al *parent_al = pool_ctx->parent_al;
     assert(parent_al);
 
     nad_dealloc(parent_al, pool_ctx->data, pool_ctx->block_size * pool_ctx->block_count);
     nad_dealloc(parent_al, pool_ctx, sizeof(PoolCtx));
-    nad_dealloc(parent_al, al, sizeof(nad_Al));
+    nad_dealloc(parent_al, self, sizeof(nad_Al));
 }
 
-void nad_al_pool_reset(nad_Al *al) {
-    ASSERT_POOL(al);
+void nad_al_pool_reset(nad_Al *self) {
+    ASSERT_POOL(self);
 
-    PoolCtx *pool_ctx = al->ctx;
+    PoolCtx *pool_ctx = self->ctx;
     pool_ctx->used = 0;
     pool_build_free_list(pool_ctx);
 }
 
-nad_AlPoolStats nad_al_pool_stats(const nad_Al *al) {
-    ASSERT_POOL(al);
+nad_AlPoolStats nad_al_pool_stats(const nad_Al *self) {
+    ASSERT_POOL(self);
 
-    const PoolCtx *pool_ctx = al->ctx;
+    const PoolCtx *pool_ctx = self->ctx;
 
     return (nad_AlPoolStats){
         .block_size = pool_ctx->block_size,

@@ -37,10 +37,10 @@
 nad_Al *nad_al_pool_new(nad_Al *parent, size_t block_size, size_t block_count);
 
 /// gives the block back to the parent
-/// @param al the pool; null is a no-op
+/// @param self the pool; null is a no-op
 /// @bigo{1}
 NAD_API
-void nad_al_pool_drop(nad_Al *al);
+void nad_al_pool_drop(nad_Al *self);
 
 /// @}
 
@@ -48,11 +48,11 @@ void nad_al_pool_drop(nad_Al *al);
 /// @{
 
 /// takes every block back at once, leaving the pool as new
-/// @param al the pool
+/// @param self the pool
 /// @warning every pointer it ever handed out dies here
 /// @bigo{n} — the free list is threaded again
 NAD_API
-void nad_al_pool_reset(nad_Al *al);
+void nad_al_pool_reset(nad_Al *self);
 
 /// @}
 
@@ -68,11 +68,11 @@ typedef struct {
 } nad_AlPoolStats;
 
 /// what the pool is holding
-/// @param al the pool
+/// @param self the pool
 /// @return the four numbers
 /// @bigo{1}
 [[nodiscard]] NAD_API
-nad_AlPoolStats nad_al_pool_stats(const nad_Al *al);
+nad_AlPoolStats nad_al_pool_stats(const nad_Al *self);
 
 /// @}
 

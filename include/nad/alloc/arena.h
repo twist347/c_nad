@@ -35,10 +35,10 @@
 nad_Al *nad_al_arena_new(nad_Al *parent, size_t cap);
 
 /// gives the block back to the parent
-/// @param al the arena; null is a no-op
+/// @param self the arena; null is a no-op
 /// @bigo{1}
 NAD_API
-void nad_al_arena_drop(nad_Al *al);
+void nad_al_arena_drop(nad_Al *self);
 
 /// @}
 
@@ -46,11 +46,11 @@ void nad_al_arena_drop(nad_Al *al);
 /// @{
 
 /// takes everything back at once, leaving the arena as new
-/// @param al the arena
+/// @param self the arena
 /// @warning every pointer it ever handed out dies here
 /// @bigo{1}
 NAD_API
-void nad_al_arena_reset(nad_Al *al);
+void nad_al_arena_reset(nad_Al *self);
 
 /// @}
 
@@ -65,11 +65,11 @@ typedef struct {
 } nad_AlArenaStats;
 
 /// what the arena is holding
-/// @param al the arena
+/// @param self the arena
 /// @return the three numbers
 /// @bigo{1}
 [[nodiscard]] NAD_API
-nad_AlArenaStats nad_al_arena_stats(const nad_Al *al);
+nad_AlArenaStats nad_al_arena_stats(const nad_Al *self);
 
 /// @}
 

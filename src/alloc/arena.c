@@ -47,8 +47,8 @@ nad_Al *nad_al_arena_new(nad_Al *parent, size_t cap) {
         return nullptr;
     }
 
-    nad_Al *al = nad_alloc(parent, sizeof(nad_Al));
-    if (!al) {
+    nad_Al *obj = nad_alloc(parent, sizeof(nad_Al));
+    if (!obj) {
         nad_dealloc(parent, arena_ctx, sizeof(ArenaCtx));
         nad_dealloc(parent, data, cap);
         return nullptr;
@@ -61,46 +61,46 @@ nad_Al *nad_al_arena_new(nad_Al *parent, size_t cap) {
     arena_ctx->cap = cap;
     arena_ctx->offset = 0;
 
-    al->ctx = arena_ctx;
-    al->alloc = arena_alloc;
-    al->calloc = arena_calloc;
-    al->realloc = nullptr;
-    al->dealloc = arena_dealloc;
+    obj->ctx = arena_ctx;
+    obj->alloc = arena_alloc;
+    obj->calloc = arena_calloc;
+    obj->realloc = nullptr;
+    obj->dealloc = arena_dealloc;
 
-    return al;
+    return obj;
 }
 
-void nad_al_arena_drop(nad_Al *al) {
-    if (!al) {
+void nad_al_arena_drop(nad_Al *self) {
+    if (!self) {
         return;
     }
 
-    ASSERT_ARENA(al);
+    ASSERT_ARENA(self);
 
-    ArenaCtx *arena_ctx = al->ctx;
+    ArenaCtx *arena_ctx = self->ctx;
     nad_Al *parent_al = arena_ctx->parent_al;
     assert(parent_al);
 
     nad_dealloc(parent_al, arena_ctx->data, arena_ctx->cap);
     nad_dealloc(parent_al, arena_ctx, sizeof(ArenaCtx));
-    nad_dealloc(parent_al, al, sizeof(nad_Al));
+    nad_dealloc(parent_al, self, sizeof(nad_Al));
 }
 
 /* ========== mods ========== */
 
-void nad_al_arena_reset(nad_Al *al) {
-    ASSERT_ARENA(al);
+void nad_al_arena_reset(nad_Al *self) {
+    ASSERT_ARENA(self);
 
-    ArenaCtx *arena_ctx = al->ctx;
+    ArenaCtx *arena_ctx = self->ctx;
     arena_ctx->offset = 0;
 }
 
 /* ========== stats ========== */
 
-nad_AlArenaStats nad_al_arena_stats(const nad_Al *al) {
-    ASSERT_ARENA(al);
+nad_AlArenaStats nad_al_arena_stats(const nad_Al *self) {
+    ASSERT_ARENA(self);
 
-    const ArenaCtx *arena_ctx = al->ctx;
+    const ArenaCtx *arena_ctx = self->ctx;
 
     return (nad_AlArenaStats){
         .cap = arena_ctx->cap,

@@ -39,8 +39,8 @@ nad_Al *nad_al_aligned_new(nad_Al *parent, size_t alignment) {
         return nullptr;
     }
 
-    nad_Al *al = nad_alloc(parent, sizeof(nad_Al));
-    if (!al) {
+    nad_Al *obj = nad_alloc(parent, sizeof(nad_Al));
+    if (!obj) {
         nad_dealloc(parent, aligned_ctx, sizeof(AlignedCtx));
         return nullptr;
     }
@@ -48,28 +48,28 @@ nad_Al *nad_al_aligned_new(nad_Al *parent, size_t alignment) {
     aligned_ctx->parent_al = parent;
     aligned_ctx->alignment = alignment;
 
-    al->ctx = aligned_ctx;
-    al->alloc = aligned_alloc_block;
-    al->calloc = nullptr;
-    al->realloc = nullptr;
-    al->dealloc = aligned_dealloc_block;
+    obj->ctx = aligned_ctx;
+    obj->alloc = aligned_alloc_block;
+    obj->calloc = nullptr;
+    obj->realloc = nullptr;
+    obj->dealloc = aligned_dealloc_block;
 
-    return al;
+    return obj;
 }
 
-void nad_al_aligned_drop(nad_Al *al) {
-    if (!al) {
+void nad_al_aligned_drop(nad_Al *self) {
+    if (!self) {
         return;
     }
 
-    ASSERT_ALIGNED(al);
+    ASSERT_ALIGNED(self);
 
-    AlignedCtx *aligned_ctx = al->ctx;
+    AlignedCtx *aligned_ctx = self->ctx;
     nad_Al *parent_al = aligned_ctx->parent_al;
     assert(parent_al);
 
     nad_dealloc(parent_al, aligned_ctx, sizeof(AlignedCtx));
-    nad_dealloc(parent_al, al, sizeof(nad_Al));
+    nad_dealloc(parent_al, self, sizeof(nad_Al));
 }
 
 /* ========== internals ========== */

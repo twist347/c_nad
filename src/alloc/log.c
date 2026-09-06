@@ -43,17 +43,17 @@ nad_Al *nad_al_log_new(nad_Al *wrapped, FILE *stream) {
     log_ctx->wrapped = wrapped;
     log_ctx->stream = stream;
 
-    nad_Al *alloc = nad_alloc(wrapped, sizeof(nad_Al));
-    if (!alloc) {
+    nad_Al *obj = nad_alloc(wrapped, sizeof(nad_Al));
+    if (!obj) {
         nad_dealloc(wrapped, log_ctx, sizeof(LogCtx));
         return nullptr;
     }
 
-    alloc->ctx = log_ctx;
-    alloc->alloc = log_alloc;
-    alloc->calloc = log_calloc;
-    alloc->realloc = log_realloc;
-    alloc->dealloc = log_dealloc;
+    obj->ctx = log_ctx;
+    obj->alloc = log_alloc;
+    obj->calloc = log_calloc;
+    obj->realloc = log_realloc;
+    obj->dealloc = log_dealloc;
 
     fprintf(
         log_ctx->stream,
@@ -61,7 +61,7 @@ nad_Al *nad_al_log_new(nad_Al *wrapped, FILE *stream) {
         (void *) wrapped
     );
 
-    return alloc;
+    return obj;
 }
 
 void nad_al_log_drop(nad_Al *self) {
@@ -83,8 +83,8 @@ void nad_al_log_drop(nad_Al *self) {
     nad_Al *wrapped = log_ctx->wrapped;
     assert(wrapped);
 
-    nad_dealloc(wrapped, self, sizeof(nad_Al));
     nad_dealloc(wrapped, log_ctx, sizeof(LogCtx));
+    nad_dealloc(wrapped, self, sizeof(nad_Al));
 }
 
 /* ========== internals ========== */
