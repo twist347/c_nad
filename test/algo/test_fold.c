@@ -93,7 +93,7 @@ static void test_fold_sums_into_a_wider_accumulator() {
     constexpr int32_t buf[4] = {1, 2, 3, 4};
     int64_t acc = 0;
 
-    nad_span_fold(NAD_SPAN_NEW(int32_t, buf, 4), &acc, sum_i32_into_i64, nullptr);
+    nad_span_fold(NAD_SPAN_FROM_DATA(int32_t, buf, 4), &acc, sum_i32_into_i64, nullptr);
 
     TEST_ASSERT_EQUAL_INT64(10, acc);
 }
@@ -103,7 +103,7 @@ static void test_fold_accumulator_type_is_the_callers() {
     constexpr int32_t buf[3] = {2000000000, 2000000000, 2000000000};
     int64_t acc = 0;
 
-    nad_span_fold(NAD_SPAN_NEW(int32_t, buf, 3), &acc, sum_i32_into_i64, nullptr);
+    nad_span_fold(NAD_SPAN_FROM_DATA(int32_t, buf, 3), &acc, sum_i32_into_i64, nullptr);
 
     TEST_ASSERT_EQUAL_INT64(6000000000LL, acc);
 }
@@ -114,8 +114,8 @@ static void test_fold_of_an_empty_span_keeps_the_seed() {
     int64_t sum = 42;
     int32_t product = 7;
 
-    nad_span_fold(NAD_SPAN_NEW(int32_t, nullptr, 0), &sum, sum_i32_into_i64, nullptr);
-    nad_span_fold(NAD_SPAN_NEW(int32_t, nullptr, 0), &product, product_i32, nullptr);
+    nad_span_fold(NAD_SPAN_FROM_DATA(int32_t, nullptr, 0), &sum, sum_i32_into_i64, nullptr);
+    nad_span_fold(NAD_SPAN_FROM_DATA(int32_t, nullptr, 0), &product, product_i32, nullptr);
 
     TEST_ASSERT_EQUAL_INT64(42, sum);
     TEST_ASSERT_EQUAL_INT32(7, product);
@@ -125,7 +125,7 @@ static void test_fold_starts_from_the_seed() {
     constexpr int32_t buf[3] = {1, 2, 3};
     int64_t acc = 100;
 
-    nad_span_fold(NAD_SPAN_NEW(int32_t, buf, 3), &acc, sum_i32_into_i64, nullptr);
+    nad_span_fold(NAD_SPAN_FROM_DATA(int32_t, buf, 3), &acc, sum_i32_into_i64, nullptr);
 
     TEST_ASSERT_EQUAL_INT64(106, acc);
 }
@@ -134,7 +134,7 @@ static void test_fold_walks_front_to_back() {
     constexpr int32_t buf[4] = {1, 2, 3, 4};
     char acc[8] = "";
 
-    nad_span_fold(NAD_SPAN_NEW(int32_t, buf, 4), acc, append_digit, nullptr);
+    nad_span_fold(NAD_SPAN_FROM_DATA(int32_t, buf, 4), acc, append_digit, nullptr);
 
     TEST_ASSERT_EQUAL_STRING("1234", acc);
 }
@@ -144,7 +144,7 @@ static void test_fold_passes_the_ctx_through() {
     int32_t bound = 2;
     size_t acc = 0;
 
-    nad_span_fold(NAD_SPAN_NEW(int32_t, buf, 5), &acc, count_above, &bound);
+    nad_span_fold(NAD_SPAN_FROM_DATA(int32_t, buf, 5), &acc, count_above, &bound);
 
     TEST_ASSERT_EQUAL_size_t(3, acc);
 }
@@ -153,51 +153,51 @@ static void test_fold_sees_whole_elems() {
     constexpr Pair buf[3] = {{1, 100}, {2, 200}, {3, 300}};
     int64_t acc = 0;
 
-    nad_span_fold(NAD_SPAN_NEW(Pair, buf, 3), &acc, sum_pair_a, nullptr);
+    nad_span_fold(NAD_SPAN_FROM_DATA(Pair, buf, 3), &acc, sum_pair_a, nullptr);
 
     TEST_ASSERT_EQUAL_INT64(6, acc);
 }
 
-/* ========== rfold ========== */
+/* ========== fold_back ========== */
 
-static void test_rfold_walks_back_to_front() {
+static void test_fold_back_walks_back_to_front() {
     constexpr int32_t buf[4] = {1, 2, 3, 4};
     char acc[8] = "";
 
-    nad_span_rfold(NAD_SPAN_NEW(int32_t, buf, 4), acc, append_digit, nullptr);
+    nad_span_fold_back(NAD_SPAN_FROM_DATA(int32_t, buf, 4), acc, append_digit, nullptr);
 
     TEST_ASSERT_EQUAL_STRING("4321", acc);
 }
 
 // with an associative operation the direction cannot be observed...
-static void test_rfold_agrees_with_fold_when_associative() {
+static void test_fold_back_agrees_with_fold_when_associative() {
     constexpr int32_t buf[4] = {1, 2, 3, 4};
     int64_t left = 0;
     int64_t right = 0;
 
-    nad_span_fold(NAD_SPAN_NEW(int32_t, buf, 4), &left, sum_i32_into_i64, nullptr);
-    nad_span_rfold(NAD_SPAN_NEW(int32_t, buf, 4), &right, sum_i32_into_i64, nullptr);
+    nad_span_fold(NAD_SPAN_FROM_DATA(int32_t, buf, 4), &left, sum_i32_into_i64, nullptr);
+    nad_span_fold_back(NAD_SPAN_FROM_DATA(int32_t, buf, 4), &right, sum_i32_into_i64, nullptr);
 
     TEST_ASSERT_EQUAL_INT64(left, right);
 }
 
 // ...and with an order-sensitive one it decides the answer
-static void test_rfold_differs_from_fold_when_order_matters() {
+static void test_fold_back_differs_from_fold_when_order_matters() {
     constexpr int32_t buf[4] = {1, 2, 3, 4};
     int32_t left = 0;
     int32_t right = 0;
 
-    nad_span_fold(NAD_SPAN_NEW(int32_t, buf, 4), &left, horner_i32, nullptr);
-    nad_span_rfold(NAD_SPAN_NEW(int32_t, buf, 4), &right, horner_i32, nullptr);
+    nad_span_fold(NAD_SPAN_FROM_DATA(int32_t, buf, 4), &left, horner_i32, nullptr);
+    nad_span_fold_back(NAD_SPAN_FROM_DATA(int32_t, buf, 4), &right, horner_i32, nullptr);
 
     TEST_ASSERT_EQUAL_INT32(1234, left);
     TEST_ASSERT_EQUAL_INT32(4321, right);
 }
 
-static void test_rfold_of_an_empty_span_keeps_the_seed() {
+static void test_fold_back_of_an_empty_span_keeps_the_seed() {
     int64_t acc = 5;
 
-    nad_span_rfold(NAD_SPAN_NEW(int32_t, nullptr, 0), &acc, sum_i32_into_i64, nullptr);
+    nad_span_fold_back(NAD_SPAN_FROM_DATA(int32_t, nullptr, 0), &acc, sum_i32_into_i64, nullptr);
 
     TEST_ASSERT_EQUAL_INT64(5, acc);
 }
@@ -208,8 +208,12 @@ static void test_partial_sum_keeps_running_totals() {
     constexpr int32_t src[5] = {1, 2, 3, 4, 5};
     int32_t dst[5] = {0};
 
-    nad_span_partial_sum(NAD_SPAN_NEW_MUT(int32_t, dst, 5), NAD_SPAN_NEW(int32_t, src, 5),
-                         add_i32, nullptr);
+    nad_span_partial_sum(
+        NAD_SPAN_FROM_DATA_MUT(int32_t, dst, 5),
+        NAD_SPAN_FROM_DATA(int32_t, src, 5),
+        add_i32,
+        nullptr
+    );
 
     constexpr int32_t want[5] = {1, 3, 6, 10, 15};
     TEST_ASSERT_EQUAL_INT32_ARRAY(want, dst, 5);
@@ -220,15 +224,23 @@ static void test_partial_sum_copies_the_first_elem() {
     constexpr int32_t src[1] = {7};
     int32_t dst[1] = {0};
 
-    nad_span_partial_sum(NAD_SPAN_NEW_MUT(int32_t, dst, 1), NAD_SPAN_NEW(int32_t, src, 1),
-                         add_i32, nullptr);
+    nad_span_partial_sum(
+        NAD_SPAN_FROM_DATA_MUT(int32_t, dst, 1),
+        NAD_SPAN_FROM_DATA(int32_t, src, 1),
+        add_i32,
+        nullptr
+    );
 
     TEST_ASSERT_EQUAL_INT32(7, dst[0]);
 }
 
 static void test_partial_sum_of_an_empty_span_writes_nothing() {
-    nad_span_partial_sum(NAD_SPAN_NEW_MUT(int32_t, nullptr, 0), NAD_SPAN_NEW(int32_t, nullptr, 0),
-                         add_i32, nullptr);
+    nad_span_partial_sum(
+        NAD_SPAN_FROM_DATA_MUT(int32_t, nullptr, 0),
+        NAD_SPAN_FROM_DATA(int32_t, nullptr, 0),
+        add_i32,
+        nullptr
+    );
 }
 
 static void test_partial_sum_passes_the_ctx_through() {
@@ -236,8 +248,12 @@ static void test_partial_sum_passes_the_ctx_through() {
     int32_t dst[5] = {0};
     int32_t cap = 7;
 
-    nad_span_partial_sum(NAD_SPAN_NEW_MUT(int32_t, dst, 5), NAD_SPAN_NEW(int32_t, src, 5),
-                         add_capped, &cap);
+    nad_span_partial_sum(
+        NAD_SPAN_FROM_DATA_MUT(int32_t, dst, 5),
+        NAD_SPAN_FROM_DATA(int32_t, src, 5),
+        add_capped,
+        &cap
+    );
 
     constexpr int32_t want[5] = {1, 3, 6, 7, 7};
     TEST_ASSERT_EQUAL_INT32_ARRAY(want, dst, 5);
@@ -248,8 +264,12 @@ static void test_partial_sum_feeds_on_its_own_output() {
     constexpr int32_t src[4] = {1, 1, 1, 1};
     int32_t dst[4] = {0};
 
-    nad_span_partial_sum(NAD_SPAN_NEW_MUT(int32_t, dst, 4), NAD_SPAN_NEW(int32_t, src, 4),
-                         add_i32, nullptr);
+    nad_span_partial_sum(
+        NAD_SPAN_FROM_DATA_MUT(int32_t, dst, 4),
+        NAD_SPAN_FROM_DATA(int32_t, src, 4),
+        add_i32,
+        nullptr
+    );
 
     constexpr int32_t want[4] = {1, 2, 3, 4};
     TEST_ASSERT_EQUAL_INT32_ARRAY(want, dst, 4);
@@ -259,8 +279,7 @@ static void test_partial_sum_combines_whole_elems() {
     constexpr Pair src[3] = {{1, 10}, {2, 20}, {3, 30}};
     Pair dst[3] = {0};
 
-    nad_span_partial_sum(NAD_SPAN_NEW_MUT(Pair, dst, 3), NAD_SPAN_NEW(Pair, src, 3),
-                         add_pairs, nullptr);
+    nad_span_partial_sum(NAD_SPAN_FROM_DATA_MUT(Pair, dst, 3), NAD_SPAN_FROM_DATA(Pair, src, 3), add_pairs, nullptr);
 
     TEST_ASSERT_EQUAL_INT64(6, dst[2].a);
     TEST_ASSERT_EQUAL_INT64(60, dst[2].b);
@@ -272,8 +291,12 @@ static void test_adjacent_difference_reports_the_steps() {
     constexpr int32_t src[5] = {1, 3, 6, 10, 15};
     int32_t dst[5] = {0};
 
-    nad_span_adjacent_difference(NAD_SPAN_NEW_MUT(int32_t, dst, 5), NAD_SPAN_NEW(int32_t, src, 5),
-                                 sub_i32, nullptr);
+    nad_span_adjacent_difference(
+        NAD_SPAN_FROM_DATA_MUT(int32_t, dst, 5),
+        NAD_SPAN_FROM_DATA(int32_t, src, 5),
+        sub_i32,
+        nullptr
+    );
 
     constexpr int32_t want[5] = {1, 2, 3, 4, 5};
     TEST_ASSERT_EQUAL_INT32_ARRAY(want, dst, 5);
@@ -284,8 +307,12 @@ static void test_adjacent_difference_reads_only_the_source() {
     constexpr int32_t src[4] = {5, 5, 5, 5};
     int32_t dst[4] = {9, 9, 9, 9};
 
-    nad_span_adjacent_difference(NAD_SPAN_NEW_MUT(int32_t, dst, 4), NAD_SPAN_NEW(int32_t, src, 4),
-                                 sub_i32, nullptr);
+    nad_span_adjacent_difference(
+        NAD_SPAN_FROM_DATA_MUT(int32_t, dst, 4),
+        NAD_SPAN_FROM_DATA(int32_t, src, 4),
+        sub_i32,
+        nullptr
+    );
 
     constexpr int32_t want[4] = {5, 0, 0, 0};
     TEST_ASSERT_EQUAL_INT32_ARRAY(want, dst, 4);
@@ -295,12 +322,20 @@ static void test_adjacent_difference_of_short_spans() {
     constexpr int32_t src[1] = {7};
     int32_t dst[1] = {0};
 
-    nad_span_adjacent_difference(NAD_SPAN_NEW_MUT(int32_t, dst, 1), NAD_SPAN_NEW(int32_t, src, 1),
-                                 sub_i32, nullptr);
+    nad_span_adjacent_difference(
+        NAD_SPAN_FROM_DATA_MUT(int32_t, dst, 1),
+        NAD_SPAN_FROM_DATA(int32_t, src, 1),
+        sub_i32,
+        nullptr
+    );
     TEST_ASSERT_EQUAL_INT32(7, dst[0]);
 
-    nad_span_adjacent_difference(NAD_SPAN_NEW_MUT(int32_t, nullptr, 0),
-                                 NAD_SPAN_NEW(int32_t, nullptr, 0), sub_i32, nullptr);
+    nad_span_adjacent_difference(
+        NAD_SPAN_FROM_DATA_MUT(int32_t, nullptr, 0),
+        NAD_SPAN_FROM_DATA(int32_t, nullptr, 0),
+        sub_i32,
+        nullptr
+    );
 }
 
 // the two are inverses: differencing a scan gives the original back
@@ -309,10 +344,18 @@ static void test_adjacent_difference_undoes_partial_sum() {
     int32_t scanned[6] = {0};
     int32_t back[6] = {0};
 
-    nad_span_partial_sum(NAD_SPAN_NEW_MUT(int32_t, scanned, 6), NAD_SPAN_NEW(int32_t, src, 6),
-                         add_i32, nullptr);
-    nad_span_adjacent_difference(NAD_SPAN_NEW_MUT(int32_t, back, 6),
-                                 NAD_SPAN_NEW(int32_t, scanned, 6), sub_i32, nullptr);
+    nad_span_partial_sum(
+        NAD_SPAN_FROM_DATA_MUT(int32_t, scanned, 6),
+        NAD_SPAN_FROM_DATA(int32_t, src, 6),
+        add_i32,
+        nullptr
+    );
+    nad_span_adjacent_difference(
+        NAD_SPAN_FROM_DATA_MUT(int32_t, back, 6),
+        NAD_SPAN_FROM_DATA(int32_t, scanned, 6),
+        sub_i32,
+        nullptr
+    );
 
     TEST_ASSERT_EQUAL_INT32_ARRAY(src, back, 6);
 }
@@ -328,10 +371,10 @@ int main() {
     RUN_TEST(test_fold_passes_the_ctx_through);
     RUN_TEST(test_fold_sees_whole_elems);
 
-    RUN_TEST(test_rfold_walks_back_to_front);
-    RUN_TEST(test_rfold_agrees_with_fold_when_associative);
-    RUN_TEST(test_rfold_differs_from_fold_when_order_matters);
-    RUN_TEST(test_rfold_of_an_empty_span_keeps_the_seed);
+    RUN_TEST(test_fold_back_walks_back_to_front);
+    RUN_TEST(test_fold_back_agrees_with_fold_when_associative);
+    RUN_TEST(test_fold_back_differs_from_fold_when_order_matters);
+    RUN_TEST(test_fold_back_of_an_empty_span_keeps_the_seed);
 
     RUN_TEST(test_partial_sum_keeps_running_totals);
     RUN_TEST(test_partial_sum_copies_the_first_elem);

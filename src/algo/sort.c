@@ -81,7 +81,7 @@ nad_Status nad_span_sort_stable(nad_SpanMut s, nad_Cmp cmp, nad_Al *al) {
     }
 
     nad_SpanMut src = s;
-    nad_SpanMut dst = nad_span_new_mut(buf, s.len, s.elem_size);
+    nad_SpanMut dst = nad_span_from_data_mut(buf, s.len, s.elem_size);
 
     // bottom-up merge sort: merge runs of width 1, 2, 4, ...
     for (size_t width = 1; width < s.len; width *= 2) {
@@ -171,6 +171,9 @@ bool nad_span_is_sorted(nad_Span s, nad_Cmp cmp) {
 }
 
 size_t nad_span_is_sorted_until(nad_Span s, nad_Cmp cmp) {
+    NAD_SPAN_ASSERT(s);
+    assert(cmp);
+
     for (size_t i = 1; i < s.len; ++i) {
         const void *prev = nad_span_get(s, i - 1);
         const void *cur = nad_span_get(s, i);

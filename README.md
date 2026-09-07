@@ -13,6 +13,10 @@ Two rules shape the whole API:
   result through a trailing `out`; `[[nodiscard]]` makes ignoring it a compile error.
   Broken preconditions are `assert`, not status — those are bugs, not runtime states.
 
+The rest of them — how a name is built, where the `mut` marker sits, what is an `assert`
+and what a status — are written down in [conventions](docs/conventions.md), each with the
+reason it is what it is.
+
 ## What it does not do
 
 - **Elems are bytes.** A container copies `elem_size` bytes in and out, and drops them by
@@ -97,10 +101,10 @@ uses stays the better habit.
 | `heap.h` | make_heap, push_heap, pop_heap, sort_heap and the is_heap checks |
 | `permute.h` | reverse, rotate, swap_ranges, shuffle and shuffle_prefix, the partition family and stepping through permutations |
 | `modify.h` | remove, remove_if and unique, which return the new length; replace and replace_if, which write in place |
-| `copy.h` | copy, copy_if, copy_within |
+| `copy.h` | copy, copy_if, copy_overlapping |
 | `fill.h` | fill, fill_zero, generate |
-| `fold.h` | fold, rfold, partial_sum, adjacent_difference |
-| `transform.h` | transform and zip |
+| `fold.h` | fold, fold_back, partial_sum, adjacent_difference |
+| `transform.h` | transform and zip_with |
 | `compare.h` | cmp, eq, eq_by, mismatch |
 | `merge.h` | merge and inplace_merge |
 | `set.h` | union, intersection, difference, symmetric difference and includes, over sorted spans |

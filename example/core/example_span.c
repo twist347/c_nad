@@ -12,7 +12,7 @@ int main() {
     /// [build]
     // a view borrows: the elems live in 'nums', the span only says where and how many
     int32_t nums[] = {5, 3, 1, 4, 2};
-    const nad_SpanMut s = NAD_SPAN_NEW_MUT(int32_t, nums, 5);
+    const nad_SpanMut s = NAD_SPAN_FROM_DATA_MUT(int32_t, nums, 5);
 
     // the fields are public — a view owns nothing, so it has no invariant to protect
     printf("%zu elems of %zu bytes, %zu in all\n", s.len, s.elem_size,

@@ -144,8 +144,8 @@ static void test_swap_exchanges_through_dereferenced_pointers() {
 // a view is a struct of three fields; swapping must move all of them, not just data
 static void test_swap_exchanges_whole_spans() {
     int32_t buf[4] = {1, 2, 3, 4};
-    nad_Span a = NAD_SPAN_NEW(int32_t, buf, 4);
-    nad_Span b = nad_span_new(nullptr, 0, sizeof(Pair));
+    nad_Span a = NAD_SPAN_FROM_DATA(int32_t, buf, 4);
+    nad_Span b = nad_span_from_data(nullptr, 0, sizeof(Pair));
 
     NAD_SWAP(a, b);
 

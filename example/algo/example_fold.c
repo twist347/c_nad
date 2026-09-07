@@ -42,14 +42,14 @@ int main() {
 
     // a scan keeps what a fold throws away
     int32_t buf[4];
-    const nad_SpanMut running = NAD_SPAN_NEW_MUT(int32_t, buf, 4);
+    const nad_SpanMut running = NAD_SPAN_FROM_DATA_MUT(int32_t, buf, 4);
 
     nad_span_partial_sum(running, s, add, nullptr);
     nad_span_mut_print(running, nad_fprint_i32); // [1, 3, 6, 10]
 
     // and undoes it, given the inverse op
     int32_t back[4];
-    const nad_SpanMut steps = NAD_SPAN_NEW_MUT(int32_t, back, 4);
+    const nad_SpanMut steps = NAD_SPAN_FROM_DATA_MUT(int32_t, back, 4);
 
     nad_span_adjacent_difference(steps, nad_span_mut_to_span(running), sub, nullptr);
     nad_span_mut_print(steps, nad_fprint_i32); // [1, 2, 3, 4] — back to where it started

@@ -27,7 +27,7 @@ static int cmp_pair_a(const void *lhs, const void *rhs) {
 static constexpr int32_t UNTOUCHED = 0x7f7f7f7f;
 
 static nad_Span span_of(const int32_t *v, size_t n) {
-    return nad_span_new(v, n, sizeof(int32_t));
+    return nad_span_from_data(v, n, sizeof(int32_t));
 }
 
 // runs 'op' into a dst prefilled with UNTOUCHED and checks three things at once: the
@@ -46,7 +46,12 @@ static void assert_writes(
         dst[i] = UNTOUCHED;
     }
 
-    const size_t got = op(nad_span_new_mut(dst, cap, sizeof(int32_t)), span_of(a, an), span_of(b, bn), nad_cmp_i32);
+    const size_t got = op(
+        nad_span_from_data_mut(dst, cap, sizeof(int32_t)),
+        span_of(a, an),
+        span_of(b, bn),
+        nad_cmp_i32
+    );
 
     TEST_ASSERT_EQUAL_size_t(wn, got);
 
@@ -67,24 +72,24 @@ static void assert_writes(
 /* ========== union ========== */
 
 static void test_union_keeps_the_greater_count_of_equal_elems() {
-    const int32_t a[] = {1, 2, 2, 2, 5};
-    const int32_t b[] = {2, 2, 3};
-    const int32_t want[] = {1, 2, 2, 2, 3, 5};
+    constexpr int32_t a[] = {1, 2, 2, 2, 5};
+    constexpr int32_t b[] = {2, 2, 3};
+    constexpr int32_t want[] = {1, 2, 2, 2, 3, 5};
 
     assert_writes(nad_span_set_union, a, 5, b, 3, want, 6, 8);
 }
 
 static void test_union_of_disjoint_spans_is_everything() {
-    const int32_t a[] = {1, 3, 5};
-    const int32_t b[] = {2, 4, 6};
-    const int32_t want[] = {1, 2, 3, 4, 5, 6};
+    constexpr int32_t a[] = {1, 3, 5};
+    constexpr int32_t b[] = {2, 4, 6};
+    constexpr int32_t want[] = {1, 2, 3, 4, 5, 6};
 
     assert_writes(nad_span_set_union, a, 3, b, 3, want, 6, 6);
 }
 
 static void test_union_with_an_empty_span_is_the_other_one() {
-    const int32_t a[] = {1, 2, 3};
-    const int32_t want[] = {1, 2, 3};
+    constexpr int32_t a[] = {1, 2, 3};
+    constexpr int32_t want[] = {1, 2, 3};
 
     assert_writes(nad_span_set_union, a, 3, nullptr, 0, want, 3, 3);
     assert_writes(nad_span_set_union, nullptr, 0, a, 3, want, 3, 3);
@@ -97,22 +102,22 @@ static void test_union_of_two_empty_spans_writes_nothing() {
 /* ========== intersection ========== */
 
 static void test_intersection_takes_the_lesser_count() {
-    const int32_t a[] = {1, 2, 2, 2, 5};
-    const int32_t b[] = {2, 2, 3};
-    const int32_t want[] = {2, 2};
+    constexpr int32_t a[] = {1, 2, 2, 2, 5};
+    constexpr int32_t b[] = {2, 2, 3};
+    constexpr int32_t want[] = {2, 2};
 
     assert_writes(nad_span_set_intersection, a, 5, b, 3, want, 2, 3);
 }
 
 static void test_intersection_of_disjoint_spans_is_empty() {
-    const int32_t a[] = {1, 3, 5};
-    const int32_t b[] = {2, 4, 6};
+    constexpr int32_t a[] = {1, 3, 5};
+    constexpr int32_t b[] = {2, 4, 6};
 
     assert_writes(nad_span_set_intersection, a, 3, b, 3, nullptr, 0, 3);
 }
 
 static void test_intersection_with_an_empty_span_is_empty() {
-    const int32_t a[] = {1, 2, 3};
+    constexpr int32_t a[] = {1, 2, 3};
 
     assert_writes(nad_span_set_intersection, a, 3, nullptr, 0, nullptr, 0, 0);
     assert_writes(nad_span_set_intersection, nullptr, 0, a, 3, nullptr, 0, 0);
@@ -122,14 +127,14 @@ static void test_intersection_with_an_empty_span_is_empty() {
 // a decision, not an accident. On plain int32_t both choices look the same — the payload
 // is the witness, the same way it is for equal keys in a heap
 static void test_intersection_takes_its_elems_from_the_first_span() {
-    const Pair a[] = {{.a = 1, .b = 10}, {.a = 2, .b = 20}};
-    const Pair b[] = {{.a = 1, .b = 99}, {.a = 2, .b = 98}};
+    constexpr Pair a[] = {{.a = 1, .b = 10}, {.a = 2, .b = 20}};
+    constexpr Pair b[] = {{.a = 1, .b = 99}, {.a = 2, .b = 98}};
     Pair dst[2] = {};
 
     const size_t got = nad_span_set_intersection(
-        nad_span_new_mut(dst, 2, sizeof(Pair)),
-        nad_span_new(a, 2, sizeof(Pair)),
-        nad_span_new(b, 2, sizeof(Pair)),
+        nad_span_from_data_mut(dst, 2, sizeof(Pair)),
+        nad_span_from_data(a, 2, sizeof(Pair)),
+        nad_span_from_data(b, 2, sizeof(Pair)),
         cmp_pair_a
     );
 
@@ -141,9 +146,9 @@ static void test_intersection_takes_its_elems_from_the_first_span() {
 /* ========== difference ========== */
 
 static void test_difference_spends_one_copy_per_copy() {
-    const int32_t a[] = {1, 2, 2, 2, 5};
-    const int32_t b[] = {2, 2, 3};
-    const int32_t want[] = {1, 2, 5};
+    constexpr int32_t a[] = {1, 2, 2, 2, 5};
+    constexpr int32_t b[] = {2, 2, 3};
+    constexpr int32_t want[] = {1, 2, 5};
 
     assert_writes(nad_span_set_difference, a, 5, b, 3, want, 3, 5);
 }
@@ -151,22 +156,22 @@ static void test_difference_spends_one_copy_per_copy() {
 // elems that only 'b' has cancel nothing — the result is never longer than 'a', but what
 // is left over in 'b' must not shorten it either
 static void test_difference_ignores_what_only_the_second_span_has() {
-    const int32_t a[] = {1, 2};
-    const int32_t b[] = {3, 4, 5, 6};
-    const int32_t want[] = {1, 2};
+    constexpr int32_t a[] = {1, 2};
+    constexpr int32_t b[] = {3, 4, 5, 6};
+    constexpr int32_t want[] = {1, 2};
 
     assert_writes(nad_span_set_difference, a, 2, b, 4, want, 2, 2);
 }
 
 static void test_difference_from_an_equal_span_is_empty() {
-    const int32_t a[] = {1, 2, 3};
+    constexpr int32_t a[] = {1, 2, 3};
 
     assert_writes(nad_span_set_difference, a, 3, a, 3, nullptr, 0, 3);
 }
 
 static void test_difference_with_an_empty_second_span_is_the_first() {
-    const int32_t a[] = {1, 2, 3};
-    const int32_t want[] = {1, 2, 3};
+    constexpr int32_t a[] = {1, 2, 3};
+    constexpr int32_t want[] = {1, 2, 3};
 
     assert_writes(nad_span_set_difference, a, 3, nullptr, 0, want, 3, 3);
 }
@@ -174,32 +179,32 @@ static void test_difference_with_an_empty_second_span_is_the_first() {
 /* ========== symmetric difference ========== */
 
 static void test_symmetric_difference_keeps_the_surplus() {
-    const int32_t a[] = {1, 2, 2, 2, 5};
-    const int32_t b[] = {2, 2, 3};
-    const int32_t want[] = {1, 2, 3, 5};
+    constexpr int32_t a[] = {1, 2, 2, 2, 5};
+    constexpr int32_t b[] = {2, 2, 3};
+    constexpr int32_t want[] = {1, 2, 3, 5};
 
     assert_writes(nad_span_set_symmetric_difference, a, 5, b, 3, want, 4, 8);
 }
 
 // the surplus is taken from whichever side has more, so it is not always 'a'
 static void test_symmetric_difference_takes_the_surplus_from_either_side() {
-    const int32_t a[] = {7};
-    const int32_t b[] = {7, 7, 7};
-    const int32_t want[] = {7, 7};
+    constexpr int32_t a[] = {7};
+    constexpr int32_t b[] = {7, 7, 7};
+    constexpr int32_t want[] = {7, 7};
 
     assert_writes(nad_span_set_symmetric_difference, a, 1, b, 3, want, 2, 4);
 }
 
 static void test_symmetric_difference_of_equal_spans_is_empty() {
-    const int32_t a[] = {1, 2, 3};
+    constexpr int32_t a[] = {1, 2, 3};
 
     assert_writes(nad_span_set_symmetric_difference, a, 3, a, 3, nullptr, 0, 6);
 }
 
 static void test_symmetric_difference_of_disjoint_spans_is_everything() {
-    const int32_t a[] = {1, 3};
-    const int32_t b[] = {2, 4};
-    const int32_t want[] = {1, 2, 3, 4};
+    constexpr int32_t a[] = {1, 3};
+    constexpr int32_t b[] = {2, 4};
+    constexpr int32_t want[] = {1, 2, 3, 4};
 
     assert_writes(nad_span_set_symmetric_difference, a, 2, b, 2, want, 4, 4);
 }
@@ -207,46 +212,46 @@ static void test_symmetric_difference_of_disjoint_spans_is_everything() {
 /* ========== includes ========== */
 
 static void test_includes_accepts_a_subset() {
-    const int32_t sup[] = {1, 2, 3, 4, 5};
-    const int32_t sub[] = {2, 4};
+    constexpr int32_t sup[] = {1, 2, 3, 4, 5};
+    constexpr int32_t sub[] = {2, 4};
 
     TEST_ASSERT_TRUE(nad_span_includes(span_of(sup, 5), span_of(sub, 2), nad_cmp_i32));
 }
 
 static void test_includes_rejects_a_missing_elem() {
-    const int32_t sup[] = {1, 2, 3};
-    const int32_t sub[] = {2, 9};
+    constexpr int32_t sup[] = {1, 2, 3};
+    constexpr int32_t sub[] = {2, 9};
 
     TEST_ASSERT_FALSE(nad_span_includes(span_of(sup, 3), span_of(sub, 2), nad_cmp_i32));
 }
 
 // a duplicate needs a duplicate: two copies are not accounted for by one
 static void test_includes_counts_duplicates() {
-    const int32_t sup[] = {1, 2, 2, 3};
-    const int32_t two[] = {2, 2};
-    const int32_t three[] = {2, 2, 2};
+    constexpr int32_t sup[] = {1, 2, 2, 3};
+    constexpr int32_t two[] = {2, 2};
+    constexpr int32_t three[] = {2, 2, 2};
 
     TEST_ASSERT_TRUE(nad_span_includes(span_of(sup, 4), span_of(two, 2), nad_cmp_i32));
     TEST_ASSERT_FALSE(nad_span_includes(span_of(sup, 4), span_of(three, 3), nad_cmp_i32));
 }
 
 static void test_includes_of_an_empty_sub_is_true() {
-    const int32_t sup[] = {1, 2, 3};
+    constexpr int32_t sup[] = {1, 2, 3};
 
     TEST_ASSERT_TRUE(nad_span_includes(span_of(sup, 3), span_of(nullptr, 0), nad_cmp_i32));
     TEST_ASSERT_TRUE(nad_span_includes(span_of(nullptr, 0), span_of(nullptr, 0), nad_cmp_i32));
 }
 
 static void test_includes_rejects_anything_from_an_empty_sup() {
-    const int32_t sub[] = {1};
+    constexpr int32_t sub[] = {1};
 
     TEST_ASSERT_FALSE(nad_span_includes(span_of(nullptr, 0), span_of(sub, 1), nad_cmp_i32));
 }
 
 // the last elem of 'sub' has to be reached without walking off 'sup'
 static void test_includes_rejects_a_sub_that_runs_past_the_end() {
-    const int32_t sup[] = {1, 2};
-    const int32_t sub[] = {1, 2, 3};
+    constexpr int32_t sup[] = {1, 2};
+    constexpr int32_t sub[] = {1, 2, 3};
 
     TEST_ASSERT_FALSE(nad_span_includes(span_of(sup, 2), span_of(sub, 3), nad_cmp_i32));
 }

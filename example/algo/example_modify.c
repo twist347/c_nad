@@ -20,8 +20,7 @@ int main() {
 
     // only adjacent elems are compared, so this leaves a set only over a sorted span
 
-    const size_t left = nad_span_remove(nad_span_sub_mut(s, 0, kept), &(int32_t){2},
-                                        nad_eq_i32);
+    const size_t left = nad_span_remove(nad_span_sub_mut(s, 0, kept), &(int32_t){2}, nad_eq_i32);
     printf("%zu left, ", left);
     nad_span_mut_print(nad_span_sub_mut(s, 0, left), nad_fprint_i32); // 2 left, [1, 3]
 

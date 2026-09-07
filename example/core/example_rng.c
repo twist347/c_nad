@@ -40,7 +40,7 @@ int main() {
 
     /// [span]
     int32_t rolls[12];
-    nad_SpanMut all = NAD_SPAN_NEW_MUT(int32_t, rolls, 12);
+    const nad_SpanMut all = NAD_SPAN_FROM_DATA_MUT(int32_t, rolls, 12);
 
     // filling and shuffling are algo's, and each takes the generator the way sort takes
     // a comparator

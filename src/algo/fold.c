@@ -15,7 +15,7 @@ void nad_span_fold(nad_Span s, void *acc, nad_Fold fold, void *ctx) {
     }
 }
 
-void nad_span_rfold(nad_Span s, void *acc, nad_Fold fold, void *ctx) {
+void nad_span_fold_back(nad_Span s, void *acc, nad_Fold fold, void *ctx) {
     NAD_SPAN_ASSERT(s);
     assert(acc);
     assert(fold);

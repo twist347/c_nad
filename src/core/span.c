@@ -7,7 +7,7 @@
 
 /* ========== construction ========== */
 
-nad_Span nad_span_new(const void *data, size_t len, size_t elem_size) {
+nad_Span nad_span_from_data(const void *data, size_t len, size_t elem_size) {
     assert(data || len == 0);
     assert(elem_size > 0);
 
@@ -18,7 +18,7 @@ nad_Span nad_span_new(const void *data, size_t len, size_t elem_size) {
     };
 }
 
-nad_SpanMut nad_span_new_mut(void *data, size_t len, size_t elem_size) {
+nad_SpanMut nad_span_from_data_mut(void *data, size_t len, size_t elem_size) {
     assert(data || len == 0);
     assert(elem_size > 0);
 

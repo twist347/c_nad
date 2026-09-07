@@ -100,7 +100,7 @@ static void for_every_permutation(size_t n, void (*check)(const int32_t *, size_
     do {
         check(buf, n);
         ++seen;
-    } while (nad_span_next_permutation(NAD_SPAN_NEW_MUT(int32_t, buf, n), nad_cmp_i32));
+    } while (nad_span_next_permutation(NAD_SPAN_FROM_DATA_MUT(int32_t, buf, n), nad_cmp_i32));
 
     size_t want = 1;
     for (size_t i = 2; i <= n; ++i) {
@@ -161,7 +161,7 @@ static void test_from_data_empty_stays_empty() {
 static void test_from_span_copies_the_view() {
     int32_t src[] = {3, 1, 2};
     nad_PQueue *q = nullptr;
-    NAD_TEST_OK(nad_pqueue_from_span(NAD_SPAN_NEW(int32_t, src, 3), nad_cmp_i32, nad_al_default(), &q));
+    NAD_TEST_OK(nad_pqueue_from_span(NAD_SPAN_FROM_DATA(int32_t, src, 3), nad_cmp_i32, nad_al_default(), &q));
 
     src[0] = 100;
     src[1] = 200;
@@ -690,10 +690,7 @@ static void test_from_data_reports_an_exhausted_arena() {
     TEST_ASSERT_NOT_NULL(arena);
 
     nad_PQueue *q = nullptr;
-    NAD_TEST_STATUS(
-        NAD_STATUS_ERR_NO_MEM,
-        NAD_PQUEUE_FROM_DATA(int32_t, SPREAD, 1000, nad_cmp_i32, arena, &q)
-    );
+    NAD_TEST_STATUS(NAD_STATUS_ERR_NO_MEM, NAD_PQUEUE_FROM_DATA(int32_t, SPREAD, 1000, nad_cmp_i32, arena, &q));
     TEST_ASSERT_NULL(q);
 
     nad_al_arena_drop(arena);
@@ -776,10 +773,7 @@ static void test_a_refused_header_frees_a_filled_buffer() {
     nad_test_probe_fail_after_next(&probe, 2);
 
     nad_PQueue *q = nullptr;
-    NAD_TEST_STATUS(
-        NAD_STATUS_ERR_NO_MEM,
-        NAD_PQUEUE_FROM_DATA(int32_t, SPREAD, SPREAD_LEN, nad_cmp_i32, &al, &q)
-    );
+    NAD_TEST_STATUS(NAD_STATUS_ERR_NO_MEM, NAD_PQUEUE_FROM_DATA(int32_t, SPREAD, SPREAD_LEN, nad_cmp_i32, &al, &q));
 
     TEST_ASSERT_NULL(q);
     TEST_ASSERT_EQUAL_size_t(0, probe.live);

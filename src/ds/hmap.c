@@ -109,8 +109,13 @@ nad_Status nad_hmap_new(size_t key_size, size_t val_size, nad_Hasher hasher, nad
     return nad_hmap_new_cap(0, key_size, val_size, hasher, eq, al, out);
 }
 
-nad_Status nad_hmap_new_cap(size_t cap, size_t key_size, size_t val_size, nad_Hasher hasher, nad_Eq eq, nad_Al *al,
-                            nad_HMap **out) {
+nad_Status nad_hmap_new_cap(
+    size_t cap,
+    size_t key_size, size_t val_size,
+    nad_Hasher hasher, nad_Eq eq,
+    nad_Al *al,
+    nad_HMap **out
+) {
     assert(val_size > 0); // the zero belongs to internal/hmap_impl.h and to ds/hset alone
 
     return nad_hmap_new_raw_(cap, key_size, val_size, hasher, eq, al, out);
@@ -478,8 +483,12 @@ nad_Status nad_hmap_insert(nad_HMap *self, const void *key, const void *val, boo
     return NAD_STATUS_OK;
 }
 
-nad_Status nad_hmap_get_or_insert(nad_HMap *self, const void *key, const void *val_if_absent,
-                                  nad_HMapNode **out_node) {
+nad_Status nad_hmap_get_or_insert(
+    nad_HMap *self,
+    const void *key,
+    const void *val_if_absent,
+    nad_HMapNode **out_node
+) {
     ASSERT_HMAP(self);
     assert(key);
     assert(val_if_absent || self->val_size == 0);

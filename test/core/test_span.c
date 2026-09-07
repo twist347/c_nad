@@ -19,11 +19,11 @@ void tearDown() {
 
 static void test_for_each_binds_every_elem_in_order() {
     constexpr int32_t buf[4] = {10, 20, 30, 40};
-    const nad_Span s = NAD_SPAN_NEW(int32_t, buf, 4);
+    const nad_Span s = NAD_SPAN_FROM_DATA(int32_t, buf, 4);
 
     int32_t seen[4];
     size_t n = 0;
-    NAD_SPAN_FOR_EACH_AS (int32_t, elem, s) {
+    NAD_SPAN_FOR_EACH_AS(int32_t, elem, s) {
         seen[n++] = *elem;
     }
 
@@ -33,10 +33,10 @@ static void test_for_each_binds_every_elem_in_order() {
 
 // the empty view carries a null data pointer, and the walk must not touch it
 static void test_for_each_over_an_empty_view_runs_no_body() {
-    const nad_Span s = NAD_SPAN_NEW(int32_t, nullptr, 0);
+    const nad_Span s = NAD_SPAN_FROM_DATA(int32_t, nullptr, 0);
 
     size_t n = 0;
-    NAD_SPAN_FOR_EACH_AS (int32_t, elem, s) {
+    NAD_SPAN_FOR_EACH_AS(int32_t, elem, s) {
         NAD_UNUSED(elem);
         ++n;
     }
@@ -49,7 +49,7 @@ static void test_for_each_evaluates_the_view_once() {
     constexpr int32_t buf[4] = {1, 2, 3, 4};
 
     int32_t total = 0;
-    NAD_SPAN_FOR_EACH_AS (int32_t, elem, nad_span_sub(NAD_SPAN_NEW(int32_t, buf, 4), 1, 3)) {
+    NAD_SPAN_FOR_EACH_AS(int32_t, elem, nad_span_sub(NAD_SPAN_FROM_DATA(int32_t, buf, 4), 1, 3)) {
         total += *elem;
     }
 
@@ -58,9 +58,9 @@ static void test_for_each_evaluates_the_view_once() {
 
 static void test_for_each_mut_writes_through_the_view() {
     int32_t buf[3] = {1, 2, 3};
-    const nad_SpanMut s = NAD_SPAN_NEW_MUT(int32_t, buf, 3);
+    const nad_SpanMut s = NAD_SPAN_FROM_DATA_MUT(int32_t, buf, 3);
 
-    NAD_SPAN_FOR_EACH_MUT_AS (int32_t, elem, s) {
+    NAD_SPAN_FOR_EACH_MUT_AS(int32_t, elem, s) {
         *elem *= 10;
     }
 
@@ -69,7 +69,7 @@ static void test_for_each_mut_writes_through_the_view() {
 
 static void test_new_keeps_fields() {
     constexpr int32_t buf[3] = {10, 20, 30};
-    const nad_Span s = NAD_SPAN_NEW(int32_t, buf, 3);
+    const nad_Span s = NAD_SPAN_FROM_DATA(int32_t, buf, 3);
 
     TEST_ASSERT_EQUAL_PTR(buf, s.data);
     TEST_ASSERT_EQUAL_size_t(3, s.len);
@@ -78,7 +78,7 @@ static void test_new_keeps_fields() {
 
 // a null view is legal only while empty — elem_size stays meaningful
 static void test_new_empty_over_null() {
-    const nad_Span s = NAD_SPAN_NEW(int32_t, nullptr, 0);
+    const nad_Span s = NAD_SPAN_FROM_DATA(int32_t, nullptr, 0);
 
     TEST_ASSERT_NULL(s.data);
     TEST_ASSERT_EQUAL_size_t(0, s.len);
@@ -97,7 +97,7 @@ static void test_mut_to_span_preserves_view() {
 // mut_to_span must hand back a view of the same memory, not a copy
 static void test_mut_to_span_shares_the_memory() {
     int32_t buf[3] = {1, 2, 3};
-    const nad_SpanMut m = NAD_SPAN_NEW_MUT(int32_t, buf, 3);
+    const nad_SpanMut m = NAD_SPAN_FROM_DATA_MUT(int32_t, buf, 3);
     const nad_Span s = nad_span_mut_to_span(m);
 
     NAD_SPAN_SET(int32_t, m, 1, 99);
@@ -166,12 +166,12 @@ static void test_of_mut_carries_struct_elems() {
 static void test_bytes() {
     constexpr int32_t buf[4] = {0, 0, 0, 0};
 
-    TEST_ASSERT_EQUAL_size_t(4 * sizeof(int32_t), nad_span_bytes(NAD_SPAN_NEW(int32_t, buf, 4)));
-    TEST_ASSERT_EQUAL_size_t(0, nad_span_bytes(NAD_SPAN_NEW(int32_t, buf, 0)));
+    TEST_ASSERT_EQUAL_size_t(4 * sizeof(int32_t), nad_span_bytes(NAD_SPAN_FROM_DATA(int32_t, buf, 4)));
+    TEST_ASSERT_EQUAL_size_t(0, nad_span_bytes(NAD_SPAN_FROM_DATA(int32_t, buf, 0)));
 }
 
 static void test_bytes_of_null_view_is_zero() {
-    TEST_ASSERT_EQUAL_size_t(0, nad_span_bytes(NAD_SPAN_NEW(int32_t, nullptr, 0)));
+    TEST_ASSERT_EQUAL_size_t(0, nad_span_bytes(NAD_SPAN_FROM_DATA(int32_t, nullptr, 0)));
 }
 
 // elem_size, not the elem count, drives the total
@@ -190,7 +190,7 @@ static void test_get_reads_through() {
 
 static void test_set_and_get_mut_write_to_the_source() {
     int32_t buf[3] = {10, 20, 30};
-    const nad_SpanMut s = NAD_SPAN_NEW_MUT(int32_t, buf, 3);
+    const nad_SpanMut s = NAD_SPAN_FROM_DATA_MUT(int32_t, buf, 3);
 
     NAD_SPAN_SET(int32_t, s, 1, 99);
     *NAD_SPAN_GET_MUT_AS(int32_t, s, 2) = 77;
@@ -204,7 +204,7 @@ static void test_set_and_get_mut_write_to_the_source() {
 
 static void test_sub_offsets_and_shortens() {
     constexpr int32_t buf[5] = {0, 1, 2, 3, 4};
-    const nad_Span s = NAD_SPAN_NEW(int32_t, buf, 5);
+    const nad_Span s = NAD_SPAN_FROM_DATA(int32_t, buf, 5);
 
     const nad_Span mid = nad_span_sub(s, 1, 3);
     TEST_ASSERT_EQUAL_PTR(&buf[1], mid.data);
@@ -257,7 +257,7 @@ static void test_sub_offsets_by_elem_size() {
 
 // a null view must survive subspanning without forming a null + offset pointer
 static void test_sub_of_null_view_stays_null() {
-    const nad_Span s = NAD_SPAN_NEW(int32_t, nullptr, 0);
+    const nad_Span s = NAD_SPAN_FROM_DATA(int32_t, nullptr, 0);
 
     const nad_Span sub = nad_span_sub(s, 0, 0);
     TEST_ASSERT_NULL(sub.data);
@@ -266,7 +266,7 @@ static void test_sub_of_null_view_stays_null() {
 
 // the mirror of the case above, for the mut branch
 static void test_sub_mut_of_null_view_stays_null() {
-    const nad_SpanMut s = NAD_SPAN_NEW_MUT(int32_t, nullptr, 0);
+    const nad_SpanMut s = NAD_SPAN_FROM_DATA_MUT(int32_t, nullptr, 0);
 
     const nad_SpanMut sub = nad_span_sub_mut(s, 0, 0);
     TEST_ASSERT_NULL(sub.data);
@@ -276,7 +276,7 @@ static void test_sub_mut_of_null_view_stays_null() {
 
 static void test_sub_mut_writes_reach_the_source() {
     int32_t buf[4] = {0, 1, 2, 3};
-    const nad_SpanMut s = NAD_SPAN_NEW_MUT(int32_t, buf, 4);
+    const nad_SpanMut s = NAD_SPAN_FROM_DATA_MUT(int32_t, buf, 4);
 
     const nad_SpanMut tail = nad_span_sub_mut(s, 2, 2);
     NAD_SPAN_SET(int32_t, tail, 0, 88);
@@ -289,7 +289,7 @@ static void test_sub_mut_writes_reach_the_source() {
 
 static void test_swap_elems() {
     int32_t buf[4] = {0, 1, 2, 3};
-    const nad_SpanMut s = NAD_SPAN_NEW_MUT(int32_t, buf, 4);
+    const nad_SpanMut s = NAD_SPAN_FROM_DATA_MUT(int32_t, buf, 4);
 
     nad_span_swap_elems(s, 0, 3);
 
@@ -299,7 +299,7 @@ static void test_swap_elems() {
 
 static void test_swap_elems_same_index_is_noop() {
     int32_t buf[3] = {0, 1, 2};
-    const nad_SpanMut s = NAD_SPAN_NEW_MUT(int32_t, buf, 3);
+    const nad_SpanMut s = NAD_SPAN_FROM_DATA_MUT(int32_t, buf, 3);
 
     nad_span_swap_elems(s, 1, 1);
 
@@ -310,7 +310,7 @@ static void test_swap_elems_same_index_is_noop() {
 // element size drives the copy, so a type wider than a word must swap whole
 static void test_swap_elems_moves_whole_element() {
     Pair buf[2] = {{1, 2}, {3, 4}};
-    const nad_SpanMut s = NAD_SPAN_NEW_MUT(Pair, buf, 2);
+    const nad_SpanMut s = NAD_SPAN_FROM_DATA_MUT(Pair, buf, 2);
 
     nad_span_swap_elems(s, 0, 1);
 

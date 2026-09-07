@@ -150,7 +150,7 @@ void nad_bitset_flip(nad_BitSet *self, size_t idx);
 /// @param val unlike nad_bitset_flip, asking twice changes nothing
 /// @bigo{1}
 NAD_API
-void nad_bitset_assign(nad_BitSet *self, size_t idx, bool val);
+void nad_bitset_set_to(nad_BitSet *self, size_t idx, bool val);
 
 /// @}
 

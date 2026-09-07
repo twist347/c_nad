@@ -36,7 +36,7 @@ size_t nad_span_copy_if(nad_SpanMut dst, nad_Span src, nad_Pred pred, void *ctx)
     return write;
 }
 
-void nad_span_copy_within(nad_SpanMut dst, nad_Span src) {
+void nad_span_copy_overlapping(nad_SpanMut dst, nad_Span src) {
     NAD_SPAN_ASSERT(dst);
     NAD_SPAN_ASSERT(src);
     assert(dst.elem_size == src.elem_size);

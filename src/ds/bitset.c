@@ -144,7 +144,12 @@ nad_Status nad_bitset_copy_assign(const nad_BitSet *self, nad_BitSet *other) {
     }
 
     if (self->nwords != other->nwords) {
-        uint64_t *new_words = nad_realloc(other->al, other->words, words_bytes(other), words_bytes(self));
+        uint64_t *new_words = nad_realloc(
+            other->al,
+            other->words,
+            words_bytes(other),
+            words_bytes(self)
+        );
         // a new_size of 0 hands the block back and answers null, which is not a failure
         if (self->nwords > 0 && !new_words) {
             return NAD_STATUS_ERR_NO_MEM;
@@ -248,7 +253,7 @@ void nad_bitset_flip(nad_BitSet *self, size_t idx) {
     self->words[word_of(idx)] ^= bit_of(idx);
 }
 
-void nad_bitset_assign(nad_BitSet *self, size_t idx, bool val) {
+void nad_bitset_set_to(nad_BitSet *self, size_t idx, bool val) {
     if (val) {
         nad_bitset_set(self, idx);
     } else {

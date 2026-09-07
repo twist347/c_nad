@@ -88,7 +88,7 @@ static void test_from_data_is_detached_from_the_source() {
     nad_arr_drop(a);
 }
 
-// null source is legal while len == 0 — same rule as nad_span_new
+// null source is legal while len == 0 — same rule as nad_span_from_data
 static void test_from_data_empty_has_no_buffer() {
     nad_Arr *a = nullptr;
     NAD_TEST_OK(nad_arr_from_data(nullptr, 0, sizeof(int32_t), nad_al_default(), &a));
@@ -226,7 +226,7 @@ static void test_span_views_the_same_memory() {
 
 static void test_from_span_copies_the_view() {
     constexpr int32_t src[3] = {7, 8, 9};
-    const nad_Span s = NAD_SPAN_NEW(int32_t, src, 3);
+    const nad_Span s = NAD_SPAN_FROM_DATA(int32_t, src, 3);
 
     nad_Arr *a = nullptr;
     NAD_TEST_OK(nad_arr_from_span(s, nad_al_default(), &a));
@@ -240,7 +240,7 @@ static void test_from_span_copies_the_view() {
 }
 
 static void test_from_span_empty_has_no_buffer() {
-    const nad_Span s = NAD_SPAN_NEW(int32_t, nullptr, 0);
+    const nad_Span s = NAD_SPAN_FROM_DATA(int32_t, nullptr, 0);
 
     nad_Arr *a = nullptr;
     NAD_TEST_OK(nad_arr_from_span(s, nad_al_default(), &a));
@@ -593,10 +593,7 @@ static void test_from_data_reports_size_overflow() {
     constexpr int32_t src[1] = {1};
     nad_Arr *a = nullptr;
 
-    NAD_TEST_STATUS(
-        NAD_STATUS_ERR_NO_MEM,
-        nad_arr_from_data(src, SIZE_MAX, 2, nad_al_default(), &a)
-    );
+    NAD_TEST_STATUS(NAD_STATUS_ERR_NO_MEM, nad_arr_from_data(src, SIZE_MAX, 2, nad_al_default(), &a));
 
     TEST_ASSERT_NULL(a);
 }

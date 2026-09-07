@@ -82,7 +82,7 @@ static void assert_missing(const nad_HSet *s, int32_t key) {
 // the walk reaches exactly 'len' keys and every one of them is in the set
 static void assert_walk_sees_everything(const nad_HSet *s) {
     size_t seen = 0;
-    NAD_HSET_FOR_EACH (node, s) {
+    NAD_HSET_FOR_EACH(node, s) {
         assert_has(s, *NAD_HSET_NODE_KEY_AS(int32_t, node));
         ++seen;
     }
@@ -175,10 +175,7 @@ static void test_a_refused_header_frees_the_map() {
     nad_test_probe_fail_after_next(&probe, 1);
 
     nad_HSet *s = nullptr;
-    NAD_TEST_STATUS(
-        NAD_STATUS_ERR_NO_MEM,
-        NAD_HSET_NEW(int32_t, nad_hash_i32, nad_eq_i32, &al, &s)
-    );
+    NAD_TEST_STATUS(NAD_STATUS_ERR_NO_MEM, NAD_HSET_NEW(int32_t, nad_hash_i32, nad_eq_i32, &al, &s));
 
     TEST_ASSERT_NULL(s);
     TEST_ASSERT_EQUAL_size_t(0, probe.live);
@@ -800,10 +797,7 @@ static void test_new_reports_an_exhausted_arena() {
     nad_test_arena_leave(arena, 0);
 
     nad_HSet *s = nullptr;
-    NAD_TEST_STATUS(
-        NAD_STATUS_ERR_NO_MEM,
-        NAD_HSET_NEW(int32_t, nad_hash_i32, nad_eq_i32, arena, &s)
-    );
+    NAD_TEST_STATUS(NAD_STATUS_ERR_NO_MEM, NAD_HSET_NEW(int32_t, nad_hash_i32, nad_eq_i32, arena, &s));
     TEST_ASSERT_NULL(s);
 
     nad_al_arena_drop(arena);

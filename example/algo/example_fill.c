@@ -19,7 +19,7 @@ static void squares(void *dst, size_t idx, void *ctx) {
 int main() {
     /// [fill]
     int32_t buf[5];
-    const nad_SpanMut s = NAD_SPAN_NEW_MUT(int32_t, buf, 5);
+    const nad_SpanMut s = NAD_SPAN_FROM_DATA_MUT(int32_t, buf, 5);
 
     nad_span_fill(s, &(int32_t){7});
     nad_span_mut_print(s, nad_fprint_i32); // [7, 7, 7, 7, 7]

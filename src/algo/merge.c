@@ -154,7 +154,7 @@ static void merge_buffered(nad_SpanMut s, size_t mid, nad_Cmp cmp, void *buf) {
 
     if (left_len <= right_len) {
         memcpy(buf, nad_span_get(cs, 0), left_len * tsz);
-        const nad_Span parked = nad_span_new(buf, left_len, tsz);
+        const nad_Span parked = nad_span_from_data(buf, left_len, tsz);
 
         size_t w = 0;
         size_t b = 0;
@@ -179,7 +179,7 @@ static void merge_buffered(nad_SpanMut s, size_t mid, nad_Cmp cmp, void *buf) {
     }
 
     memcpy(buf, nad_span_get(cs, mid), right_len * tsz);
-    const nad_Span parked = nad_span_new(buf, right_len, tsz);
+    const nad_Span parked = nad_span_from_data(buf, right_len, tsz);
 
     size_t w = s.len;
     size_t l = mid;

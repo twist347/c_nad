@@ -4,7 +4,7 @@ PROJECT_NAME           = nadc
 PROJECT_BRIEF          = "naive algorithms and data structures in C23"
 OUTPUT_DIRECTORY       = build-docs
 
-INPUT                  = include README.md docs/modules.dox
+INPUT                  = include README.md docs/conventions.md docs/modules.dox
 RECURSIVE              = YES
 EXAMPLE_PATH           = example
 EXAMPLE_RECURSIVE      = YES

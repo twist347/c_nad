@@ -71,21 +71,9 @@ static void test_cmp_signed_orders_and_normalizes() {
 
 // the extremes are where a subtracting comparator would overflow and answer backwards
 static void test_cmp_signed_survives_the_extremes() {
-    expect_order(
-        cmp_i8(INT8_MIN, INT8_MAX),
-        cmp_i8(INT8_MIN, INT8_MIN),
-        cmp_i8(INT8_MAX, INT8_MIN)
-    );
-    expect_order(
-        cmp_i32(INT32_MIN, INT32_MAX),
-        cmp_i32(INT32_MIN, INT32_MIN),
-        cmp_i32(INT32_MAX, INT32_MIN)
-    );
-    expect_order(
-        cmp_i64(INT64_MIN, INT64_MAX),
-        cmp_i64(INT64_MIN, INT64_MIN),
-        cmp_i64(INT64_MAX, INT64_MIN)
-    );
+    expect_order(cmp_i8(INT8_MIN, INT8_MAX), cmp_i8(INT8_MIN, INT8_MIN), cmp_i8(INT8_MAX, INT8_MIN));
+    expect_order(cmp_i32(INT32_MIN, INT32_MAX), cmp_i32(INT32_MIN, INT32_MIN), cmp_i32(INT32_MAX, INT32_MIN));
+    expect_order(cmp_i64(INT64_MIN, INT64_MAX), cmp_i64(INT64_MIN, INT64_MIN), cmp_i64(INT64_MAX, INT64_MIN));
 }
 
 /* ========== unsigned ========== */
@@ -143,7 +131,7 @@ static void test_cmp_char_follows_the_signedness_of_the_target() {
 static void test_cmp_char_sorts_letters() {
     char buf[5] = {'d', 'a', 'e', 'b', 'c'};
 
-    nad_span_sort(NAD_SPAN_NEW_MUT(char, buf, 5), nad_cmp_char);
+    nad_span_sort(NAD_SPAN_FROM_DATA_MUT(char, buf, 5), nad_cmp_char);
 
     TEST_ASSERT_EQUAL_CHAR_ARRAY("abcde", buf, 5);
 }
@@ -177,17 +165,13 @@ static void test_cmp_float_sorts_nan_after_every_number() {
 }
 
 static void test_cmp_float_orders_the_infinities() {
-    expect_order(
-        cmp_f64(-INFINITY, INFINITY),
-        cmp_f64(INFINITY, INFINITY),
-        cmp_f64(INFINITY, -INFINITY)
-    );
+    expect_order(cmp_f64(-INFINITY, INFINITY), cmp_f64(INFINITY, INFINITY), cmp_f64(INFINITY, -INFINITY));
 }
 
 // a span with a NaN in it must still come out ordered, with the NaN at the end
 static void test_cmp_float_gives_sort_a_usable_order() {
     double buf[5] = {3.0, NAN, 1.0, -0.0, 2.0};
-    const nad_SpanMut s = NAD_SPAN_NEW_MUT(double, buf, 5);
+    const nad_SpanMut s = NAD_SPAN_FROM_DATA_MUT(double, buf, 5);
 
     nad_span_sort(s, nad_cmp_f64);
 
@@ -263,7 +247,7 @@ static void test_descending_inverts_the_ascending_one() {
 
 static void test_comparators_drive_sort_both_ways() {
     int32_t buf[5] = {3, 1, 5, 2, 4};
-    const nad_SpanMut s = NAD_SPAN_NEW_MUT(int32_t, buf, 5);
+    const nad_SpanMut s = NAD_SPAN_FROM_DATA_MUT(int32_t, buf, 5);
 
     nad_span_sort(s, nad_cmp_i32);
     constexpr int32_t up[5] = {1, 2, 3, 4, 5};
@@ -276,7 +260,7 @@ static void test_comparators_drive_sort_both_ways() {
 
 static void test_cstr_comparator_drives_sort() {
     const char *buf[4] = {"pear", "apple", nullptr, "fig"};
-    const nad_SpanMut s = NAD_SPAN_NEW_MUT(const char *, buf, 4);
+    const nad_SpanMut s = NAD_SPAN_FROM_DATA_MUT(const char *, buf, 4);
 
     nad_span_sort(s, nad_cmp_cstr);
 
@@ -288,7 +272,7 @@ static void test_cstr_comparator_drives_sort() {
 
 static void test_eq_drives_search() {
     constexpr int32_t buf[5] = {10, 20, 30, 20, 10};
-    const nad_Span s = NAD_SPAN_NEW(int32_t, buf, 5);
+    const nad_Span s = NAD_SPAN_FROM_DATA(int32_t, buf, 5);
 
     size_t idx = 0;
     TEST_ASSERT_TRUE(nad_span_find(s, &(int32_t){20}, nad_eq_i32, &idx));

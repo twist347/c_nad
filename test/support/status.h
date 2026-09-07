@@ -29,10 +29,7 @@
 [[nodiscard]]
 static inline const char *nad_test_status_msg_(const char *text, nad_Status want, nad_Status got) {
     static char buf[256];
-    snprintf(
-        buf, sizeof buf, "%s: expected %s, got %s",
-        text, nad_status_to_str(want), nad_status_to_str(got)
-    );
+    snprintf(buf, sizeof buf, "%s: expected %s, got %s", text, nad_status_to_str(want), nad_status_to_str(got));
 
     return buf;
 }

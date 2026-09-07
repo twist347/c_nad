@@ -29,10 +29,7 @@ static void test_copy_transfers_every_elem() {
     constexpr int32_t src_buf[4] = {1, 2, 3, 4};
     int32_t dst_buf[4] = {0, 0, 0, 0};
 
-    nad_span_copy(
-        NAD_SPAN_NEW_MUT(int32_t, dst_buf, 4),
-        NAD_SPAN_NEW(int32_t, src_buf, 4)
-    );
+    nad_span_copy(NAD_SPAN_FROM_DATA_MUT(int32_t, dst_buf, 4), NAD_SPAN_FROM_DATA(int32_t, src_buf, 4));
 
     TEST_ASSERT_EQUAL_INT32_ARRAY(src_buf, dst_buf, 4);
 }
@@ -41,10 +38,7 @@ static void test_copy_empty_is_noop() {
     constexpr int32_t src_buf[2] = {7, 8};
     int32_t dst_buf[2] = {1, 2};
 
-    nad_span_copy(
-        NAD_SPAN_NEW_MUT(int32_t, dst_buf, 0),
-        NAD_SPAN_NEW(int32_t, src_buf, 0)
-    );
+    nad_span_copy(NAD_SPAN_FROM_DATA_MUT(int32_t, dst_buf, 0), NAD_SPAN_FROM_DATA(int32_t, src_buf, 0));
 
     constexpr int32_t expected[2] = {1, 2};
     TEST_ASSERT_EQUAL_INT32_ARRAY(expected, dst_buf, 2);
@@ -53,7 +47,7 @@ static void test_copy_empty_is_noop() {
 // same buffer on both sides is a defined no-op, not an aliasing violation
 static void test_copy_onto_itself_is_noop() {
     int32_t buf[3] = {1, 2, 3};
-    const nad_SpanMut s = NAD_SPAN_NEW_MUT(int32_t, buf, 3);
+    const nad_SpanMut s = NAD_SPAN_FROM_DATA_MUT(int32_t, buf, 3);
 
     nad_span_copy(s, nad_span_mut_to_span(s));
 
@@ -64,12 +58,9 @@ static void test_copy_onto_itself_is_noop() {
 static void test_copy_stays_within_the_subspan() {
     constexpr int32_t src_buf[2] = {7, 8};
     int32_t dst_buf[4] = {0, 0, 0, 0};
-    const nad_SpanMut dst = NAD_SPAN_NEW_MUT(int32_t, dst_buf, 4);
+    const nad_SpanMut dst = NAD_SPAN_FROM_DATA_MUT(int32_t, dst_buf, 4);
 
-    nad_span_copy(
-        nad_span_sub_mut(dst, 1, 2),
-        NAD_SPAN_NEW(int32_t, src_buf, 2)
-    );
+    nad_span_copy(nad_span_sub_mut(dst, 1, 2), NAD_SPAN_FROM_DATA(int32_t, src_buf, 2));
 
     constexpr int32_t expected[4] = {0, 7, 8, 0};
     TEST_ASSERT_EQUAL_INT32_ARRAY(expected, dst_buf, 4);
@@ -80,10 +71,7 @@ static void test_copy_moves_whole_elements() {
     constexpr Pair src_buf[2] = {{1, 2}, {3, 4}};
     Pair dst_buf[2] = {{0, 0}, {0, 0}};
 
-    nad_span_copy(
-        NAD_SPAN_NEW_MUT(Pair, dst_buf, 2),
-        NAD_SPAN_NEW(Pair, src_buf, 2)
-    );
+    nad_span_copy(NAD_SPAN_FROM_DATA_MUT(Pair, dst_buf, 2), NAD_SPAN_FROM_DATA(Pair, src_buf, 2));
 
     TEST_ASSERT_EQUAL_INT64(1, dst_buf[0].a);
     TEST_ASSERT_EQUAL_INT64(2, dst_buf[0].b);
@@ -91,65 +79,56 @@ static void test_copy_moves_whole_elements() {
     TEST_ASSERT_EQUAL_INT64(4, dst_buf[1].b);
 }
 
-/* ========== copy_within ========== */
+/* ========== copy_overlapping ========== */
 
 // shifting right overlaps: a plain memcpy would smear the first element
-static void test_copy_within_shifts_right() {
+static void test_copy_overlapping_shifts_right() {
     int32_t buf[5] = {1, 2, 3, 4, 5};
-    const nad_SpanMut s = NAD_SPAN_NEW_MUT(int32_t, buf, 5);
+    const nad_SpanMut s = NAD_SPAN_FROM_DATA_MUT(int32_t, buf, 5);
 
     // buf[2..4] <- buf[1..3]
-    nad_span_copy_within(
-        nad_span_sub_mut(s, 2, 3),
-        nad_span_mut_to_span(nad_span_sub_mut(s, 1, 3))
-    );
+    nad_span_copy_overlapping(nad_span_sub_mut(s, 2, 3), nad_span_mut_to_span(nad_span_sub_mut(s, 1, 3)));
 
     constexpr int32_t expected[5] = {1, 2, 2, 3, 4};
     TEST_ASSERT_EQUAL_INT32_ARRAY(expected, buf, 5);
 }
 
-static void test_copy_within_shifts_left() {
+static void test_copy_overlapping_shifts_left() {
     int32_t buf[5] = {1, 2, 3, 4, 5};
-    const nad_SpanMut s = NAD_SPAN_NEW_MUT(int32_t, buf, 5);
+    const nad_SpanMut s = NAD_SPAN_FROM_DATA_MUT(int32_t, buf, 5);
 
     // buf[0..2] <- buf[2..4]
-    nad_span_copy_within(
-        nad_span_sub_mut(s, 0, 3),
-        nad_span_mut_to_span(nad_span_sub_mut(s, 2, 3))
-    );
+    nad_span_copy_overlapping(nad_span_sub_mut(s, 0, 3), nad_span_mut_to_span(nad_span_sub_mut(s, 2, 3)));
 
     constexpr int32_t expected[5] = {3, 4, 5, 4, 5};
     TEST_ASSERT_EQUAL_INT32_ARRAY(expected, buf, 5);
 }
 
-static void test_copy_within_onto_itself_is_noop() {
+static void test_copy_overlapping_onto_itself_is_noop() {
     int32_t buf[3] = {1, 2, 3};
-    const nad_SpanMut s = NAD_SPAN_NEW_MUT(int32_t, buf, 3);
+    const nad_SpanMut s = NAD_SPAN_FROM_DATA_MUT(int32_t, buf, 3);
 
-    nad_span_copy_within(s, nad_span_mut_to_span(s));
+    nad_span_copy_overlapping(s, nad_span_mut_to_span(s));
 
     constexpr int32_t expected[3] = {1, 2, 3};
     TEST_ASSERT_EQUAL_INT32_ARRAY(expected, buf, 3);
 }
 
 // disjoint ranges must behave exactly like nad_span_copy
-static void test_copy_within_handles_disjoint_ranges() {
+static void test_copy_overlapping_handles_disjoint_ranges() {
     constexpr int32_t src_buf[2] = {7, 8};
     int32_t dst_buf[2] = {0, 0};
 
-    nad_span_copy_within(
-        NAD_SPAN_NEW_MUT(int32_t, dst_buf, 2),
-        NAD_SPAN_NEW(int32_t, src_buf, 2)
-    );
+    nad_span_copy_overlapping(NAD_SPAN_FROM_DATA_MUT(int32_t, dst_buf, 2), NAD_SPAN_FROM_DATA(int32_t, src_buf, 2));
 
     TEST_ASSERT_EQUAL_INT32_ARRAY(src_buf, dst_buf, 2);
 }
 
-static void test_copy_within_empty_is_noop() {
+static void test_copy_overlapping_empty_is_noop() {
     int32_t buf[2] = {1, 2};
-    const nad_SpanMut s = NAD_SPAN_NEW_MUT(int32_t, buf, 0);
+    const nad_SpanMut s = NAD_SPAN_FROM_DATA_MUT(int32_t, buf, 0);
 
-    nad_span_copy_within(s, nad_span_mut_to_span(s));
+    nad_span_copy_overlapping(s, nad_span_mut_to_span(s));
 
     constexpr int32_t expected[2] = {1, 2};
     TEST_ASSERT_EQUAL_INT32_ARRAY(expected, buf, 2);
@@ -161,8 +140,12 @@ static void test_copy_if_takes_only_the_matching_elems() {
     constexpr int32_t src[6] = {1, 2, 3, 4, 5, 6};
     int32_t dst[6] = {0};
 
-    const size_t n = nad_span_copy_if(NAD_SPAN_NEW_MUT(int32_t, dst, 6),
-                                      NAD_SPAN_NEW(int32_t, src, 6), is_even, nullptr);
+    const size_t n = nad_span_copy_if(
+        NAD_SPAN_FROM_DATA_MUT(int32_t, dst, 6),
+        NAD_SPAN_FROM_DATA(int32_t, src, 6),
+        is_even,
+        nullptr
+    );
 
     TEST_ASSERT_EQUAL_size_t(3, n);
     constexpr int32_t want[3] = {2, 4, 6};
@@ -175,8 +158,12 @@ static void test_copy_if_leaves_the_tail_of_dst_alone() {
     constexpr int32_t src[4] = {1, 2, 3, 4};
     int32_t dst[6] = {7, 7, 7, 7, 7, 7};
 
-    const size_t n = nad_span_copy_if(NAD_SPAN_NEW_MUT(int32_t, dst, 6),
-                                      NAD_SPAN_NEW(int32_t, src, 4), is_even, nullptr);
+    const size_t n = nad_span_copy_if(
+        NAD_SPAN_FROM_DATA_MUT(int32_t, dst, 6),
+        NAD_SPAN_FROM_DATA(int32_t, src, 4),
+        is_even,
+        nullptr
+    );
 
     TEST_ASSERT_EQUAL_size_t(2, n);
     constexpr int32_t want[6] = {2, 4, 7, 7, 7, 7};
@@ -187,8 +174,12 @@ static void test_copy_if_takes_everything_when_all_match() {
     constexpr int32_t src[3] = {2, 4, 6};
     int32_t dst[3] = {0};
 
-    const size_t n = nad_span_copy_if(NAD_SPAN_NEW_MUT(int32_t, dst, 3),
-                                      NAD_SPAN_NEW(int32_t, src, 3), is_even, nullptr);
+    const size_t n = nad_span_copy_if(
+        NAD_SPAN_FROM_DATA_MUT(int32_t, dst, 3),
+        NAD_SPAN_FROM_DATA(int32_t, src, 3),
+        is_even,
+        nullptr
+    );
 
     TEST_ASSERT_EQUAL_size_t(3, n);
     TEST_ASSERT_EQUAL_INT32_ARRAY(src, dst, 3);
@@ -198,8 +189,12 @@ static void test_copy_if_takes_nothing_when_none_match() {
     constexpr int32_t src[3] = {1, 3, 5};
     int32_t dst[3] = {9, 9, 9};
 
-    const size_t n = nad_span_copy_if(NAD_SPAN_NEW_MUT(int32_t, dst, 3),
-                                      NAD_SPAN_NEW(int32_t, src, 3), is_even, nullptr);
+    const size_t n = nad_span_copy_if(
+        NAD_SPAN_FROM_DATA_MUT(int32_t, dst, 3),
+        NAD_SPAN_FROM_DATA(int32_t, src, 3),
+        is_even,
+        nullptr
+    );
 
     TEST_ASSERT_EQUAL_size_t(0, n);
     constexpr int32_t want[3] = {9, 9, 9};
@@ -209,9 +204,15 @@ static void test_copy_if_takes_nothing_when_none_match() {
 static void test_copy_if_of_an_empty_source_is_zero() {
     int32_t dst[2] = {9, 9};
 
-    TEST_ASSERT_EQUAL_size_t(0, nad_span_copy_if(NAD_SPAN_NEW_MUT(int32_t, dst, 2),
-                                                 NAD_SPAN_NEW(int32_t, nullptr, 0),
-                                                 is_even, nullptr));
+    TEST_ASSERT_EQUAL_size_t(
+        0,
+        nad_span_copy_if(
+            NAD_SPAN_FROM_DATA_MUT(int32_t, dst, 2),
+            NAD_SPAN_FROM_DATA(int32_t, nullptr, 0),
+            is_even,
+            nullptr
+        )
+    );
 }
 
 static void test_copy_if_passes_the_ctx_through() {
@@ -219,8 +220,12 @@ static void test_copy_if_passes_the_ctx_through() {
     int32_t dst[5] = {0};
     int32_t bound = 3;
 
-    const size_t n = nad_span_copy_if(NAD_SPAN_NEW_MUT(int32_t, dst, 5),
-                                      NAD_SPAN_NEW(int32_t, src, 5), greater_than, &bound);
+    const size_t n = nad_span_copy_if(
+        NAD_SPAN_FROM_DATA_MUT(int32_t, dst, 5),
+        NAD_SPAN_FROM_DATA(int32_t, src, 5),
+        greater_than,
+        &bound
+    );
 
     TEST_ASSERT_EQUAL_size_t(2, n);
     constexpr int32_t want[2] = {5, 4};
@@ -231,8 +236,12 @@ static void test_copy_if_keeps_the_source_order() {
     constexpr int32_t src[7] = {6, 1, 4, 3, 2, 5, 8};
     int32_t dst[7] = {0};
 
-    const size_t n = nad_span_copy_if(NAD_SPAN_NEW_MUT(int32_t, dst, 7),
-                                      NAD_SPAN_NEW(int32_t, src, 7), is_even, nullptr);
+    const size_t n = nad_span_copy_if(
+        NAD_SPAN_FROM_DATA_MUT(int32_t, dst, 7),
+        NAD_SPAN_FROM_DATA(int32_t, src, 7),
+        is_even,
+        nullptr
+    );
 
     TEST_ASSERT_EQUAL_size_t(4, n);
     constexpr int32_t want[4] = {6, 4, 2, 8};
@@ -243,8 +252,12 @@ static void test_copy_if_moves_whole_elems() {
     constexpr Pair src[3] = {{-1, 10}, {1, 20}, {-2, 30}};
     Pair dst[3] = {0};
 
-    const size_t n = nad_span_copy_if(NAD_SPAN_NEW_MUT(Pair, dst, 3),
-                                      NAD_SPAN_NEW(Pair, src, 3), nad_test_pair_a_is_positive, nullptr);
+    const size_t n = nad_span_copy_if(
+        NAD_SPAN_FROM_DATA_MUT(Pair, dst, 3),
+        NAD_SPAN_FROM_DATA(Pair, src, 3),
+        nad_test_pair_a_is_positive,
+        nullptr
+    );
 
     TEST_ASSERT_EQUAL_size_t(1, n);
     TEST_ASSERT_EQUAL_INT64(1, dst[0].a);
@@ -260,11 +273,11 @@ int main() {
     RUN_TEST(test_copy_stays_within_the_subspan);
     RUN_TEST(test_copy_moves_whole_elements);
 
-    RUN_TEST(test_copy_within_shifts_right);
-    RUN_TEST(test_copy_within_shifts_left);
-    RUN_TEST(test_copy_within_onto_itself_is_noop);
-    RUN_TEST(test_copy_within_handles_disjoint_ranges);
-    RUN_TEST(test_copy_within_empty_is_noop);
+    RUN_TEST(test_copy_overlapping_shifts_right);
+    RUN_TEST(test_copy_overlapping_shifts_left);
+    RUN_TEST(test_copy_overlapping_onto_itself_is_noop);
+    RUN_TEST(test_copy_overlapping_handles_disjoint_ranges);
+    RUN_TEST(test_copy_overlapping_empty_is_noop);
 
     RUN_TEST(test_copy_if_takes_only_the_matching_elems);
     RUN_TEST(test_copy_if_leaves_the_tail_of_dst_alone);

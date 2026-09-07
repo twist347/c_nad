@@ -117,13 +117,3 @@ an error cannot be silently dropped.
   `nullptr` → `NAD_STATUS_ERR_NO_MEM`. Never turn one of those into UB or an assert.
 - Public symbols carry `NAD_API` (see `core/export.h`); everything else stays hidden under
   the library's default-hidden visibility.
-
-## Build
-
-C23 and CMake ≥ 3.22:
-
-```sh
-cmake -S . -B build && cmake --build build && ctest --test-dir build
-```
-
-Tests (Unity) and examples build only when nadc is the top-level project.

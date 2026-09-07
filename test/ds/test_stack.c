@@ -127,7 +127,7 @@ static void test_from_span_copies_the_view() {
     constexpr int32_t src[4] = {9, 8, 7, 6};
 
     nad_Stack *s = nullptr;
-    NAD_TEST_OK(nad_stack_from_span(NAD_SPAN_NEW(int32_t, src, 4), nad_al_default(), &s));
+    NAD_TEST_OK(nad_stack_from_span(NAD_SPAN_FROM_DATA(int32_t, src, 4), nad_al_default(), &s));
 
     assert_elems(s, src, 4);
     TEST_ASSERT_EQUAL_INT32(6, *NAD_STACK_TOP_AS(int32_t, s));
@@ -717,10 +717,7 @@ static void test_from_data_reports_an_exhausted_arena() {
     TEST_ASSERT_NOT_NULL(arena);
 
     nad_Stack *s = nullptr;
-    NAD_TEST_STATUS(
-        NAD_STATUS_ERR_NO_MEM,
-        NAD_STACK_FROM_DATA(int32_t, SPREAD, 1000, arena, &s)
-    );
+    NAD_TEST_STATUS(NAD_STATUS_ERR_NO_MEM, NAD_STACK_FROM_DATA(int32_t, SPREAD, 1000, arena, &s));
     TEST_ASSERT_NULL(s);
 
     nad_al_arena_drop(arena);
@@ -806,10 +803,7 @@ static void test_a_refused_header_frees_a_filled_vec() {
     nad_test_probe_fail_after_next(&probe, 2);
 
     nad_Stack *s = nullptr;
-    NAD_TEST_STATUS(
-        NAD_STATUS_ERR_NO_MEM,
-        NAD_STACK_FROM_DATA(int32_t, SPREAD, SPREAD_LEN, &al, &s)
-    );
+    NAD_TEST_STATUS(NAD_STATUS_ERR_NO_MEM, NAD_STACK_FROM_DATA(int32_t, SPREAD, SPREAD_LEN, &al, &s));
 
     TEST_ASSERT_NULL(s);
     TEST_ASSERT_EQUAL_size_t(0, probe.live);

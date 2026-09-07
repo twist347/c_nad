@@ -74,8 +74,13 @@ nad_Status nad_hmap_new(size_t key_size, size_t val_size, nad_Hasher hasher, nad
 /// @retval NAD_STATUS_ERR_NO_MEM when the buckets cannot be allocated
 /// @bigo{n}
 [[nodiscard]] NAD_API
-nad_Status nad_hmap_new_cap(size_t cap, size_t key_size, size_t val_size, nad_Hasher hasher, nad_Eq eq, nad_Al *al,
-                            nad_HMap **out);
+nad_Status nad_hmap_new_cap(
+    size_t cap,
+    size_t key_size, size_t val_size,
+    nad_Hasher hasher, nad_Eq eq,
+    nad_Al *al,
+    nad_HMap **out
+);
 
 /// releases every node, the buckets and the map through the allocator it was built with
 /// @param self null is a no-op, so this is safe on a partly built object
@@ -362,8 +367,12 @@ void nad_hmap_remove_node(nad_HMap *self, nad_HMapNode *node);
 ///          followed by an insert cannot be: that pair hashes twice and walks twice
 ///          whenever the key turns out to be absent
 [[nodiscard]] NAD_API
-nad_Status nad_hmap_get_or_insert(nad_HMap *self, const void *key, const void *val_if_absent,
-                                  nad_HMapNode **out_node);
+nad_Status nad_hmap_get_or_insert(
+    nad_HMap *self,
+    const void *key,
+    const void *val_if_absent,
+    nad_HMapNode **out_node
+);
 
 /// drops every entry, keeping the buckets
 /// @param self the map

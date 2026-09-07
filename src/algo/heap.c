@@ -62,6 +62,9 @@ void nad_span_sort_heap(nad_SpanMut s, nad_Cmp cmp) {
 /* ========== predicates ========== */
 
 bool nad_span_is_heap(nad_Span s, nad_Cmp cmp) {
+    NAD_SPAN_ASSERT(s);
+    assert(cmp);
+
     return nad_span_is_heap_until(s, cmp) == s.len;
 }
 

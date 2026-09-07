@@ -13,7 +13,7 @@ void nad_span_transform(nad_SpanMut dst, nad_Span src, nad_UnOp op, void *ctx) {
     }
 }
 
-void nad_span_zip(nad_SpanMut dst, nad_Span a, nad_Span b, nad_BinOp op, void *ctx) {
+void nad_span_zip_with(nad_SpanMut dst, nad_Span a, nad_Span b, nad_BinOp op, void *ctx) {
     NAD_SPAN_ASSERT(dst);
     NAD_SPAN_ASSERT(a);
     NAD_SPAN_ASSERT(b);

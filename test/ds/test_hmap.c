@@ -114,7 +114,7 @@ static void assert_missing(const nad_HMap *m, int32_t key) {
 // value it carries. The order is unspecified, so that is all a walk can promise
 static void assert_walk_sees_everything(const nad_HMap *m) {
     size_t seen = 0;
-    NAD_HMAP_FOR_EACH (node, m) {
+    NAD_HMAP_FOR_EACH(node, m) {
         const int32_t key = *NAD_HMAP_NODE_KEY_AS(int32_t, node);
         const int32_t val = *NAD_HMAP_NODE_VAL_AS(int32_t, m, node);
         assert_has(m, key, val);
@@ -700,7 +700,7 @@ static void test_get_or_insert_hashes_the_key_once() {
 
     // the pair it replaces, on a key that is not there either
     hash_calls = 0;
-    if (!nad_hmap_get_mut(m, &(int32_t){ 2 })) {
+    if (!nad_hmap_get_mut(m, &(int32_t){2})) {
         NAD_TEST_OK(NAD_HMAP_INSERT(int32_t, int32_t, m, 2, 20, nullptr));
     }
     TEST_ASSERT_EQUAL_size_t(2, hash_calls);
@@ -1222,10 +1222,7 @@ static void test_new_reports_an_exhausted_arena() {
     nad_test_arena_leave(arena, 0);
 
     nad_HMap *m = nullptr;
-    NAD_TEST_STATUS(
-        NAD_STATUS_ERR_NO_MEM,
-        NAD_HMAP_NEW(int32_t, int32_t, nad_hash_i32, nad_eq_i32, arena, &m)
-    );
+    NAD_TEST_STATUS(NAD_STATUS_ERR_NO_MEM, NAD_HMAP_NEW(int32_t, int32_t, nad_hash_i32, nad_eq_i32, arena, &m));
     TEST_ASSERT_NULL(m);
 
     nad_al_arena_drop(arena);
@@ -1240,10 +1237,7 @@ static void test_new_cap_frees_the_header_when_the_buckets_are_refused() {
     nad_test_probe_fail_after_next(&probe, 1);
 
     nad_HMap *m = nullptr;
-    NAD_TEST_STATUS(
-        NAD_STATUS_ERR_NO_MEM,
-        NAD_HMAP_NEW_CAP(int32_t, int32_t, 16, nad_hash_i32, nad_eq_i32, &al, &m)
-    );
+    NAD_TEST_STATUS(NAD_STATUS_ERR_NO_MEM, NAD_HMAP_NEW_CAP(int32_t, int32_t, 16, nad_hash_i32, nad_eq_i32, &al, &m));
 
     TEST_ASSERT_NULL(m);
     TEST_ASSERT_EQUAL_size_t(0, probe.live);
@@ -1369,10 +1363,7 @@ static void test_get_or_insert_reports_an_exhausted_arena() {
     nad_test_arena_leave(arena, 0);
 
     nad_HMapNode *node = nullptr;
-    NAD_TEST_STATUS(
-        NAD_STATUS_ERR_NO_MEM,
-        NAD_HMAP_GET_OR_INSERT(int32_t, int32_t, m, 2, 20, &node)
-    );
+    NAD_TEST_STATUS(NAD_STATUS_ERR_NO_MEM, NAD_HMAP_GET_OR_INSERT(int32_t, int32_t, m, 2, 20, &node));
 
     TEST_ASSERT_EQUAL_size_t(1, nad_hmap_len(m));
     assert_missing(m, 2);

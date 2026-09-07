@@ -188,7 +188,7 @@ static void test_from_data_copies_whole_elems() {
 static void test_from_span_copies_the_view() {
     constexpr int32_t src[] = {5, 6, 7};
     nad_List *l = nullptr;
-    NAD_TEST_OK(nad_list_from_span(NAD_SPAN_NEW(int32_t, src, 3), nad_al_default(), &l));
+    NAD_TEST_OK(nad_list_from_span(NAD_SPAN_FROM_DATA(int32_t, src, 3), nad_al_default(), &l));
 
     assert_elems(l, (int32_t[]){5, 6, 7}, 3);
 
@@ -1019,7 +1019,7 @@ static void test_for_each_walks_front_to_back() {
 
     int32_t seen[4];
     size_t n = 0;
-    NAD_LIST_FOR_EACH (node, l) {
+    NAD_LIST_FOR_EACH(node, l) {
         seen[n++] = *NAD_LIST_NODE_ELEM_AS(int32_t, node);
     }
 
@@ -1033,7 +1033,7 @@ static void test_for_each_over_an_empty_list_runs_no_body() {
     nad_List *l = make_list(0);
 
     size_t n = 0;
-    NAD_LIST_FOR_EACH (node, l) {
+    NAD_LIST_FOR_EACH(node, l) {
         NAD_UNUSED(node);
         ++n;
     }
@@ -1046,7 +1046,7 @@ static void test_for_each_over_an_empty_list_runs_no_body() {
 static void test_for_each_mut_writes_through_every_position() {
     nad_List *l = make_list(4);
 
-    NAD_LIST_FOR_EACH_MUT (node, l) {
+    NAD_LIST_FOR_EACH_MUT(node, l) {
         *NAD_LIST_NODE_ELEM_MUT_AS(int32_t, node) *= 10;
     }
 
@@ -1569,7 +1569,7 @@ static void test_copy_to_span_writes_front_to_back() {
     NAD_TEST_OK(NAD_LIST_OF(int32_t, nad_al_default(), &l, 5, 1, 9));
 
     int32_t got[3];
-    nad_list_copy_to_span(l, NAD_SPAN_NEW_MUT(int32_t, got, 3));
+    nad_list_copy_to_span(l, NAD_SPAN_FROM_DATA_MUT(int32_t, got, 3));
 
     constexpr int32_t want[3] = {5, 1, 9};
     TEST_ASSERT_EQUAL_INT32_ARRAY(want, got, 3);
@@ -1582,7 +1582,7 @@ static void test_copy_to_span_of_empty_writes_nothing() {
     nad_List *l = make_list(0);
 
     int32_t got[2] = {11, 22};
-    nad_list_copy_to_span(l, NAD_SPAN_NEW_MUT(int32_t, got, 0));
+    nad_list_copy_to_span(l, NAD_SPAN_FROM_DATA_MUT(int32_t, got, 0));
 
     TEST_ASSERT_EQUAL_INT32(11, got[0]);
     TEST_ASSERT_EQUAL_INT32(22, got[1]);
@@ -1594,7 +1594,7 @@ static void test_copy_from_span_overwrites_every_elem() {
     nad_List *l = make_list(3); // 0, 1, 2
 
     constexpr int32_t src[3] = {7, 8, 9};
-    nad_list_copy_from_span(l, NAD_SPAN_NEW(int32_t, src, 3));
+    nad_list_copy_from_span(l, NAD_SPAN_FROM_DATA(int32_t, src, 3));
 
     assert_elems(l, src, 3);
 
@@ -1610,7 +1610,7 @@ static void test_copy_from_span_keeps_the_nodes() {
     collect_nodes(l, before, 3);
 
     constexpr int32_t src[3] = {7, 8, 9};
-    nad_list_copy_from_span(l, NAD_SPAN_NEW(int32_t, src, 3));
+    nad_list_copy_from_span(l, NAD_SPAN_FROM_DATA(int32_t, src, 3));
 
     assert_same_nodes(l, before, 3);
     TEST_ASSERT_EQUAL_INT32(7, *NAD_LIST_NODE_ELEM_AS(int32_t, before[0]));
@@ -1627,7 +1627,7 @@ static void test_the_copy_reaches_algo_and_comes_back() {
     const nad_ListNode *node_of_nine = node_at(l, 2);
 
     int32_t buf[4];
-    const nad_SpanMut s = NAD_SPAN_NEW_MUT(int32_t, buf, 4);
+    const nad_SpanMut s = NAD_SPAN_FROM_DATA_MUT(int32_t, buf, 4);
     nad_list_copy_to_span(l, s);
 
     TEST_ASSERT_EQUAL_size_t(2, nad_span_max_elem(nad_span_mut_to_span(s), nad_cmp_i32));
@@ -1695,10 +1695,7 @@ static void test_insert_reports_an_exhausted_arena() {
     NAD_TEST_OK(NAD_LIST_OF(int32_t, arena, &l, 1, 2));
     nad_test_arena_leave(arena, 0);
 
-    NAD_TEST_STATUS(
-        NAD_STATUS_ERR_NO_MEM,
-        NAD_LIST_INSERT_AFTER(int32_t, l, nad_list_front_node_mut(l), 9)
-    );
+    NAD_TEST_STATUS(NAD_STATUS_ERR_NO_MEM, NAD_LIST_INSERT_AFTER(int32_t, l, nad_list_front_node_mut(l), 9));
 
     assert_elems(l, (int32_t[]){1, 2}, 2);
 
@@ -1716,10 +1713,7 @@ static void test_from_data_rolls_back_the_partial_list() {
     nad_List *l = nullptr;
     nad_test_probe_fail_after_next(&probe, 3); // struct + 2 nodes, then refuse
 
-    NAD_TEST_STATUS(
-        NAD_STATUS_ERR_NO_MEM,
-        NAD_LIST_FROM_DATA(int32_t, src, 4, &al, &l)
-    );
+    NAD_TEST_STATUS(NAD_STATUS_ERR_NO_MEM, NAD_LIST_FROM_DATA(int32_t, src, 4, &al, &l));
 
     TEST_ASSERT_NULL(l);
     TEST_ASSERT_EQUAL_size_t(0, probe.live);
@@ -1801,10 +1795,7 @@ static void test_splice_node_across_allocators_reports_failure() {
     NAD_TEST_OK(NAD_LIST_OF(int32_t, arena, &b, 9));
     nad_test_arena_leave(arena, 0);
 
-    NAD_TEST_STATUS(
-        NAD_STATUS_ERR_NO_MEM,
-        nad_list_splice_node(b, nullptr, a, node_at(a, 1))
-    );
+    NAD_TEST_STATUS(NAD_STATUS_ERR_NO_MEM, nad_list_splice_node(b, nullptr, a, node_at(a, 1)));
 
     constexpr int32_t want_a[3] = {0, 1, 2};
     constexpr int32_t want_b[1] = {9};

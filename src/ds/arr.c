@@ -314,13 +314,13 @@ void nad_arr_swap_elems(nad_Arr *self, size_t i, size_t j) {
 nad_SpanMut nad_arr_to_span_mut(nad_Arr *self) {
     ASSERT_ARR(self);
 
-    return nad_span_new_mut(self->data, self->len, self->elem_size);
+    return nad_span_from_data_mut(self->data, self->len, self->elem_size);
 }
 
 nad_Span nad_arr_to_span(const nad_Arr *self) {
     ASSERT_ARR(self);
 
-    return nad_span_new(self->data, self->len, self->elem_size);
+    return nad_span_from_data(self->data, self->len, self->elem_size);
 }
 
 /* ========== print ========== */

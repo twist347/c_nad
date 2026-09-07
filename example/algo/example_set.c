@@ -17,7 +17,7 @@ int main() {
 
     // 'dst' has to fit the worst case, and the return says how much of it was filled
     int32_t buf[7];
-    const nad_SpanMut dst = NAD_SPAN_NEW_MUT(int32_t, buf, 7);
+    const nad_SpanMut dst = NAD_SPAN_FROM_DATA_MUT(int32_t, buf, 7);
 
     size_t len = nad_span_set_union(dst, a, b, nad_cmp_i32);
     nad_span_mut_print(nad_span_sub_mut(dst, 0, len), nad_fprint_i32); // [1, 2, 2, 3, 5]

@@ -85,7 +85,7 @@ static void assert_elems(const nad_Queue *q, const int32_t *want, size_t n) {
     int32_t got[64];
     TEST_ASSERT_TRUE(n <= 64);
 
-    nad_queue_copy_to_span(q, NAD_SPAN_NEW_MUT(int32_t, got, n));
+    nad_queue_copy_to_span(q, NAD_SPAN_FROM_DATA_MUT(int32_t, got, n));
     TEST_ASSERT_EQUAL_INT32_ARRAY(want, got, n);
 }
 
@@ -152,7 +152,7 @@ static void test_from_span_copies_the_view() {
     constexpr int32_t src[4] = {9, 8, 7, 6};
 
     nad_Queue *q = nullptr;
-    NAD_TEST_OK(nad_queue_from_span(NAD_SPAN_NEW(int32_t, src, 4), nad_al_default(), &q));
+    NAD_TEST_OK(nad_queue_from_span(NAD_SPAN_FROM_DATA(int32_t, src, 4), nad_al_default(), &q));
 
     assert_elems(q, src, 4);
 
@@ -169,7 +169,7 @@ static void test_from_data_copies_whole_elems() {
     TEST_ASSERT_EQUAL_size_t(sizeof(Pair), nad_queue_elem_size(q));
 
     Pair got[3];
-    nad_queue_copy_to_span(q, NAD_SPAN_NEW_MUT(Pair, got, 3));
+    nad_queue_copy_to_span(q, NAD_SPAN_FROM_DATA_MUT(Pair, got, 3));
     for (size_t i = 0; i < 3; ++i) {
         TEST_ASSERT_EQUAL_INT64(src[i].a, got[i].a);
         TEST_ASSERT_EQUAL_INT64(src[i].b, got[i].b);
@@ -669,7 +669,7 @@ static void test_copy_to_span_writes_front_to_back() {
     nad_Queue *q = make_queue_from(SPREAD, SPREAD_LEN);
 
     int32_t got[SPREAD_LEN];
-    nad_queue_copy_to_span(q, NAD_SPAN_NEW_MUT(int32_t, got, SPREAD_LEN));
+    nad_queue_copy_to_span(q, NAD_SPAN_FROM_DATA_MUT(int32_t, got, SPREAD_LEN));
 
     TEST_ASSERT_EQUAL_INT32_ARRAY(SPREAD, got, SPREAD_LEN);
     assert_elems(q, SPREAD, SPREAD_LEN);
@@ -682,7 +682,7 @@ static void test_copy_to_span_of_a_wrapped_queue_is_in_order() {
     nad_Queue *q = make_wrapped();
 
     int32_t got[4];
-    nad_queue_copy_to_span(q, NAD_SPAN_NEW_MUT(int32_t, got, 4));
+    nad_queue_copy_to_span(q, NAD_SPAN_FROM_DATA_MUT(int32_t, got, 4));
 
     constexpr int32_t want[4] = {10, 20, 30, 40};
     TEST_ASSERT_EQUAL_INT32_ARRAY(want, got, 4);
@@ -695,7 +695,7 @@ static void test_copy_to_span_of_empty_writes_nothing() {
     NAD_TEST_OK(NAD_QUEUE_NEW(int32_t, nad_al_default(), &q));
 
     int32_t got[2] = {11, 22};
-    nad_queue_copy_to_span(q, NAD_SPAN_NEW_MUT(int32_t, got, 0));
+    nad_queue_copy_to_span(q, NAD_SPAN_FROM_DATA_MUT(int32_t, got, 0));
 
     TEST_ASSERT_EQUAL_INT32(11, got[0]);
     TEST_ASSERT_EQUAL_INT32(22, got[1]);
@@ -709,7 +709,7 @@ static void test_the_copy_reaches_algo_and_the_queue_is_untouched() {
     nad_Queue *q = make_queue_from(SPREAD, SPREAD_LEN);
 
     int32_t got[SPREAD_LEN];
-    const nad_SpanMut s = NAD_SPAN_NEW_MUT(int32_t, got, SPREAD_LEN);
+    const nad_SpanMut s = NAD_SPAN_FROM_DATA_MUT(int32_t, got, SPREAD_LEN);
     nad_queue_copy_to_span(q, s);
 
     TEST_ASSERT_EQUAL_size_t(2, nad_span_max_elem(nad_span_mut_to_span(s), nad_cmp_i32));
@@ -770,10 +770,7 @@ static void test_from_data_reports_an_exhausted_arena() {
     TEST_ASSERT_NOT_NULL(arena);
 
     nad_Queue *q = nullptr;
-    NAD_TEST_STATUS(
-        NAD_STATUS_ERR_NO_MEM,
-        NAD_QUEUE_FROM_DATA(int32_t, SPREAD, 1000, arena, &q)
-    );
+    NAD_TEST_STATUS(NAD_STATUS_ERR_NO_MEM, NAD_QUEUE_FROM_DATA(int32_t, SPREAD, 1000, arena, &q));
     TEST_ASSERT_NULL(q);
 
     nad_al_arena_drop(arena);
@@ -857,10 +854,7 @@ static void test_a_refused_header_frees_a_filled_deque() {
     nad_test_probe_fail_after_next(&probe, 2);
 
     nad_Queue *q = nullptr;
-    NAD_TEST_STATUS(
-        NAD_STATUS_ERR_NO_MEM,
-        NAD_QUEUE_FROM_DATA(int32_t, SPREAD, SPREAD_LEN, &al, &q)
-    );
+    NAD_TEST_STATUS(NAD_STATUS_ERR_NO_MEM, NAD_QUEUE_FROM_DATA(int32_t, SPREAD, SPREAD_LEN, &al, &q));
 
     TEST_ASSERT_NULL(q);
     TEST_ASSERT_EQUAL_size_t(0, probe.live);

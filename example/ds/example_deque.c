@@ -80,7 +80,7 @@ int main() {
     // the contents may wrap, so there is no view to hand over: the bridge to algo is a
     // pair of copies. Out into a buffer of exactly the right length, sort it, and back
     int32_t buf[8];
-    const nad_SpanMut s = NAD_SPAN_NEW_MUT(int32_t, buf, nad_deque_len(d));
+    const nad_SpanMut s = NAD_SPAN_FROM_DATA_MUT(int32_t, buf, nad_deque_len(d));
 
     nad_deque_copy_to_span(d, s);
     nad_span_sort(s, nad_cmp_i32);

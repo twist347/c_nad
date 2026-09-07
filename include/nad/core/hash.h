@@ -33,7 +33,6 @@ typedef uint64_t nad_Hash;
 /// because nad_Hash is already the name of the result.
 typedef nad_Hash (*nad_Hasher)(const void *);
 
-
 /// @name int
 /// @{
 

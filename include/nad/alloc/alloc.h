@@ -33,7 +33,7 @@
 
 /// Four operations and the state they run on, passed around by pointer.
 typedef struct {
-    void *ctx;  ///< whatever the implementation keeps; handed back to every callback
+    void *ctx; ///< whatever the implementation keeps; handed back to every callback
 
     /// 'size' bytes, uninitialized, or null. Required.
     void *(*alloc)(void *ctx, size_t size);

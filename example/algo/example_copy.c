@@ -22,7 +22,7 @@ int main() {
     const nad_Span src = NAD_SPAN_OF(int32_t, 1, 2, 3, 4, 5);
 
     int32_t buf[5];
-    const nad_SpanMut dst = NAD_SPAN_NEW_MUT(int32_t, buf, 5);
+    const nad_SpanMut dst = NAD_SPAN_FROM_DATA_MUT(int32_t, buf, 5);
 
     nad_span_copy(dst, src);
     nad_span_mut_print(dst, nad_fprint_i32); // [1, 2, 3, 4, 5]
@@ -33,13 +33,10 @@ int main() {
     printf("%zu kept\n", kept); // 2 kept
     nad_span_mut_print(nad_span_sub_mut(dst, 0, kept), nad_fprint_i32); // [2, 4]
 
-    // the two spans overlap here, so it is copy_within or nothing: plain copy reads what
+    // the two spans overlap here, so it is copy_overlapping or nothing: plain copy reads what
     // it has already written
     const nad_SpanMut all = NAD_SPAN_OF_MUT(int32_t, 1, 2, 3, 4, 5);
-    nad_span_copy_within(
-        nad_span_sub_mut(all, 1, 4),
-        nad_span_sub(nad_span_mut_to_span(all), 0, 4)
-    );
+    nad_span_copy_overlapping(nad_span_sub_mut(all, 1, 4), nad_span_sub(nad_span_mut_to_span(all), 0, 4));
     nad_span_mut_print(all, nad_fprint_i32); // [1, 1, 2, 3, 4]
     /// [copy]
 

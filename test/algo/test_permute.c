@@ -56,7 +56,7 @@ static void assert_same_elems(const int32_t *got, const int32_t *want, size_t n)
 static void test_reverse_turns_the_span_around() {
     int32_t buf[5] = {1, 2, 3, 4, 5};
 
-    nad_span_reverse(NAD_SPAN_NEW_MUT(int32_t, buf, 5));
+    nad_span_reverse(NAD_SPAN_FROM_DATA_MUT(int32_t, buf, 5));
 
     constexpr int32_t want[5] = {5, 4, 3, 2, 1};
     TEST_ASSERT_EQUAL_INT32_ARRAY(want, buf, 5);
@@ -66,7 +66,7 @@ static void test_reverse_turns_the_span_around() {
 static void test_reverse_of_an_even_length_moves_every_elem() {
     int32_t buf[4] = {1, 2, 3, 4};
 
-    nad_span_reverse(NAD_SPAN_NEW_MUT(int32_t, buf, 4));
+    nad_span_reverse(NAD_SPAN_FROM_DATA_MUT(int32_t, buf, 4));
 
     constexpr int32_t want[4] = {4, 3, 2, 1};
     TEST_ASSERT_EQUAL_INT32_ARRAY(want, buf, 4);
@@ -75,16 +75,16 @@ static void test_reverse_of_an_even_length_moves_every_elem() {
 static void test_reverse_empty_and_single_are_noop() {
     int32_t buf[1] = {42};
 
-    nad_span_reverse(NAD_SPAN_NEW_MUT(int32_t, buf, 0));
+    nad_span_reverse(NAD_SPAN_FROM_DATA_MUT(int32_t, buf, 0));
     TEST_ASSERT_EQUAL_INT32(42, buf[0]);
 
-    nad_span_reverse(NAD_SPAN_NEW_MUT(int32_t, buf, 1));
+    nad_span_reverse(NAD_SPAN_FROM_DATA_MUT(int32_t, buf, 1));
     TEST_ASSERT_EQUAL_INT32(42, buf[0]);
 }
 
 static void test_reverse_twice_is_the_identity() {
     int32_t buf[5] = {3, 1, 4, 1, 5};
-    const nad_SpanMut s = NAD_SPAN_NEW_MUT(int32_t, buf, 5);
+    const nad_SpanMut s = NAD_SPAN_FROM_DATA_MUT(int32_t, buf, 5);
 
     nad_span_reverse(s);
     nad_span_reverse(s);
@@ -95,7 +95,7 @@ static void test_reverse_twice_is_the_identity() {
 
 static void test_reverse_stays_within_the_subspan() {
     int32_t buf[5] = {9, 1, 2, 3, 9};
-    const nad_SpanMut s = NAD_SPAN_NEW_MUT(int32_t, buf, 5);
+    const nad_SpanMut s = NAD_SPAN_FROM_DATA_MUT(int32_t, buf, 5);
 
     nad_span_reverse(nad_span_sub_mut(s, 1, 3));
 
@@ -107,7 +107,7 @@ static void test_reverse_stays_within_the_subspan() {
 static void test_reverse_moves_whole_elems() {
     Pair buf[3] = {{1, 2}, {3, 4}, {5, 6}};
 
-    nad_span_reverse(NAD_SPAN_NEW_MUT(Pair, buf, 3));
+    nad_span_reverse(NAD_SPAN_FROM_DATA_MUT(Pair, buf, 3));
 
     TEST_ASSERT_EQUAL_INT64(5, buf[0].a);
     TEST_ASSERT_EQUAL_INT64(6, buf[0].b);
@@ -129,7 +129,7 @@ static void test_rotate_by_every_offset() {
             want[i] = (int32_t) ((i + mid) % 5);
         }
 
-        nad_span_rotate(NAD_SPAN_NEW_MUT(int32_t, buf, 5), mid);
+        nad_span_rotate(NAD_SPAN_FROM_DATA_MUT(int32_t, buf, 5), mid);
 
         TEST_ASSERT_EQUAL_INT32_ARRAY(want, buf, 5);
     }
@@ -137,7 +137,7 @@ static void test_rotate_by_every_offset() {
 
 static void test_rotate_by_zero_and_by_len_are_noop() {
     int32_t buf[4] = {1, 2, 3, 4};
-    const nad_SpanMut s = NAD_SPAN_NEW_MUT(int32_t, buf, 4);
+    const nad_SpanMut s = NAD_SPAN_FROM_DATA_MUT(int32_t, buf, 4);
     constexpr int32_t want[4] = {1, 2, 3, 4};
 
     nad_span_rotate(s, 0);
@@ -150,7 +150,7 @@ static void test_rotate_by_zero_and_by_len_are_noop() {
 // rotating by mid and then by len - mid comes back to the start
 static void test_rotate_composes_back_to_the_identity() {
     int32_t buf[6] = {1, 2, 3, 4, 5, 6};
-    const nad_SpanMut s = NAD_SPAN_NEW_MUT(int32_t, buf, 6);
+    const nad_SpanMut s = NAD_SPAN_FROM_DATA_MUT(int32_t, buf, 6);
 
     nad_span_rotate(s, 2);
     nad_span_rotate(s, 4);
@@ -161,7 +161,7 @@ static void test_rotate_composes_back_to_the_identity() {
 
 static void test_rotate_stays_within_the_subspan() {
     int32_t buf[6] = {9, 1, 2, 3, 4, 9};
-    const nad_SpanMut s = NAD_SPAN_NEW_MUT(int32_t, buf, 6);
+    const nad_SpanMut s = NAD_SPAN_FROM_DATA_MUT(int32_t, buf, 6);
 
     nad_span_rotate(nad_span_sub_mut(s, 1, 4), 1);
 
@@ -172,7 +172,7 @@ static void test_rotate_stays_within_the_subspan() {
 static void test_rotate_moves_whole_elems() {
     Pair buf[3] = {{1, 2}, {3, 4}, {5, 6}};
 
-    nad_span_rotate(NAD_SPAN_NEW_MUT(Pair, buf, 3), 1);
+    nad_span_rotate(NAD_SPAN_FROM_DATA_MUT(Pair, buf, 3), 1);
 
     TEST_ASSERT_EQUAL_INT64(3, buf[0].a);
     TEST_ASSERT_EQUAL_INT64(4, buf[0].b);
@@ -188,7 +188,7 @@ static void test_swap_ranges_exchanges_the_two_views() {
     int32_t a[3] = {1, 2, 3};
     int32_t b[3] = {7, 8, 9};
 
-    nad_span_swap_ranges(NAD_SPAN_NEW_MUT(int32_t, a, 3), NAD_SPAN_NEW_MUT(int32_t, b, 3));
+    nad_span_swap_ranges(NAD_SPAN_FROM_DATA_MUT(int32_t, a, 3), NAD_SPAN_FROM_DATA_MUT(int32_t, b, 3));
 
     constexpr int32_t want_a[3] = {7, 8, 9};
     constexpr int32_t want_b[3] = {1, 2, 3};
@@ -199,7 +199,7 @@ static void test_swap_ranges_exchanges_the_two_views() {
 // two halves of one buffer are legal as long as they do not overlap
 static void test_swap_ranges_works_on_halves_of_one_buffer() {
     int32_t buf[6] = {1, 2, 3, 4, 5, 6};
-    const nad_SpanMut s = NAD_SPAN_NEW_MUT(int32_t, buf, 6);
+    const nad_SpanMut s = NAD_SPAN_FROM_DATA_MUT(int32_t, buf, 6);
 
     nad_span_swap_ranges(nad_span_sub_mut(s, 0, 3), nad_span_sub_mut(s, 3, 3));
 
@@ -211,7 +211,7 @@ static void test_swap_ranges_empty_is_noop() {
     int32_t a[1] = {1};
     int32_t b[1] = {2};
 
-    nad_span_swap_ranges(NAD_SPAN_NEW_MUT(int32_t, a, 0), NAD_SPAN_NEW_MUT(int32_t, b, 0));
+    nad_span_swap_ranges(NAD_SPAN_FROM_DATA_MUT(int32_t, a, 0), NAD_SPAN_FROM_DATA_MUT(int32_t, b, 0));
 
     TEST_ASSERT_EQUAL_INT32(1, a[0]);
     TEST_ASSERT_EQUAL_INT32(2, b[0]);
@@ -220,7 +220,7 @@ static void test_swap_ranges_empty_is_noop() {
 // the same view on both sides would swap every elem with itself — short-circuited
 static void test_swap_ranges_of_one_view_with_itself_is_noop() {
     int32_t buf[3] = {1, 2, 3};
-    const nad_SpanMut s = NAD_SPAN_NEW_MUT(int32_t, buf, 3);
+    const nad_SpanMut s = NAD_SPAN_FROM_DATA_MUT(int32_t, buf, 3);
 
     nad_span_swap_ranges(s, s);
 
@@ -232,7 +232,7 @@ static void test_swap_ranges_moves_whole_elems() {
     Pair a[2] = {{1, 2}, {3, 4}};
     Pair b[2] = {{5, 6}, {7, 8}};
 
-    nad_span_swap_ranges(NAD_SPAN_NEW_MUT(Pair, a, 2), NAD_SPAN_NEW_MUT(Pair, b, 2));
+    nad_span_swap_ranges(NAD_SPAN_FROM_DATA_MUT(Pair, a, 2), NAD_SPAN_FROM_DATA_MUT(Pair, b, 2));
 
     TEST_ASSERT_EQUAL_INT64(5, a[0].a);
     TEST_ASSERT_EQUAL_INT64(8, a[1].b);
@@ -243,7 +243,7 @@ static void test_swap_ranges_moves_whole_elems() {
 /* ========== next_permutation ========== */
 
 // the six permutations of {1,2,3} in lexicographic order
-static const int32_t ALL_3[6][3] = {
+static constexpr int32_t ALL_3[6][3] = {
     {1, 2, 3}, {1, 3, 2}, {2, 1, 3}, {2, 3, 1}, {3, 1, 2}, {3, 2, 1},
 };
 
@@ -251,7 +251,7 @@ static const int32_t ALL_3[6][3] = {
 // one may report false
 static void test_next_permutation_walks_the_whole_order() {
     int32_t buf[3] = {1, 2, 3};
-    const nad_SpanMut s = NAD_SPAN_NEW_MUT(int32_t, buf, 3);
+    const nad_SpanMut s = NAD_SPAN_FROM_DATA_MUT(int32_t, buf, 3);
 
     for (size_t i = 0; i < 6; ++i) {
         TEST_ASSERT_EQUAL_INT32_ARRAY(ALL_3[i], buf, 3);
@@ -271,7 +271,7 @@ static void test_next_permutation_walks_the_whole_order() {
 // equal elements do not produce equal permutations twice: {1,1,2} has three, not six
 static void test_next_permutation_skips_duplicate_arrangements() {
     int32_t buf[3] = {1, 1, 2};
-    const nad_SpanMut s = NAD_SPAN_NEW_MUT(int32_t, buf, 3);
+    const nad_SpanMut s = NAD_SPAN_FROM_DATA_MUT(int32_t, buf, 3);
 
     size_t seen = 1;
     while (nad_span_next_permutation(s, nad_cmp_i32)) {
@@ -284,15 +284,15 @@ static void test_next_permutation_skips_duplicate_arrangements() {
 static void test_next_permutation_empty_and_single_report_false() {
     int32_t buf[1] = {42};
 
-    TEST_ASSERT_FALSE(nad_span_next_permutation(NAD_SPAN_NEW_MUT(int32_t, buf, 0), nad_cmp_i32));
-    TEST_ASSERT_FALSE(nad_span_next_permutation(NAD_SPAN_NEW_MUT(int32_t, buf, 1), nad_cmp_i32));
+    TEST_ASSERT_FALSE(nad_span_next_permutation(NAD_SPAN_FROM_DATA_MUT(int32_t, buf, 0), nad_cmp_i32));
+    TEST_ASSERT_FALSE(nad_span_next_permutation(NAD_SPAN_FROM_DATA_MUT(int32_t, buf, 1), nad_cmp_i32));
     TEST_ASSERT_EQUAL_INT32(42, buf[0]);
 }
 
 // the comparator defines the order, so a descending one walks the mirror sequence
 static void test_next_permutation_follows_the_comparator() {
     int32_t buf[3] = {3, 2, 1};
-    const nad_SpanMut s = NAD_SPAN_NEW_MUT(int32_t, buf, 3);
+    const nad_SpanMut s = NAD_SPAN_FROM_DATA_MUT(int32_t, buf, 3);
 
     TEST_ASSERT_TRUE(nad_span_next_permutation(s, nad_cmp_desc_i32));
 
@@ -302,7 +302,7 @@ static void test_next_permutation_follows_the_comparator() {
 
 static void test_next_permutation_stays_within_the_subspan() {
     int32_t buf[5] = {9, 1, 2, 3, 9};
-    const nad_SpanMut s = NAD_SPAN_NEW_MUT(int32_t, buf, 5);
+    const nad_SpanMut s = NAD_SPAN_FROM_DATA_MUT(int32_t, buf, 5);
 
     TEST_ASSERT_TRUE(nad_span_next_permutation(nad_span_sub_mut(s, 1, 3), nad_cmp_i32));
 
@@ -314,7 +314,7 @@ static void test_next_permutation_stays_within_the_subspan() {
 
 static void test_prev_permutation_walks_the_order_backwards() {
     int32_t buf[3] = {3, 2, 1};
-    const nad_SpanMut s = NAD_SPAN_NEW_MUT(int32_t, buf, 3);
+    const nad_SpanMut s = NAD_SPAN_FROM_DATA_MUT(int32_t, buf, 3);
 
     for (size_t i = 6; i > 0; --i) {
         TEST_ASSERT_EQUAL_INT32_ARRAY(ALL_3[i - 1], buf, 3);
@@ -336,7 +336,7 @@ static void test_prev_permutation_undoes_next_permutation() {
     for (size_t i = 0; i < 5; ++i) {
         int32_t buf[3];
         memcpy(buf, ALL_3[i], sizeof buf);
-        const nad_SpanMut s = NAD_SPAN_NEW_MUT(int32_t, buf, 3);
+        const nad_SpanMut s = NAD_SPAN_FROM_DATA_MUT(int32_t, buf, 3);
 
         TEST_ASSERT_TRUE(nad_span_next_permutation(s, nad_cmp_i32));
         TEST_ASSERT_TRUE(nad_span_prev_permutation(s, nad_cmp_i32));
@@ -348,15 +348,15 @@ static void test_prev_permutation_undoes_next_permutation() {
 static void test_prev_permutation_empty_and_single_report_false() {
     int32_t buf[1] = {42};
 
-    TEST_ASSERT_FALSE(nad_span_prev_permutation(NAD_SPAN_NEW_MUT(int32_t, buf, 0), nad_cmp_i32));
-    TEST_ASSERT_FALSE(nad_span_prev_permutation(NAD_SPAN_NEW_MUT(int32_t, buf, 1), nad_cmp_i32));
+    TEST_ASSERT_FALSE(nad_span_prev_permutation(NAD_SPAN_FROM_DATA_MUT(int32_t, buf, 0), nad_cmp_i32));
+    TEST_ASSERT_FALSE(nad_span_prev_permutation(NAD_SPAN_FROM_DATA_MUT(int32_t, buf, 1), nad_cmp_i32));
     TEST_ASSERT_EQUAL_INT32(42, buf[0]);
 }
 
 static void test_prev_permutation_moves_whole_elems() {
     Pair buf[2] = {{3, 30}, {1, 10}};
 
-    TEST_ASSERT_TRUE(nad_span_prev_permutation(NAD_SPAN_NEW_MUT(Pair, buf, 2), nad_cmp_i32));
+    TEST_ASSERT_TRUE(nad_span_prev_permutation(NAD_SPAN_FROM_DATA_MUT(Pair, buf, 2), nad_cmp_i32));
 
     // nad_cmp_i32 reads the first int32 of each Pair, but the whole elem must travel
     TEST_ASSERT_EQUAL_INT64(1, buf[0].a);
@@ -370,7 +370,7 @@ static void test_prev_permutation_moves_whole_elems() {
 static void test_partition_moves_matches_to_the_front() {
     int32_t buf[6] = {1, 2, 3, 4, 5, 6};
 
-    const size_t boundary = nad_span_partition(NAD_SPAN_NEW_MUT(int32_t, buf, 6), is_even, nullptr);
+    const size_t boundary = nad_span_partition(NAD_SPAN_FROM_DATA_MUT(int32_t, buf, 6), is_even, nullptr);
 
     TEST_ASSERT_EQUAL_size_t(3, boundary);
     for (size_t i = 0; i < boundary; ++i) {
@@ -388,8 +388,8 @@ static void test_partition_at_the_ends() {
     int32_t all[3] = {2, 4, 6};
     int32_t none[3] = {1, 3, 5};
 
-    TEST_ASSERT_EQUAL_size_t(3, nad_span_partition(NAD_SPAN_NEW_MUT(int32_t, all, 3), is_even, nullptr));
-    TEST_ASSERT_EQUAL_size_t(0, nad_span_partition(NAD_SPAN_NEW_MUT(int32_t, none, 3), is_even, nullptr));
+    TEST_ASSERT_EQUAL_size_t(3, nad_span_partition(NAD_SPAN_FROM_DATA_MUT(int32_t, all, 3), is_even, nullptr));
+    TEST_ASSERT_EQUAL_size_t(0, nad_span_partition(NAD_SPAN_FROM_DATA_MUT(int32_t, none, 3), is_even, nullptr));
 
     constexpr int32_t want_all[3] = {2, 4, 6};
     constexpr int32_t want_none[3] = {1, 3, 5};
@@ -398,14 +398,14 @@ static void test_partition_at_the_ends() {
 }
 
 static void test_partition_of_an_empty_span_is_zero() {
-    TEST_ASSERT_EQUAL_size_t(0, nad_span_partition(NAD_SPAN_NEW_MUT(int32_t, nullptr, 0), is_even, nullptr));
+    TEST_ASSERT_EQUAL_size_t(0, nad_span_partition(NAD_SPAN_FROM_DATA_MUT(int32_t, nullptr, 0), is_even, nullptr));
 }
 
 static void test_partition_passes_the_ctx_through() {
     int32_t buf[5] = {1, 5, 2, 4, 3};
     int32_t bound = 3;
 
-    const size_t boundary = nad_span_partition(NAD_SPAN_NEW_MUT(int32_t, buf, 5), greater_than, &bound);
+    const size_t boundary = nad_span_partition(NAD_SPAN_FROM_DATA_MUT(int32_t, buf, 5), greater_than, &bound);
 
     TEST_ASSERT_EQUAL_size_t(2, boundary);
     for (size_t i = 0; i < boundary; ++i) {
@@ -419,7 +419,11 @@ static void test_partition_passes_the_ctx_through() {
 static void test_partition_moves_whole_elems() {
     Pair buf[4] = {{-1, 10}, {1, 20}, {-2, 30}, {2, 40}};
 
-    const size_t boundary = nad_span_partition(NAD_SPAN_NEW_MUT(Pair, buf, 4), nad_test_pair_a_is_positive, nullptr);
+    const size_t boundary = nad_span_partition(
+        NAD_SPAN_FROM_DATA_MUT(Pair, buf, 4),
+        nad_test_pair_a_is_positive,
+        nullptr
+    );
 
     TEST_ASSERT_EQUAL_size_t(2, boundary);
     for (size_t i = 0; i < boundary; ++i) {
@@ -434,8 +438,15 @@ static void test_partition_stable_keeps_the_order_on_both_sides() {
     int32_t buf[6] = {1, 2, 3, 4, 5, 6};
 
     size_t boundary = 999;
-    NAD_TEST_OK(nad_span_partition_stable(NAD_SPAN_NEW_MUT(int32_t, buf, 6), is_even, nullptr,
-        nad_al_default(), &boundary));
+    NAD_TEST_OK(
+        nad_span_partition_stable(
+            NAD_SPAN_FROM_DATA_MUT(int32_t, buf, 6),
+            is_even,
+            nullptr,
+            nad_al_default(),
+            &boundary
+        )
+    );
 
     constexpr int32_t want[6] = {2, 4, 6, 1, 3, 5};
     TEST_ASSERT_EQUAL_size_t(3, boundary);
@@ -449,10 +460,17 @@ static void test_partition_stable_agrees_with_partition_on_the_boundary() {
     int32_t plain_buf[7] = {4, 1, 6, 3, 8, 5, 2};
 
     size_t stable = 999;
-    NAD_TEST_OK(nad_span_partition_stable(NAD_SPAN_NEW_MUT(int32_t, stable_buf, 7), is_even,
-        nullptr, nad_al_default(), &stable));
+    NAD_TEST_OK(
+        nad_span_partition_stable(
+            NAD_SPAN_FROM_DATA_MUT(int32_t, stable_buf, 7),
+            is_even,
+            nullptr,
+            nad_al_default(),
+            &stable
+        )
+    );
 
-    const size_t plain = nad_span_partition(NAD_SPAN_NEW_MUT(int32_t, plain_buf, 7), is_even, nullptr);
+    const size_t plain = nad_span_partition(NAD_SPAN_FROM_DATA_MUT(int32_t, plain_buf, 7), is_even, nullptr);
 
     TEST_ASSERT_EQUAL_size_t(plain, stable);
     assert_same_elems(stable_buf, plain_buf, 7);
@@ -464,9 +482,15 @@ static void test_partition_stable_keeps_equal_elems_in_order() {
     Pair buf[6] = {{1, 0}, {-1, 1}, {1, 2}, {-1, 3}, {-1, 4}, {1, 5}};
 
     size_t boundary = 999;
-    NAD_TEST_OK(nad_span_partition_stable(NAD_SPAN_NEW_MUT(Pair, buf, 6),
-        nad_test_pair_a_is_positive, nullptr,
-        nad_al_default(), &boundary));
+    NAD_TEST_OK(
+        nad_span_partition_stable(
+            NAD_SPAN_FROM_DATA_MUT(Pair, buf, 6),
+            nad_test_pair_a_is_positive,
+            nullptr,
+            nad_al_default(),
+            &boundary
+        )
+    );
 
     TEST_ASSERT_EQUAL_size_t(3, boundary);
     constexpr int64_t want_tags[6] = {0, 2, 5, 1, 3, 4};
@@ -480,8 +504,15 @@ static void test_partition_stable_leaves_a_partitioned_span_alone() {
     int32_t buf[5] = {2, 4, 1, 3, 5};
 
     size_t boundary = 999;
-    NAD_TEST_OK(nad_span_partition_stable(NAD_SPAN_NEW_MUT(int32_t, buf, 5), is_even, nullptr,
-        nad_al_default(), &boundary));
+    NAD_TEST_OK(
+        nad_span_partition_stable(
+            NAD_SPAN_FROM_DATA_MUT(int32_t, buf, 5),
+            is_even,
+            nullptr,
+            nad_al_default(),
+            &boundary
+        )
+    );
 
     constexpr int32_t want[5] = {2, 4, 1, 3, 5};
     TEST_ASSERT_EQUAL_size_t(2, boundary);
@@ -493,27 +524,40 @@ static void test_partition_stable_at_the_ends() {
     int32_t none[3] = {1, 3, 5};
 
     size_t boundary = 999;
-    NAD_TEST_OK(nad_span_partition_stable(NAD_SPAN_NEW_MUT(int32_t, all, 3), is_even, nullptr,
-        nad_al_default(), &boundary));
+    NAD_TEST_OK(
+        nad_span_partition_stable(
+            NAD_SPAN_FROM_DATA_MUT(int32_t, all, 3),
+            is_even,
+            nullptr,
+            nad_al_default(),
+            &boundary
+        )
+    );
     TEST_ASSERT_EQUAL_size_t(3, boundary);
     TEST_ASSERT_EQUAL_INT32_ARRAY(((int32_t[]){2, 4, 6}), all, 3);
 
-    NAD_TEST_OK(nad_span_partition_stable(NAD_SPAN_NEW_MUT(int32_t, none, 3), is_even, nullptr,
-        nad_al_default(), &boundary));
+    NAD_TEST_OK(
+        nad_span_partition_stable(
+            NAD_SPAN_FROM_DATA_MUT(int32_t, none, 3),
+            is_even,
+            nullptr,
+            nad_al_default(),
+            &boundary
+        )
+    );
     TEST_ASSERT_EQUAL_size_t(0, boundary);
     TEST_ASSERT_EQUAL_INT32_ARRAY(((int32_t[]){1, 3, 5}), none, 3);
 }
 
 static void test_partition_stable_result_is_partitioned() {
     int32_t buf[8] = {7, 2, 9, 4, 1, 6, 3, 8};
-    const nad_SpanMut s = NAD_SPAN_NEW_MUT(int32_t, buf, 8);
+    const nad_SpanMut s = NAD_SPAN_FROM_DATA_MUT(int32_t, buf, 8);
 
     size_t boundary = 999;
     NAD_TEST_OK(nad_span_partition_stable(s, is_even, nullptr, nad_al_default(), &boundary));
 
     TEST_ASSERT_TRUE(nad_span_is_partitioned(nad_span_mut_to_span(s), is_even, nullptr));
-    TEST_ASSERT_EQUAL_size_t(nad_span_partition_point(nad_span_mut_to_span(s), is_even, nullptr),
-                             boundary);
+    TEST_ASSERT_EQUAL_size_t(nad_span_partition_point(nad_span_mut_to_span(s), is_even, nullptr), boundary);
 }
 
 static void test_partition_stable_passes_the_ctx_through() {
@@ -521,8 +565,15 @@ static void test_partition_stable_passes_the_ctx_through() {
     constexpr int32_t bound = 2;
 
     size_t boundary = 999;
-    NAD_TEST_OK(nad_span_partition_stable(NAD_SPAN_NEW_MUT(int32_t, buf, 5), greater_than,
-        (void *) &bound, nad_al_default(), &boundary));
+    NAD_TEST_OK(
+        nad_span_partition_stable(
+            NAD_SPAN_FROM_DATA_MUT(int32_t, buf, 5),
+            greater_than,
+            (void *) &bound,
+            nad_al_default(),
+            &boundary
+        )
+    );
 
     constexpr int32_t want[5] = {5, 4, 3, 1, 2};
     TEST_ASSERT_EQUAL_size_t(3, boundary);
@@ -532,11 +583,10 @@ static void test_partition_stable_passes_the_ctx_through() {
 // only a subspan is split, and the elems around it must not move
 static void test_partition_stable_of_a_subspan_leaves_the_neighbours_alone() {
     int32_t buf[6] = {9, 1, 2, 3, 4, 9};
-    const nad_SpanMut s = NAD_SPAN_NEW_MUT(int32_t, buf, 6);
+    const nad_SpanMut s = NAD_SPAN_FROM_DATA_MUT(int32_t, buf, 6);
 
     size_t boundary = 999;
-    NAD_TEST_OK(nad_span_partition_stable(nad_span_sub_mut(s, 1, 4), is_even, nullptr,
-        nad_al_default(), &boundary));
+    NAD_TEST_OK(nad_span_partition_stable(nad_span_sub_mut(s, 1, 4), is_even, nullptr, nad_al_default(), &boundary));
 
     constexpr int32_t want[6] = {9, 2, 4, 1, 3, 9};
     TEST_ASSERT_EQUAL_size_t(2, boundary);
@@ -550,8 +600,15 @@ static void test_partition_stable_asks_the_pred_once_per_elem() {
 
     size_t asked = 0;
     size_t boundary = 999;
-    NAD_TEST_OK(nad_span_partition_stable(NAD_SPAN_NEW_MUT(int32_t, buf, 6), is_even_counting,
-        &asked, nad_al_default(), &boundary));
+    NAD_TEST_OK(
+        nad_span_partition_stable(
+            NAD_SPAN_FROM_DATA_MUT(int32_t, buf, 6),
+            is_even_counting,
+            &asked,
+            nad_al_default(),
+            &boundary
+        )
+    );
 
     TEST_ASSERT_EQUAL_size_t(6, asked);
 }
@@ -565,8 +622,7 @@ static void test_partition_stable_releases_its_scratch() {
     int32_t buf[4] = {1, 2, 3, 4};
 
     size_t boundary = 999;
-    NAD_TEST_OK(nad_span_partition_stable(NAD_SPAN_NEW_MUT(int32_t, buf, 4), is_even, nullptr,
-        &al, &boundary));
+    NAD_TEST_OK(nad_span_partition_stable(NAD_SPAN_FROM_DATA_MUT(int32_t, buf, 4), is_even, nullptr, &al, &boundary));
 
     TEST_ASSERT_EQUAL_size_t(1, probe.alloc_calls);
     TEST_ASSERT_EQUAL_size_t(1, probe.dealloc_calls);
@@ -587,7 +643,7 @@ static void test_partition_stable_reports_a_refused_scratch() {
     size_t boundary = 777;
     NAD_TEST_STATUS(
         NAD_STATUS_ERR_NO_MEM,
-        nad_span_partition_stable(NAD_SPAN_NEW_MUT(int32_t, buf, 4), is_even, nullptr, &al, &boundary)
+        nad_span_partition_stable(NAD_SPAN_FROM_DATA_MUT(int32_t, buf, 4), is_even, nullptr, &al, &boundary)
     );
 
     constexpr int32_t want[4] = {1, 2, 3, 4};
@@ -604,8 +660,9 @@ static void test_partition_stable_of_an_empty_span_asks_for_nothing() {
     nad_test_probe_fail_after_next(&probe, 0);
 
     size_t boundary = 999;
-    NAD_TEST_OK(nad_span_partition_stable(NAD_SPAN_NEW_MUT(int32_t, nullptr, 0), is_even,
-        nullptr, &al, &boundary));
+    NAD_TEST_OK(
+        nad_span_partition_stable(NAD_SPAN_FROM_DATA_MUT(int32_t, nullptr, 0), is_even, nullptr, &al, &boundary)
+    );
 
     TEST_ASSERT_EQUAL_size_t(0, boundary);
     TEST_ASSERT_EQUAL_size_t(0, nad_test_probe_requests(&probe));
@@ -617,17 +674,17 @@ static void test_is_partitioned_accepts_a_split_span() {
     constexpr int32_t split[5] = {2, 4, 1, 3, 5};
     constexpr int32_t mixed[5] = {2, 1, 4, 3, 5};
 
-    TEST_ASSERT_TRUE(nad_span_is_partitioned(NAD_SPAN_NEW(int32_t, split, 5), is_even, nullptr));
-    TEST_ASSERT_FALSE(nad_span_is_partitioned(NAD_SPAN_NEW(int32_t, mixed, 5), is_even, nullptr));
+    TEST_ASSERT_TRUE(nad_span_is_partitioned(NAD_SPAN_FROM_DATA(int32_t, split, 5), is_even, nullptr));
+    TEST_ASSERT_FALSE(nad_span_is_partitioned(NAD_SPAN_FROM_DATA(int32_t, mixed, 5), is_even, nullptr));
 }
 
 static void test_is_partitioned_on_uniform_and_empty_spans() {
     constexpr int32_t all[3] = {2, 4, 6};
     constexpr int32_t none[3] = {1, 3, 5};
 
-    TEST_ASSERT_TRUE(nad_span_is_partitioned(NAD_SPAN_NEW(int32_t, all, 3), is_even, nullptr));
-    TEST_ASSERT_TRUE(nad_span_is_partitioned(NAD_SPAN_NEW(int32_t, none, 3), is_even, nullptr));
-    TEST_ASSERT_TRUE(nad_span_is_partitioned(NAD_SPAN_NEW(int32_t, nullptr, 0), is_even, nullptr));
+    TEST_ASSERT_TRUE(nad_span_is_partitioned(NAD_SPAN_FROM_DATA(int32_t, all, 3), is_even, nullptr));
+    TEST_ASSERT_TRUE(nad_span_is_partitioned(NAD_SPAN_FROM_DATA(int32_t, none, 3), is_even, nullptr));
+    TEST_ASSERT_TRUE(nad_span_is_partitioned(NAD_SPAN_FROM_DATA(int32_t, nullptr, 0), is_even, nullptr));
 }
 
 
@@ -640,7 +697,7 @@ static void test_shuffle_keeps_every_elem() {
     int32_t sorted[] = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
 
     nad_Rng rng = nad_rng_from_seed(1);
-    nad_SpanMut s = NAD_SPAN_NEW_MUT(int32_t, data, 10);
+    const nad_SpanMut s = NAD_SPAN_FROM_DATA_MUT(int32_t, data, 10);
 
     nad_span_shuffle(s, &rng);
     nad_span_sort(s, nad_cmp_i32);
@@ -652,10 +709,10 @@ static void test_shuffle_of_a_short_span_is_a_no_op() {
     nad_Rng rng = nad_rng_from_seed(2);
 
     int32_t one[] = {42};
-    nad_span_shuffle(NAD_SPAN_NEW_MUT(int32_t, one, 1), &rng);
+    nad_span_shuffle(NAD_SPAN_FROM_DATA_MUT(int32_t, one, 1), &rng);
     TEST_ASSERT_EQUAL_INT32(42, one[0]);
 
-    nad_span_shuffle(NAD_SPAN_NEW_MUT(int32_t, one, 0), &rng);
+    nad_span_shuffle(NAD_SPAN_FROM_DATA_MUT(int32_t, one, 0), &rng);
     TEST_ASSERT_EQUAL_INT32(42, one[0]);
 }
 
@@ -673,7 +730,7 @@ static void test_shuffle_reaches_every_order_equally_often() {
 
     for (size_t i = 0; i < TRIALS; ++i) {
         int32_t data[] = {0, 1, 2};
-        nad_span_shuffle(NAD_SPAN_NEW_MUT(int32_t, data, 3), &rng);
+        nad_span_shuffle(NAD_SPAN_FROM_DATA_MUT(int32_t, data, 3), &rng);
 
         ++seen[(size_t) (data[0] * 9 + data[1] * 3 + data[2])];
     }
@@ -697,8 +754,8 @@ static void test_shuffle_replays_the_same_seed() {
     nad_Rng one = nad_rng_from_seed(4);
     nad_Rng two = nad_rng_from_seed(4);
 
-    nad_span_shuffle(NAD_SPAN_NEW_MUT(int32_t, a, 8), &one);
-    nad_span_shuffle(NAD_SPAN_NEW_MUT(int32_t, b, 8), &two);
+    nad_span_shuffle(NAD_SPAN_FROM_DATA_MUT(int32_t, a, 8), &one);
+    nad_span_shuffle(NAD_SPAN_FROM_DATA_MUT(int32_t, b, 8), &two);
 
     TEST_ASSERT_EQUAL_INT32_ARRAY(a, b, 8);
 }
@@ -707,7 +764,7 @@ static void test_shuffle_moves_whole_elems() {
     Pair data[] = {{1, 100}, {2, 200}, {3, 300}, {4, 400}, {5, 500}};
 
     nad_Rng rng = nad_rng_from_seed(5);
-    nad_span_shuffle(NAD_SPAN_NEW_MUT(Pair, data, 5), &rng);
+    nad_span_shuffle(NAD_SPAN_FROM_DATA_MUT(Pair, data, 5), &rng);
 
     // whatever order they came out in, no elem was torn in half
     for (size_t i = 0; i < 5; ++i) {
@@ -720,7 +777,7 @@ static void test_shuffle_prefix_keeps_every_elem() {
     int32_t sorted[] = {1, 2, 3, 4, 5, 6, 7, 8};
 
     nad_Rng rng = nad_rng_from_seed(6);
-    nad_SpanMut s = NAD_SPAN_NEW_MUT(int32_t, data, 8);
+    const nad_SpanMut s = NAD_SPAN_FROM_DATA_MUT(int32_t, data, 8);
 
     nad_span_shuffle_prefix(s, 3, &rng);
     nad_span_sort(s, nad_cmp_i32);
@@ -732,7 +789,7 @@ static void test_shuffle_prefix_of_nothing_leaves_the_span_alone() {
     int32_t data[] = {1, 2, 3, 4};
 
     nad_Rng rng = nad_rng_from_seed(7);
-    nad_span_shuffle_prefix(NAD_SPAN_NEW_MUT(int32_t, data, 4), 0, &rng);
+    nad_span_shuffle_prefix(NAD_SPAN_FROM_DATA_MUT(int32_t, data, 4), 0, &rng);
 
     static constexpr int32_t untouched[] = {1, 2, 3, 4};
     TEST_ASSERT_EQUAL_INT32_ARRAY(untouched, data, 4);
@@ -748,7 +805,7 @@ static void test_shuffle_prefix_draws_from_the_whole_span() {
 
     for (size_t i = 0; i < TRIALS; ++i) {
         int32_t data[] = {0, 1, 2, 3, 4};
-        nad_span_shuffle_prefix(NAD_SPAN_NEW_MUT(int32_t, data, 5), 1, &rng);
+        nad_span_shuffle_prefix(NAD_SPAN_FROM_DATA_MUT(int32_t, data, 5), 1, &rng);
         ++seen[(size_t) data[0]];
     }
 

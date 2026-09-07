@@ -56,7 +56,7 @@ int main() {
     // the elems may wrap the ring underneath, so there is no view to hand over: the whole
     // bridge to algo is one copy out into a buffer exactly as long as the queue
     int32_t buf[8];
-    const nad_SpanMut out_span = NAD_SPAN_NEW_MUT(int32_t, buf, nad_queue_len(q));
+    const nad_SpanMut out_span = NAD_SPAN_FROM_DATA_MUT(int32_t, buf, nad_queue_len(q));
 
     nad_queue_copy_to_span(q, out_span);
     const nad_Span view = nad_span_mut_to_span(out_span);

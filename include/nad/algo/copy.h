@@ -45,7 +45,7 @@ size_t nad_span_copy_if(nad_SpanMut dst, nad_Span src, nad_Pred pred, void *ctx)
 /// @param src where they come from, overlapping 'dst' however it likes
 /// @bigo{n} — the same copy through memmove instead of memcpy
 NAD_API
-void nad_span_copy_within(nad_SpanMut dst, nad_Span src);
+void nad_span_copy_overlapping(nad_SpanMut dst, nad_Span src);
 
 /// @}
 

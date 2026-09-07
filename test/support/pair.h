@@ -8,7 +8,7 @@
 
 /// an elem wider than a word, to keep elem_size honest. Deliberately spelled without the
 /// nad_test_ prefix of the rest of this layer: it is written as a type argument
-/// (NAD_SPAN_NEW_MUT(Pair, buf, 2)) in every test that has one, where a prefix is noise.
+/// (NAD_SPAN_FROM_DATA_MUT(Pair, buf, 2)) in every test that has one, where a prefix is noise.
 typedef struct {
     int64_t a;
     int64_t b;

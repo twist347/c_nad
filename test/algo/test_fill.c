@@ -40,7 +40,7 @@ static void gen_pair(void *dst, size_t idx, void *ctx) {
 
 static void test_fill_writes_every_elem() {
     int32_t buf[4] = {0, 0, 0, 0};
-    const nad_SpanMut s = NAD_SPAN_NEW_MUT(int32_t, buf, 4);
+    const nad_SpanMut s = NAD_SPAN_FROM_DATA_MUT(int32_t, buf, 4);
 
     constexpr int32_t val = 7;
     nad_span_fill(s, &val);
@@ -51,7 +51,7 @@ static void test_fill_writes_every_elem() {
 
 static void test_fill_empty_is_noop() {
     int32_t buf[2] = {1, 2};
-    const nad_SpanMut s = NAD_SPAN_NEW_MUT(int32_t, buf, 0);
+    const nad_SpanMut s = NAD_SPAN_FROM_DATA_MUT(int32_t, buf, 0);
 
     constexpr int32_t val = 9;
     nad_span_fill(s, &val);
@@ -63,7 +63,7 @@ static void test_fill_empty_is_noop() {
 // filling a subspan must stay inside it — the neighbours are not part of the view
 static void test_fill_stays_within_the_subspan() {
     int32_t buf[5] = {0, 0, 0, 0, 0};
-    const nad_SpanMut s = NAD_SPAN_NEW_MUT(int32_t, buf, 5);
+    const nad_SpanMut s = NAD_SPAN_FROM_DATA_MUT(int32_t, buf, 5);
 
     constexpr int32_t val = 8;
     nad_span_fill(nad_span_sub_mut(s, 1, 3), &val);
@@ -75,7 +75,7 @@ static void test_fill_stays_within_the_subspan() {
 // elem_size drives the write, so a type wider than a word must be copied whole
 static void test_fill_copies_whole_elements() {
     Pair buf[2] = {{0, 0}, {0, 0}};
-    const nad_SpanMut s = NAD_SPAN_NEW_MUT(Pair, buf, 2);
+    const nad_SpanMut s = NAD_SPAN_FROM_DATA_MUT(Pair, buf, 2);
 
     constexpr Pair val = {11, 22};
     nad_span_fill(s, &val);
@@ -89,7 +89,7 @@ static void test_fill_copies_whole_elements() {
 // the source is read once per element, so it may live inside the span itself
 static void test_fill_from_an_element_of_the_same_span() {
     int32_t buf[3] = {5, 1, 2};
-    const nad_SpanMut s = NAD_SPAN_NEW_MUT(int32_t, buf, 3);
+    const nad_SpanMut s = NAD_SPAN_FROM_DATA_MUT(int32_t, buf, 3);
 
     nad_span_fill(s, &buf[0]);
 
@@ -101,7 +101,7 @@ static void test_fill_from_an_element_of_the_same_span() {
 
 static void test_fill_zero_clears_every_byte() {
     int32_t buf[3] = {1, 2, 3};
-    const nad_SpanMut s = NAD_SPAN_NEW_MUT(int32_t, buf, 3);
+    const nad_SpanMut s = NAD_SPAN_FROM_DATA_MUT(int32_t, buf, 3);
 
     nad_span_fill_zero(s);
 
@@ -111,7 +111,7 @@ static void test_fill_zero_clears_every_byte() {
 
 static void test_fill_zero_empty_is_noop() {
     int32_t buf[2] = {1, 2};
-    const nad_SpanMut s = NAD_SPAN_NEW_MUT(int32_t, buf, 0);
+    const nad_SpanMut s = NAD_SPAN_FROM_DATA_MUT(int32_t, buf, 0);
 
     nad_span_fill_zero(s);
 
@@ -121,7 +121,7 @@ static void test_fill_zero_empty_is_noop() {
 
 static void test_fill_zero_stays_within_the_subspan() {
     int32_t buf[4] = {1, 2, 3, 4};
-    const nad_SpanMut s = NAD_SPAN_NEW_MUT(int32_t, buf, 4);
+    const nad_SpanMut s = NAD_SPAN_FROM_DATA_MUT(int32_t, buf, 4);
 
     nad_span_fill_zero(nad_span_sub_mut(s, 1, 2));
 
@@ -131,7 +131,7 @@ static void test_fill_zero_stays_within_the_subspan() {
 
 // an empty view over null must not reach memset with a null pointer
 static void test_fill_zero_null_view_is_noop() {
-    const nad_SpanMut s = NAD_SPAN_NEW_MUT(int32_t, nullptr, 0);
+    const nad_SpanMut s = NAD_SPAN_FROM_DATA_MUT(int32_t, nullptr, 0);
 
     nad_span_fill_zero(s);
 }
@@ -142,7 +142,7 @@ static void test_fill_zero_null_view_is_noop() {
 static void test_generate_fills_from_the_index() {
     int32_t buf[5] = {9, 9, 9, 9, 9};
 
-    nad_span_generate(NAD_SPAN_NEW_MUT(int32_t, buf, 5), gen_index, nullptr);
+    nad_span_generate(NAD_SPAN_FROM_DATA_MUT(int32_t, buf, 5), gen_index, nullptr);
 
     constexpr int32_t want[5] = {0, 1, 2, 3, 4};
     TEST_ASSERT_EQUAL_INT32_ARRAY(want, buf, 5);
@@ -152,7 +152,7 @@ static void test_generate_passes_the_ctx_through() {
     int32_t buf[4] = {0};
     int32_t next = 3;
 
-    nad_span_generate(NAD_SPAN_NEW_MUT(int32_t, buf, 4), gen_doubling, &next);
+    nad_span_generate(NAD_SPAN_FROM_DATA_MUT(int32_t, buf, 4), gen_doubling, &next);
 
     constexpr int32_t want[4] = {3, 6, 12, 24};
     TEST_ASSERT_EQUAL_INT32_ARRAY(want, buf, 4);
@@ -160,13 +160,13 @@ static void test_generate_passes_the_ctx_through() {
 }
 
 static void test_generate_of_an_empty_span_is_a_noop() {
-    nad_span_generate(NAD_SPAN_NEW_MUT(int32_t, nullptr, 0), gen_index, nullptr);
+    nad_span_generate(NAD_SPAN_FROM_DATA_MUT(int32_t, nullptr, 0), gen_index, nullptr);
 }
 
 static void test_generate_writes_whole_elems() {
     Pair buf[3] = {0};
 
-    nad_span_generate(NAD_SPAN_NEW_MUT(Pair, buf, 3), gen_pair, nullptr);
+    nad_span_generate(NAD_SPAN_FROM_DATA_MUT(Pair, buf, 3), gen_pair, nullptr);
 
     TEST_ASSERT_EQUAL_INT64(2, buf[2].a);
     TEST_ASSERT_EQUAL_INT64(20, buf[2].b);

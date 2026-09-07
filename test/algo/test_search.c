@@ -45,7 +45,7 @@ static void test_find_reports_the_first_match() {
     constexpr int32_t key = 1;
 
     size_t idx = 999;
-    TEST_ASSERT_TRUE(nad_span_find(NAD_SPAN_NEW(int32_t, buf, 5), &key, nad_eq_i32, &idx));
+    TEST_ASSERT_TRUE(nad_span_find(NAD_SPAN_FROM_DATA(int32_t, buf, 5), &key, nad_eq_i32, &idx));
     TEST_ASSERT_EQUAL_size_t(1, idx);
 }
 
@@ -55,7 +55,7 @@ static void test_find_miss_leaves_the_out_param_alone() {
     constexpr int32_t key = 9;
 
     size_t idx = 777;
-    TEST_ASSERT_FALSE(nad_span_find(NAD_SPAN_NEW(int32_t, buf, 3), &key, nad_eq_i32, &idx));
+    TEST_ASSERT_FALSE(nad_span_find(NAD_SPAN_FROM_DATA(int32_t, buf, 3), &key, nad_eq_i32, &idx));
     TEST_ASSERT_EQUAL_size_t(777, idx);
 }
 
@@ -64,7 +64,7 @@ static void test_find_in_an_empty_span_misses() {
     constexpr int32_t key = 1;
 
     size_t idx = 555;
-    TEST_ASSERT_FALSE(nad_span_find(NAD_SPAN_NEW(int32_t, buf, 0), &key, nad_eq_i32, &idx));
+    TEST_ASSERT_FALSE(nad_span_find(NAD_SPAN_FROM_DATA(int32_t, buf, 0), &key, nad_eq_i32, &idx));
     TEST_ASSERT_EQUAL_size_t(555, idx);
 }
 
@@ -73,14 +73,14 @@ static void test_find_matches_the_last_elem() {
     constexpr int32_t key = 4;
 
     size_t idx = 0;
-    TEST_ASSERT_TRUE(nad_span_find(NAD_SPAN_NEW(int32_t, buf, 4), &key, nad_eq_i32, &idx));
+    TEST_ASSERT_TRUE(nad_span_find(NAD_SPAN_FROM_DATA(int32_t, buf, 4), &key, nad_eq_i32, &idx));
     TEST_ASSERT_EQUAL_size_t(3, idx);
 }
 
 // searching a subspan reports an index relative to that subspan
 static void test_find_index_is_relative_to_the_span() {
     constexpr int32_t buf[5] = {1, 2, 3, 4, 5};
-    const nad_Span s = NAD_SPAN_NEW(int32_t, buf, 5);
+    const nad_Span s = NAD_SPAN_FROM_DATA(int32_t, buf, 5);
     constexpr int32_t key = 4;
 
     size_t idx = 0;
@@ -95,23 +95,23 @@ static void test_contains() {
     constexpr int32_t present = 2;
     constexpr int32_t absent = 9;
 
-    TEST_ASSERT_TRUE(nad_span_contains(NAD_SPAN_NEW(int32_t, buf, 3), &present, nad_eq_i32));
-    TEST_ASSERT_FALSE(nad_span_contains(NAD_SPAN_NEW(int32_t, buf, 3), &absent, nad_eq_i32));
+    TEST_ASSERT_TRUE(nad_span_contains(NAD_SPAN_FROM_DATA(int32_t, buf, 3), &present, nad_eq_i32));
+    TEST_ASSERT_FALSE(nad_span_contains(NAD_SPAN_FROM_DATA(int32_t, buf, 3), &absent, nad_eq_i32));
 }
 
 static void test_count_tallies_every_match() {
     constexpr int32_t buf[6] = {1, 2, 1, 3, 1, 4};
     constexpr int32_t key = 1;
 
-    TEST_ASSERT_EQUAL_size_t(3, nad_span_count(NAD_SPAN_NEW(int32_t, buf, 6), &key, nad_eq_i32));
+    TEST_ASSERT_EQUAL_size_t(3, nad_span_count(NAD_SPAN_FROM_DATA(int32_t, buf, 6), &key, nad_eq_i32));
 }
 
 static void test_count_of_an_absent_key_is_zero() {
     constexpr int32_t buf[3] = {1, 2, 3};
     constexpr int32_t key = 9;
 
-    TEST_ASSERT_EQUAL_size_t(0, nad_span_count(NAD_SPAN_NEW(int32_t, buf, 3), &key, nad_eq_i32));
-    TEST_ASSERT_EQUAL_size_t(0, nad_span_count(NAD_SPAN_NEW(int32_t, buf, 0), &key, nad_eq_i32));
+    TEST_ASSERT_EQUAL_size_t(0, nad_span_count(NAD_SPAN_FROM_DATA(int32_t, buf, 3), &key, nad_eq_i32));
+    TEST_ASSERT_EQUAL_size_t(0, nad_span_count(NAD_SPAN_FROM_DATA(int32_t, buf, 0), &key, nad_eq_i32));
 }
 
 /* ========== bounds ========== */
@@ -120,21 +120,21 @@ static void test_lower_bound_stops_at_the_first_equal() {
     constexpr int32_t buf[6] = {1, 2, 2, 2, 3, 4};
     constexpr int32_t key = 2;
 
-    TEST_ASSERT_EQUAL_size_t(1, nad_span_lower_bound(NAD_SPAN_NEW(int32_t, buf, 6), &key, nad_cmp_i32));
+    TEST_ASSERT_EQUAL_size_t(1, nad_span_lower_bound(NAD_SPAN_FROM_DATA(int32_t, buf, 6), &key, nad_cmp_i32));
 }
 
 static void test_upper_bound_stops_past_the_last_equal() {
     constexpr int32_t buf[6] = {1, 2, 2, 2, 3, 4};
     constexpr int32_t key = 2;
 
-    TEST_ASSERT_EQUAL_size_t(4, nad_span_upper_bound(NAD_SPAN_NEW(int32_t, buf, 6), &key, nad_cmp_i32));
+    TEST_ASSERT_EQUAL_size_t(4, nad_span_upper_bound(NAD_SPAN_FROM_DATA(int32_t, buf, 6), &key, nad_cmp_i32));
 }
 
 // an absent key gives the insertion point, and both bounds agree on it
 static void test_bounds_agree_on_an_absent_key() {
     constexpr int32_t buf[4] = {1, 3, 5, 7};
     constexpr int32_t key = 4;
-    const nad_Span s = NAD_SPAN_NEW(int32_t, buf, 4);
+    const nad_Span s = NAD_SPAN_FROM_DATA(int32_t, buf, 4);
 
     TEST_ASSERT_EQUAL_size_t(2, nad_span_lower_bound(s, &key, nad_cmp_i32));
     TEST_ASSERT_EQUAL_size_t(2, nad_span_upper_bound(s, &key, nad_cmp_i32));
@@ -144,7 +144,7 @@ static void test_bounds_agree_on_an_absent_key() {
 static void test_bounds_past_the_end() {
     constexpr int32_t buf[3] = {1, 2, 3};
     constexpr int32_t key = 9;
-    const nad_Span s = NAD_SPAN_NEW(int32_t, buf, 3);
+    const nad_Span s = NAD_SPAN_FROM_DATA(int32_t, buf, 3);
 
     TEST_ASSERT_EQUAL_size_t(3, nad_span_lower_bound(s, &key, nad_cmp_i32));
     TEST_ASSERT_EQUAL_size_t(3, nad_span_upper_bound(s, &key, nad_cmp_i32));
@@ -153,7 +153,7 @@ static void test_bounds_past_the_end() {
 static void test_bounds_before_the_start() {
     constexpr int32_t buf[3] = {5, 6, 7};
     constexpr int32_t key = 1;
-    const nad_Span s = NAD_SPAN_NEW(int32_t, buf, 3);
+    const nad_Span s = NAD_SPAN_FROM_DATA(int32_t, buf, 3);
 
     TEST_ASSERT_EQUAL_size_t(0, nad_span_lower_bound(s, &key, nad_cmp_i32));
     TEST_ASSERT_EQUAL_size_t(0, nad_span_upper_bound(s, &key, nad_cmp_i32));
@@ -162,7 +162,7 @@ static void test_bounds_before_the_start() {
 static void test_bounds_on_an_empty_span() {
     constexpr int32_t buf[2] = {1, 2};
     constexpr int32_t key = 1;
-    const nad_Span s = NAD_SPAN_NEW(int32_t, buf, 0);
+    const nad_Span s = NAD_SPAN_FROM_DATA(int32_t, buf, 0);
 
     TEST_ASSERT_EQUAL_size_t(0, nad_span_lower_bound(s, &key, nad_cmp_i32));
     TEST_ASSERT_EQUAL_size_t(0, nad_span_upper_bound(s, &key, nad_cmp_i32));
@@ -172,7 +172,7 @@ static void test_bounds_on_an_empty_span() {
 static void test_bounds_delimit_the_equal_run() {
     constexpr int32_t buf[7] = {1, 2, 2, 2, 2, 3, 4};
     constexpr int32_t key = 2;
-    const nad_Span s = NAD_SPAN_NEW(int32_t, buf, 7);
+    const nad_Span s = NAD_SPAN_FROM_DATA(int32_t, buf, 7);
 
     const size_t lo = nad_span_lower_bound(s, &key, nad_cmp_i32);
     const size_t hi = nad_span_upper_bound(s, &key, nad_cmp_i32);
@@ -188,7 +188,7 @@ static void test_binary_search_finds_a_present_key() {
     constexpr int32_t key = 7;
 
     size_t idx = 0;
-    TEST_ASSERT_TRUE(nad_span_binary_search(NAD_SPAN_NEW(int32_t, buf, 5), &key, nad_cmp_i32, &idx));
+    TEST_ASSERT_TRUE(nad_span_binary_search(NAD_SPAN_FROM_DATA(int32_t, buf, 5), &key, nad_cmp_i32, &idx));
     TEST_ASSERT_EQUAL_size_t(3, idx);
 }
 
@@ -198,7 +198,7 @@ static void test_binary_search_reports_the_first_of_the_duplicates() {
     constexpr Tagged key = {2, -1};
 
     size_t idx = 0;
-    TEST_ASSERT_TRUE(nad_span_binary_search(NAD_SPAN_NEW(Tagged, buf, 5), &key, cmp_tagged, &idx));
+    TEST_ASSERT_TRUE(nad_span_binary_search(NAD_SPAN_FROM_DATA(Tagged, buf, 5), &key, cmp_tagged, &idx));
     TEST_ASSERT_EQUAL_size_t(1, idx);
     TEST_ASSERT_EQUAL_INT32(10, buf[idx].tag);
 }
@@ -208,7 +208,7 @@ static void test_binary_search_miss_leaves_the_out_param_alone() {
     constexpr int32_t key = 4;
 
     size_t idx = 333;
-    TEST_ASSERT_FALSE(nad_span_binary_search(NAD_SPAN_NEW(int32_t, buf, 4), &key, nad_cmp_i32, &idx));
+    TEST_ASSERT_FALSE(nad_span_binary_search(NAD_SPAN_FROM_DATA(int32_t, buf, 4), &key, nad_cmp_i32, &idx));
     TEST_ASSERT_EQUAL_size_t(333, idx);
 }
 
@@ -218,7 +218,7 @@ static void test_binary_search_key_past_the_end_misses() {
     constexpr int32_t key = 9;
 
     size_t idx = 111;
-    TEST_ASSERT_FALSE(nad_span_binary_search(NAD_SPAN_NEW(int32_t, buf, 3), &key, nad_cmp_i32, &idx));
+    TEST_ASSERT_FALSE(nad_span_binary_search(NAD_SPAN_FROM_DATA(int32_t, buf, 3), &key, nad_cmp_i32, &idx));
     TEST_ASSERT_EQUAL_size_t(111, idx);
 }
 
@@ -227,14 +227,14 @@ static void test_binary_search_on_an_empty_span_misses() {
     constexpr int32_t key = 1;
 
     size_t idx = 222;
-    TEST_ASSERT_FALSE(nad_span_binary_search(NAD_SPAN_NEW(int32_t, buf, 0), &key, nad_cmp_i32, &idx));
+    TEST_ASSERT_FALSE(nad_span_binary_search(NAD_SPAN_FROM_DATA(int32_t, buf, 0), &key, nad_cmp_i32, &idx));
     TEST_ASSERT_EQUAL_size_t(222, idx);
 }
 
 // every element of a sorted span must be findable, including both edges
 static void test_binary_search_finds_every_element() {
     constexpr int32_t buf[6] = {2, 4, 6, 8, 10, 12};
-    const nad_Span s = NAD_SPAN_NEW(int32_t, buf, 6);
+    const nad_Span s = NAD_SPAN_FROM_DATA(int32_t, buf, 6);
 
     for (size_t i = 0; i < 6; ++i) {
         const int32_t key = buf[i];
@@ -250,7 +250,7 @@ static void test_find_if_reports_the_first_match() {
     constexpr int32_t buf[5] = {3, 1, 4, 2, 6};
 
     size_t idx = 999;
-    TEST_ASSERT_TRUE(nad_span_find_if(NAD_SPAN_NEW(int32_t, buf, 5), is_even, nullptr, &idx));
+    TEST_ASSERT_TRUE(nad_span_find_if(NAD_SPAN_FROM_DATA(int32_t, buf, 5), is_even, nullptr, &idx));
     TEST_ASSERT_EQUAL_size_t(2, idx);
 }
 
@@ -258,13 +258,13 @@ static void test_find_if_miss_leaves_the_out_param_alone() {
     constexpr int32_t buf[3] = {1, 3, 5};
 
     size_t idx = 777;
-    TEST_ASSERT_FALSE(nad_span_find_if(NAD_SPAN_NEW(int32_t, buf, 3), is_even, nullptr, &idx));
+    TEST_ASSERT_FALSE(nad_span_find_if(NAD_SPAN_FROM_DATA(int32_t, buf, 3), is_even, nullptr, &idx));
     TEST_ASSERT_EQUAL_size_t(777, idx);
 }
 
 static void test_find_if_on_an_empty_span_finds_nothing() {
     size_t idx = 555;
-    TEST_ASSERT_FALSE(nad_span_find_if(NAD_SPAN_NEW(int32_t, nullptr, 0), is_even, nullptr, &idx));
+    TEST_ASSERT_FALSE(nad_span_find_if(NAD_SPAN_FROM_DATA(int32_t, nullptr, 0), is_even, nullptr, &idx));
     TEST_ASSERT_EQUAL_size_t(555, idx);
 }
 
@@ -274,25 +274,25 @@ static void test_find_if_passes_the_ctx_through() {
     int32_t bound = 3;
 
     size_t idx = 999;
-    TEST_ASSERT_TRUE(nad_span_find_if(NAD_SPAN_NEW(int32_t, buf, 5), greater_than, &bound, &idx));
+    TEST_ASSERT_TRUE(nad_span_find_if(NAD_SPAN_FROM_DATA(int32_t, buf, 5), greater_than, &bound, &idx));
     TEST_ASSERT_EQUAL_size_t(3, idx);
 
     bound = 4;
-    TEST_ASSERT_TRUE(nad_span_find_if(NAD_SPAN_NEW(int32_t, buf, 5), greater_than, &bound, &idx));
+    TEST_ASSERT_TRUE(nad_span_find_if(NAD_SPAN_FROM_DATA(int32_t, buf, 5), greater_than, &bound, &idx));
     TEST_ASSERT_EQUAL_size_t(4, idx);
 }
 
 static void test_count_if_counts_every_match() {
     constexpr int32_t buf[6] = {1, 2, 3, 4, 5, 6};
 
-    TEST_ASSERT_EQUAL_size_t(3, nad_span_count_if(NAD_SPAN_NEW(int32_t, buf, 6), is_even, nullptr));
+    TEST_ASSERT_EQUAL_size_t(3, nad_span_count_if(NAD_SPAN_FROM_DATA(int32_t, buf, 6), is_even, nullptr));
 }
 
 static void test_count_if_of_none_is_zero() {
     constexpr int32_t buf[3] = {1, 3, 5};
 
-    TEST_ASSERT_EQUAL_size_t(0, nad_span_count_if(NAD_SPAN_NEW(int32_t, buf, 3), is_even, nullptr));
-    TEST_ASSERT_EQUAL_size_t(0, nad_span_count_if(NAD_SPAN_NEW(int32_t, nullptr, 0), is_even, nullptr));
+    TEST_ASSERT_EQUAL_size_t(0, nad_span_count_if(NAD_SPAN_FROM_DATA(int32_t, buf, 3), is_even, nullptr));
+    TEST_ASSERT_EQUAL_size_t(0, nad_span_count_if(NAD_SPAN_FROM_DATA(int32_t, nullptr, 0), is_even, nullptr));
 }
 
 /* ========== partition_point ========== */
@@ -300,22 +300,22 @@ static void test_count_if_of_none_is_zero() {
 static void test_partition_point_finds_the_boundary() {
     constexpr int32_t buf[6] = {2, 4, 6, 1, 3, 5};
 
-    TEST_ASSERT_EQUAL_size_t(3, nad_span_partition_point(NAD_SPAN_NEW(int32_t, buf, 6), is_even, nullptr));
+    TEST_ASSERT_EQUAL_size_t(3, nad_span_partition_point(NAD_SPAN_FROM_DATA(int32_t, buf, 6), is_even, nullptr));
 }
 
 static void test_partition_point_at_the_ends_and_on_empty() {
     constexpr int32_t all[3] = {2, 4, 6};
     constexpr int32_t none[3] = {1, 3, 5};
 
-    TEST_ASSERT_EQUAL_size_t(3, nad_span_partition_point(NAD_SPAN_NEW(int32_t, all, 3), is_even, nullptr));
-    TEST_ASSERT_EQUAL_size_t(0, nad_span_partition_point(NAD_SPAN_NEW(int32_t, none, 3), is_even, nullptr));
-    TEST_ASSERT_EQUAL_size_t(0, nad_span_partition_point(NAD_SPAN_NEW(int32_t, nullptr, 0), is_even, nullptr));
+    TEST_ASSERT_EQUAL_size_t(3, nad_span_partition_point(NAD_SPAN_FROM_DATA(int32_t, all, 3), is_even, nullptr));
+    TEST_ASSERT_EQUAL_size_t(0, nad_span_partition_point(NAD_SPAN_FROM_DATA(int32_t, none, 3), is_even, nullptr));
+    TEST_ASSERT_EQUAL_size_t(0, nad_span_partition_point(NAD_SPAN_FROM_DATA(int32_t, nullptr, 0), is_even, nullptr));
 }
 
 // it is a binary search, so it must land where a linear scan would
 static void test_partition_point_matches_a_linear_scan() {
     constexpr int32_t buf[9] = {20, 18, 15, 12, 9, 7, 4, 2, 1};
-    const nad_Span s = NAD_SPAN_NEW(int32_t, buf, 9);
+    const nad_Span s = NAD_SPAN_FROM_DATA(int32_t, buf, 9);
 
     for (int32_t bound = 0; bound <= 21; ++bound) {
         size_t linear = 0;
@@ -330,7 +330,7 @@ static void test_partition_point_matches_a_linear_scan() {
 // with "less than key" over a sorted span it is lower_bound, by construction
 static void test_partition_point_generalizes_lower_bound() {
     constexpr int32_t buf[7] = {1, 2, 2, 2, 3, 4, 5};
-    const nad_Span s = NAD_SPAN_NEW(int32_t, buf, 7);
+    const nad_Span s = NAD_SPAN_FROM_DATA(int32_t, buf, 7);
 
     for (int32_t key = 0; key <= 6; ++key) {
         TEST_ASSERT_EQUAL_size_t(
@@ -343,7 +343,7 @@ static void test_partition_point_generalizes_lower_bound() {
 // what nad_span_partition returns is where partition_point then lands
 static void test_partition_point_agrees_with_partition() {
     int32_t buf[7] = {7, 2, 9, 4, 1, 6, 3};
-    const nad_SpanMut m = NAD_SPAN_NEW_MUT(int32_t, buf, 7);
+    const nad_SpanMut m = NAD_SPAN_FROM_DATA_MUT(int32_t, buf, 7);
 
     const size_t boundary = nad_span_partition(m, is_even, nullptr);
 
@@ -356,28 +356,28 @@ static void test_all_of_holds_only_when_every_elem_satisfies() {
     constexpr int32_t all[3] = {2, 4, 6};
     constexpr int32_t one_odd[3] = {2, 4, 5};
 
-    TEST_ASSERT_TRUE(nad_span_all_of(NAD_SPAN_NEW(int32_t, all, 3), is_even, nullptr));
-    TEST_ASSERT_FALSE(nad_span_all_of(NAD_SPAN_NEW(int32_t, one_odd, 3), is_even, nullptr));
+    TEST_ASSERT_TRUE(nad_span_all_of(NAD_SPAN_FROM_DATA(int32_t, all, 3), is_even, nullptr));
+    TEST_ASSERT_FALSE(nad_span_all_of(NAD_SPAN_FROM_DATA(int32_t, one_odd, 3), is_even, nullptr));
 }
 
 static void test_any_of_holds_when_at_least_one_satisfies() {
     constexpr int32_t one_even[3] = {1, 3, 4};
     constexpr int32_t none_even[3] = {1, 3, 5};
 
-    TEST_ASSERT_TRUE(nad_span_any_of(NAD_SPAN_NEW(int32_t, one_even, 3), is_even, nullptr));
-    TEST_ASSERT_FALSE(nad_span_any_of(NAD_SPAN_NEW(int32_t, none_even, 3), is_even, nullptr));
+    TEST_ASSERT_TRUE(nad_span_any_of(NAD_SPAN_FROM_DATA(int32_t, one_even, 3), is_even, nullptr));
+    TEST_ASSERT_FALSE(nad_span_any_of(NAD_SPAN_FROM_DATA(int32_t, none_even, 3), is_even, nullptr));
 }
 
 static void test_none_of_is_the_negation_of_any_of() {
     constexpr int32_t buf[3] = {1, 3, 5};
 
-    TEST_ASSERT_TRUE(nad_span_none_of(NAD_SPAN_NEW(int32_t, buf, 3), is_even, nullptr));
-    TEST_ASSERT_FALSE(nad_span_none_of(NAD_SPAN_NEW(int32_t, buf, 3), greater_than, &(int32_t){2}));
+    TEST_ASSERT_TRUE(nad_span_none_of(NAD_SPAN_FROM_DATA(int32_t, buf, 3), is_even, nullptr));
+    TEST_ASSERT_FALSE(nad_span_none_of(NAD_SPAN_FROM_DATA(int32_t, buf, 3), greater_than, &(int32_t){2}));
 }
 
 // the empty span: all_of is vacuously true, any_of false, none_of true
 static void test_the_quantifiers_agree_on_an_empty_span() {
-    const nad_Span empty = NAD_SPAN_NEW(int32_t, nullptr, 0);
+    const nad_Span empty = NAD_SPAN_FROM_DATA(int32_t, nullptr, 0);
 
     TEST_ASSERT_TRUE(nad_span_all_of(empty, is_even, nullptr));
     TEST_ASSERT_FALSE(nad_span_any_of(empty, is_even, nullptr));
@@ -398,7 +398,7 @@ static void test_equal_range_covers_the_whole_run() {
     constexpr int32_t buf[7] = {1, 2, 2, 2, 3, 4, 5};
     constexpr int32_t key = 2;
 
-    const nad_Range r = nad_span_equal_range(NAD_SPAN_NEW(int32_t, buf, 7), &key, nad_cmp_i32);
+    const nad_Range r = nad_span_equal_range(NAD_SPAN_FROM_DATA(int32_t, buf, 7), &key, nad_cmp_i32);
 
     TEST_ASSERT_EQUAL_size_t(1, r.lo);
     TEST_ASSERT_EQUAL_size_t(4, r.hi);
@@ -407,7 +407,7 @@ static void test_equal_range_covers_the_whole_run() {
 // the two ends must agree with the bounds taken separately
 static void test_equal_range_agrees_with_the_bounds() {
     constexpr int32_t buf[7] = {1, 2, 2, 2, 3, 4, 5};
-    const nad_Span s = NAD_SPAN_NEW(int32_t, buf, 7);
+    const nad_Span s = NAD_SPAN_FROM_DATA(int32_t, buf, 7);
 
     for (int32_t key = 0; key <= 6; ++key) {
         const nad_Range r = nad_span_equal_range(s, &key, nad_cmp_i32);
@@ -422,7 +422,7 @@ static void test_equal_range_of_a_missing_key_is_empty() {
     constexpr int32_t buf[4] = {1, 3, 5, 7};
     constexpr int32_t key = 4;
 
-    const nad_Range r = nad_span_equal_range(NAD_SPAN_NEW(int32_t, buf, 4), &key, nad_cmp_i32);
+    const nad_Range r = nad_span_equal_range(NAD_SPAN_FROM_DATA(int32_t, buf, 4), &key, nad_cmp_i32);
 
     TEST_ASSERT_EQUAL_size_t(2, r.lo);
     TEST_ASSERT_EQUAL_size_t(2, r.hi);
@@ -434,7 +434,7 @@ static void test_equal_range_at_the_ends_and_on_empty() {
     constexpr int32_t high = 9;
     constexpr int32_t all = 2;
 
-    const nad_Span s = NAD_SPAN_NEW(int32_t, buf, 3);
+    const nad_Span s = NAD_SPAN_FROM_DATA(int32_t, buf, 3);
 
     nad_Range r = nad_span_equal_range(s, &low, nad_cmp_i32);
     TEST_ASSERT_EQUAL_size_t(0, r.lo);
@@ -448,7 +448,7 @@ static void test_equal_range_at_the_ends_and_on_empty() {
     TEST_ASSERT_EQUAL_size_t(0, r.lo);
     TEST_ASSERT_EQUAL_size_t(3, r.hi);
 
-    r = nad_span_equal_range(NAD_SPAN_NEW(int32_t, nullptr, 0), &all, nad_cmp_i32);
+    r = nad_span_equal_range(NAD_SPAN_FROM_DATA(int32_t, nullptr, 0), &all, nad_cmp_i32);
     TEST_ASSERT_EQUAL_size_t(0, r.lo);
     TEST_ASSERT_EQUAL_size_t(0, r.hi);
 }
@@ -458,7 +458,7 @@ static void test_equal_range_at_the_ends_and_on_empty() {
 static void test_equal_range_does_not_search_the_whole_span_twice() {
     constexpr int32_t buf[16] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15};
     constexpr int32_t key = 14;
-    const nad_Span s = NAD_SPAN_NEW(int32_t, buf, 16);
+    const nad_Span s = NAD_SPAN_FROM_DATA(int32_t, buf, 16);
 
     cmp_calls = 0;
     (void) nad_span_lower_bound(s, &key, cmp_counting_i32);
@@ -476,7 +476,7 @@ static void test_equal_range_does_not_search_the_whole_span_twice() {
 
 static void test_min_and_max_elem() {
     constexpr int32_t buf[5] = {3, 1, 4, 1, 5};
-    const nad_Span s = NAD_SPAN_NEW(int32_t, buf, 5);
+    const nad_Span s = NAD_SPAN_FROM_DATA(int32_t, buf, 5);
 
     TEST_ASSERT_EQUAL_size_t(1, nad_span_min_elem(s, nad_cmp_i32));
     TEST_ASSERT_EQUAL_size_t(4, nad_span_max_elem(s, nad_cmp_i32));
@@ -485,7 +485,7 @@ static void test_min_and_max_elem() {
 // ties resolve to the earliest index, for both ends
 static void test_extremes_pick_the_first_of_equals() {
     constexpr Tagged buf[4] = {{1, 10}, {5, 20}, {1, 11}, {5, 21}};
-    const nad_Span s = NAD_SPAN_NEW(Tagged, buf, 4);
+    const nad_Span s = NAD_SPAN_FROM_DATA(Tagged, buf, 4);
 
     TEST_ASSERT_EQUAL_size_t(0, nad_span_min_elem(s, cmp_tagged));
     TEST_ASSERT_EQUAL_size_t(1, nad_span_max_elem(s, cmp_tagged));
@@ -493,7 +493,7 @@ static void test_extremes_pick_the_first_of_equals() {
 
 static void test_extremes_of_a_single_elem() {
     constexpr int32_t buf[1] = {42};
-    const nad_Span s = NAD_SPAN_NEW(int32_t, buf, 1);
+    const nad_Span s = NAD_SPAN_FROM_DATA(int32_t, buf, 1);
 
     TEST_ASSERT_EQUAL_size_t(0, nad_span_min_elem(s, nad_cmp_i32));
     TEST_ASSERT_EQUAL_size_t(0, nad_span_max_elem(s, nad_cmp_i32));
@@ -503,10 +503,10 @@ static void test_extremes_at_the_edges() {
     constexpr int32_t ascending[4] = {1, 2, 3, 4};
     constexpr int32_t descending[4] = {4, 3, 2, 1};
 
-    TEST_ASSERT_EQUAL_size_t(0, nad_span_min_elem(NAD_SPAN_NEW(int32_t, ascending, 4), nad_cmp_i32));
-    TEST_ASSERT_EQUAL_size_t(3, nad_span_max_elem(NAD_SPAN_NEW(int32_t, ascending, 4), nad_cmp_i32));
-    TEST_ASSERT_EQUAL_size_t(3, nad_span_min_elem(NAD_SPAN_NEW(int32_t, descending, 4), nad_cmp_i32));
-    TEST_ASSERT_EQUAL_size_t(0, nad_span_max_elem(NAD_SPAN_NEW(int32_t, descending, 4), nad_cmp_i32));
+    TEST_ASSERT_EQUAL_size_t(0, nad_span_min_elem(NAD_SPAN_FROM_DATA(int32_t, ascending, 4), nad_cmp_i32));
+    TEST_ASSERT_EQUAL_size_t(3, nad_span_max_elem(NAD_SPAN_FROM_DATA(int32_t, ascending, 4), nad_cmp_i32));
+    TEST_ASSERT_EQUAL_size_t(3, nad_span_min_elem(NAD_SPAN_FROM_DATA(int32_t, descending, 4), nad_cmp_i32));
+    TEST_ASSERT_EQUAL_size_t(0, nad_span_max_elem(NAD_SPAN_FROM_DATA(int32_t, descending, 4), nad_cmp_i32));
 }
 
 /* ========== minmax_elem ========== */
@@ -514,7 +514,7 @@ static void test_extremes_at_the_edges() {
 static void test_minmax_elem_finds_both_ends() {
     constexpr int32_t buf[5] = {3, 1, 4, 5, 2};
 
-    const nad_MinMax mm = nad_span_minmax_elem(NAD_SPAN_NEW(int32_t, buf, 5), nad_cmp_i32);
+    const nad_MinMax mm = nad_span_minmax_elem(NAD_SPAN_FROM_DATA(int32_t, buf, 5), nad_cmp_i32);
 
     TEST_ASSERT_EQUAL_size_t(1, mm.min);
     TEST_ASSERT_EQUAL_size_t(3, mm.max);
@@ -523,7 +523,7 @@ static void test_minmax_elem_finds_both_ends() {
 // one pass must give exactly what the two separate passes give
 static void test_minmax_elem_agrees_with_min_and_max() {
     constexpr int32_t buf[6] = {5, 5, 1, 9, 1, 9};
-    const nad_Span s = NAD_SPAN_NEW(int32_t, buf, 6);
+    const nad_Span s = NAD_SPAN_FROM_DATA(int32_t, buf, 6);
 
     const nad_MinMax mm = nad_span_minmax_elem(s, nad_cmp_i32);
 
@@ -535,7 +535,7 @@ static void test_minmax_elem_agrees_with_min_and_max() {
 static void test_minmax_elem_breaks_ties_towards_the_front() {
     constexpr int32_t buf[4] = {2, 2, 2, 2};
 
-    const nad_MinMax mm = nad_span_minmax_elem(NAD_SPAN_NEW(int32_t, buf, 4), nad_cmp_i32);
+    const nad_MinMax mm = nad_span_minmax_elem(NAD_SPAN_FROM_DATA(int32_t, buf, 4), nad_cmp_i32);
 
     TEST_ASSERT_EQUAL_size_t(0, mm.min);
     TEST_ASSERT_EQUAL_size_t(0, mm.max);
@@ -544,7 +544,7 @@ static void test_minmax_elem_breaks_ties_towards_the_front() {
 static void test_minmax_elem_of_a_single_elem() {
     constexpr int32_t buf[1] = {7};
 
-    const nad_MinMax mm = nad_span_minmax_elem(NAD_SPAN_NEW(int32_t, buf, 1), nad_cmp_i32);
+    const nad_MinMax mm = nad_span_minmax_elem(NAD_SPAN_FROM_DATA(int32_t, buf, 1), nad_cmp_i32);
 
     TEST_ASSERT_EQUAL_size_t(0, mm.min);
     TEST_ASSERT_EQUAL_size_t(0, mm.max);
@@ -557,8 +557,9 @@ static void test_find_sub_reports_the_first_occurrence() {
     constexpr int32_t pat[3] = {1, 2, 3};
 
     size_t idx = 999;
-    TEST_ASSERT_TRUE(nad_span_find_sub(NAD_SPAN_NEW(int32_t, buf, 8),
-        NAD_SPAN_NEW(int32_t, pat, 3), nad_eq_i32, &idx));
+    TEST_ASSERT_TRUE(
+        nad_span_find_sub(NAD_SPAN_FROM_DATA(int32_t, buf, 8), NAD_SPAN_FROM_DATA(int32_t, pat, 3), nad_eq_i32, &idx)
+    );
     TEST_ASSERT_EQUAL_size_t(1, idx);
 }
 
@@ -567,8 +568,14 @@ static void test_find_sub_last_reports_the_last_occurrence() {
     constexpr int32_t pat[3] = {1, 2, 3};
 
     size_t idx = 999;
-    TEST_ASSERT_TRUE(nad_span_find_sub_last(NAD_SPAN_NEW(int32_t, buf, 8),
-        NAD_SPAN_NEW(int32_t, pat, 3), nad_eq_i32, &idx));
+    TEST_ASSERT_TRUE(
+        nad_span_find_sub_last(
+            NAD_SPAN_FROM_DATA(int32_t, buf, 8),
+            NAD_SPAN_FROM_DATA(int32_t, pat, 3),
+            nad_eq_i32,
+            &idx
+        )
+    );
     TEST_ASSERT_EQUAL_size_t(4, idx);
 }
 
@@ -576,8 +583,8 @@ static void test_find_sub_last_reports_the_last_occurrence() {
 static void test_the_two_sub_finders_agree_on_a_unique_occurrence() {
     constexpr int32_t buf[6] = {8, 8, 1, 2, 8, 8};
     constexpr int32_t pat[2] = {1, 2};
-    const nad_Span s = NAD_SPAN_NEW(int32_t, buf, 6);
-    const nad_Span sub = NAD_SPAN_NEW(int32_t, pat, 2);
+    const nad_Span s = NAD_SPAN_FROM_DATA(int32_t, buf, 6);
+    const nad_Span sub = NAD_SPAN_FROM_DATA(int32_t, pat, 2);
 
     size_t first = 0, last = 0;
     TEST_ASSERT_TRUE(nad_span_find_sub(s, sub, nad_eq_i32, &first));
@@ -590,8 +597,8 @@ static void test_the_two_sub_finders_agree_on_a_unique_occurrence() {
 static void test_the_sub_finders_see_overlapping_occurrences() {
     constexpr int32_t buf[4] = {7, 7, 7, 7};
     constexpr int32_t pat[2] = {7, 7};
-    const nad_Span s = NAD_SPAN_NEW(int32_t, buf, 4);
-    const nad_Span sub = NAD_SPAN_NEW(int32_t, pat, 2);
+    const nad_Span s = NAD_SPAN_FROM_DATA(int32_t, buf, 4);
+    const nad_Span sub = NAD_SPAN_FROM_DATA(int32_t, pat, 2);
 
     size_t first = 0, last = 0;
     TEST_ASSERT_TRUE(nad_span_find_sub(s, sub, nad_eq_i32, &first));
@@ -604,8 +611,8 @@ static void test_the_sub_finders_see_overlapping_occurrences() {
 static void test_find_sub_does_not_settle_for_a_prefix() {
     constexpr int32_t buf[5] = {1, 2, 9, 1, 2};
     constexpr int32_t pat[3] = {1, 2, 3};
-    const nad_Span s = NAD_SPAN_NEW(int32_t, buf, 5);
-    const nad_Span sub = NAD_SPAN_NEW(int32_t, pat, 3);
+    const nad_Span s = NAD_SPAN_FROM_DATA(int32_t, buf, 5);
+    const nad_Span sub = NAD_SPAN_FROM_DATA(int32_t, pat, 3);
 
     size_t idx = 111;
     TEST_ASSERT_FALSE(nad_span_find_sub(s, sub, nad_eq_i32, &idx));
@@ -617,8 +624,8 @@ static void test_find_sub_does_not_settle_for_a_prefix() {
 static void test_the_sub_finders_match_at_the_end() {
     constexpr int32_t buf[4] = {1, 2, 3, 4};
     constexpr int32_t pat[2] = {3, 4};
-    const nad_Span s = NAD_SPAN_NEW(int32_t, buf, 4);
-    const nad_Span sub = NAD_SPAN_NEW(int32_t, pat, 2);
+    const nad_Span s = NAD_SPAN_FROM_DATA(int32_t, buf, 4);
+    const nad_Span sub = NAD_SPAN_FROM_DATA(int32_t, pat, 2);
 
     size_t first = 0, last = 0;
     TEST_ASSERT_TRUE(nad_span_find_sub(s, sub, nad_eq_i32, &first));
@@ -630,7 +637,7 @@ static void test_the_sub_finders_match_at_the_end() {
 // the whole span is one of its own subspans
 static void test_the_sub_finders_match_the_whole_span() {
     constexpr int32_t buf[3] = {1, 2, 3};
-    const nad_Span s = NAD_SPAN_NEW(int32_t, buf, 3);
+    const nad_Span s = NAD_SPAN_FROM_DATA(int32_t, buf, 3);
 
     size_t first = 9, last = 9;
     TEST_ASSERT_TRUE(nad_span_find_sub(s, s, nad_eq_i32, &first));
@@ -642,8 +649,8 @@ static void test_the_sub_finders_match_the_whole_span() {
 // an empty sub occurs everywhere, so the two finders answer at opposite ends
 static void test_an_empty_sub_is_found_at_both_ends() {
     constexpr int32_t buf[3] = {1, 2, 3};
-    const nad_Span s = NAD_SPAN_NEW(int32_t, buf, 3);
-    const nad_Span empty = NAD_SPAN_NEW(int32_t, buf, 0);
+    const nad_Span s = NAD_SPAN_FROM_DATA(int32_t, buf, 3);
+    const nad_Span empty = NAD_SPAN_FROM_DATA(int32_t, buf, 0);
 
     size_t first = 9, last = 9;
     TEST_ASSERT_TRUE(nad_span_find_sub(s, empty, nad_eq_i32, &first));
@@ -657,9 +664,9 @@ static void test_an_empty_sub_is_found_at_both_ends() {
 static void test_the_sub_finders_miss_when_sub_does_not_fit() {
     constexpr int32_t buf[2] = {1, 2};
     constexpr int32_t pat[3] = {1, 2, 3};
-    const nad_Span s = NAD_SPAN_NEW(int32_t, buf, 2);
-    const nad_Span sub = NAD_SPAN_NEW(int32_t, pat, 3);
-    const nad_Span empty = NAD_SPAN_NEW(int32_t, buf, 0);
+    const nad_Span s = NAD_SPAN_FROM_DATA(int32_t, buf, 2);
+    const nad_Span sub = NAD_SPAN_FROM_DATA(int32_t, pat, 3);
+    const nad_Span empty = NAD_SPAN_FROM_DATA(int32_t, buf, 0);
 
     size_t idx = 222;
     TEST_ASSERT_FALSE(nad_span_find_sub(s, sub, nad_eq_i32, &idx));
@@ -672,10 +679,10 @@ static void test_the_sub_finders_miss_when_sub_does_not_fit() {
 // a one elem sub is the same question nad_span_find answers
 static void test_find_sub_of_one_elem_agrees_with_find() {
     constexpr int32_t buf[6] = {4, 5, 6, 5, 4, 5};
-    const nad_Span s = NAD_SPAN_NEW(int32_t, buf, 6);
+    const nad_Span s = NAD_SPAN_FROM_DATA(int32_t, buf, 6);
 
     for (int32_t key = 3; key <= 7; ++key) {
-        const nad_Span sub = NAD_SPAN_NEW(int32_t, &key, 1);
+        const nad_Span sub = NAD_SPAN_FROM_DATA(int32_t, &key, 1);
 
         size_t by_find = 99, by_sub = 88;
         const bool hit = nad_span_find(s, &key, nad_eq_i32, &by_find);
@@ -692,7 +699,7 @@ static void test_find_sub_of_one_elem_agrees_with_find() {
 static void test_find_run_reports_the_start_of_the_first_long_enough_run() {
     constexpr int32_t buf[9] = {1, 0, 1, 1, 0, 1, 1, 1, 0};
     constexpr int32_t key = 1;
-    const nad_Span s = NAD_SPAN_NEW(int32_t, buf, 9);
+    const nad_Span s = NAD_SPAN_FROM_DATA(int32_t, buf, 9);
 
     size_t idx = 999;
     TEST_ASSERT_TRUE(nad_span_find_run(s, &key, 3, nad_eq_i32, &idx));
@@ -703,7 +710,7 @@ static void test_find_run_reports_the_start_of_the_first_long_enough_run() {
 static void test_find_run_of_two_stops_at_the_earlier_run() {
     constexpr int32_t buf[9] = {1, 0, 1, 1, 0, 1, 1, 1, 0};
     constexpr int32_t key = 1;
-    const nad_Span s = NAD_SPAN_NEW(int32_t, buf, 9);
+    const nad_Span s = NAD_SPAN_FROM_DATA(int32_t, buf, 9);
 
     size_t idx = 999;
     TEST_ASSERT_TRUE(nad_span_find_run(s, &key, 2, nad_eq_i32, &idx));
@@ -716,7 +723,7 @@ static void test_find_run_does_not_add_up_scattered_matches() {
     constexpr int32_t key = 1;
 
     size_t idx = 333;
-    TEST_ASSERT_FALSE(nad_span_find_run(NAD_SPAN_NEW(int32_t, buf, 6), &key, 2, nad_eq_i32, &idx));
+    TEST_ASSERT_FALSE(nad_span_find_run(NAD_SPAN_FROM_DATA(int32_t, buf, 6), &key, 2, nad_eq_i32, &idx));
     TEST_ASSERT_EQUAL_size_t(333, idx);
 }
 
@@ -724,7 +731,7 @@ static void test_find_run_does_not_add_up_scattered_matches() {
 static void test_find_run_of_one_agrees_with_find() {
     constexpr int32_t buf[5] = {4, 5, 6, 5, 4};
     constexpr int32_t key = 5;
-    const nad_Span s = NAD_SPAN_NEW(int32_t, buf, 5);
+    const nad_Span s = NAD_SPAN_FROM_DATA(int32_t, buf, 5);
 
     size_t by_find = 0, by_run = 0;
     TEST_ASSERT_TRUE(nad_span_find(s, &key, nad_eq_i32, &by_find));
@@ -738,11 +745,11 @@ static void test_find_run_of_zero_is_found_at_the_front() {
     constexpr int32_t key = 9;
 
     size_t idx = 999;
-    TEST_ASSERT_TRUE(nad_span_find_run(NAD_SPAN_NEW(int32_t, buf, 3), &key, 0, nad_eq_i32, &idx));
+    TEST_ASSERT_TRUE(nad_span_find_run(NAD_SPAN_FROM_DATA(int32_t, buf, 3), &key, 0, nad_eq_i32, &idx));
     TEST_ASSERT_EQUAL_size_t(0, idx);
 
     idx = 999;
-    TEST_ASSERT_TRUE(nad_span_find_run(NAD_SPAN_NEW(int32_t, buf, 0), &key, 0, nad_eq_i32, &idx));
+    TEST_ASSERT_TRUE(nad_span_find_run(NAD_SPAN_FROM_DATA(int32_t, buf, 0), &key, 0, nad_eq_i32, &idx));
     TEST_ASSERT_EQUAL_size_t(0, idx);
 }
 
@@ -750,7 +757,7 @@ static void test_find_run_of_zero_is_found_at_the_front() {
 static void test_find_run_at_the_end_and_longer_than_the_span() {
     constexpr int32_t buf[4] = {0, 1, 1, 1};
     constexpr int32_t key = 1;
-    const nad_Span s = NAD_SPAN_NEW(int32_t, buf, 4);
+    const nad_Span s = NAD_SPAN_FROM_DATA(int32_t, buf, 4);
 
     size_t idx = 444;
     TEST_ASSERT_TRUE(nad_span_find_run(s, &key, 3, nad_eq_i32, &idx));
@@ -765,7 +772,7 @@ static void test_find_run_at_the_end_and_longer_than_the_span() {
 static void test_find_run_is_monotonic_in_n() {
     constexpr int32_t buf[10] = {2, 1, 1, 2, 1, 1, 1, 1, 2, 1};
     constexpr int32_t key = 1;
-    const nad_Span s = NAD_SPAN_NEW(int32_t, buf, 10);
+    const nad_Span s = NAD_SPAN_FROM_DATA(int32_t, buf, 10);
 
     size_t prev = 0;
     TEST_ASSERT_TRUE(nad_span_find_run(s, &key, 1, nad_eq_i32, &prev));
@@ -788,8 +795,9 @@ static void test_find_any_of_reports_the_first_elem_from_the_set() {
     constexpr int32_t set[3] = {2, 3, 4};
 
     size_t idx = 999;
-    TEST_ASSERT_TRUE(nad_span_find_any_of(NAD_SPAN_NEW(int32_t, buf, 6),
-        NAD_SPAN_NEW(int32_t, set, 3), nad_eq_i32, &idx));
+    TEST_ASSERT_TRUE(
+        nad_span_find_any_of(NAD_SPAN_FROM_DATA(int32_t, buf, 6), NAD_SPAN_FROM_DATA(int32_t, set, 3), nad_eq_i32, &idx)
+    );
     TEST_ASSERT_EQUAL_size_t(2, idx);
 }
 
@@ -799,8 +807,9 @@ static void test_find_any_of_scans_the_span_not_the_set() {
     constexpr int32_t set[3] = {8, 7, 6};
 
     size_t idx = 999;
-    TEST_ASSERT_TRUE(nad_span_find_any_of(NAD_SPAN_NEW(int32_t, buf, 4),
-        NAD_SPAN_NEW(int32_t, set, 3), nad_eq_i32, &idx));
+    TEST_ASSERT_TRUE(
+        nad_span_find_any_of(NAD_SPAN_FROM_DATA(int32_t, buf, 4), NAD_SPAN_FROM_DATA(int32_t, set, 3), nad_eq_i32, &idx)
+    );
     TEST_ASSERT_EQUAL_size_t(1, idx);
 }
 
@@ -809,8 +818,9 @@ static void test_find_any_of_misses_when_nothing_is_shared() {
     constexpr int32_t set[2] = {4, 5};
 
     size_t idx = 666;
-    TEST_ASSERT_FALSE(nad_span_find_any_of(NAD_SPAN_NEW(int32_t, buf, 3),
-        NAD_SPAN_NEW(int32_t, set, 2), nad_eq_i32, &idx));
+    TEST_ASSERT_FALSE(
+        nad_span_find_any_of(NAD_SPAN_FROM_DATA(int32_t, buf, 3), NAD_SPAN_FROM_DATA(int32_t, set, 2), nad_eq_i32, &idx)
+    );
     TEST_ASSERT_EQUAL_size_t(666, idx);
 }
 
@@ -820,10 +830,12 @@ static void test_find_any_of_on_empty_sides() {
     constexpr int32_t set[2] = {1, 2};
 
     size_t idx = 777;
-    TEST_ASSERT_FALSE(nad_span_find_any_of(NAD_SPAN_NEW(int32_t, buf, 3),
-        NAD_SPAN_NEW(int32_t, set, 0), nad_eq_i32, &idx));
-    TEST_ASSERT_FALSE(nad_span_find_any_of(NAD_SPAN_NEW(int32_t, buf, 0),
-        NAD_SPAN_NEW(int32_t, set, 2), nad_eq_i32, &idx));
+    TEST_ASSERT_FALSE(
+        nad_span_find_any_of(NAD_SPAN_FROM_DATA(int32_t, buf, 3), NAD_SPAN_FROM_DATA(int32_t, set, 0), nad_eq_i32, &idx)
+    );
+    TEST_ASSERT_FALSE(
+        nad_span_find_any_of(NAD_SPAN_FROM_DATA(int32_t, buf, 0), NAD_SPAN_FROM_DATA(int32_t, set, 2), nad_eq_i32, &idx)
+    );
     TEST_ASSERT_EQUAL_size_t(777, idx);
 }
 
@@ -831,11 +843,11 @@ static void test_find_any_of_on_empty_sides() {
 static void test_find_any_of_a_single_elem_agrees_with_find() {
     constexpr int32_t buf[5] = {9, 8, 7, 8, 9};
     constexpr int32_t set[1] = {8};
-    const nad_Span s = NAD_SPAN_NEW(int32_t, buf, 5);
+    const nad_Span s = NAD_SPAN_FROM_DATA(int32_t, buf, 5);
 
     size_t by_find = 0, by_any = 0;
     TEST_ASSERT_TRUE(nad_span_find(s, &set[0], nad_eq_i32, &by_find));
-    TEST_ASSERT_TRUE(nad_span_find_any_of(s, NAD_SPAN_NEW(int32_t, set, 1), nad_eq_i32, &by_any));
+    TEST_ASSERT_TRUE(nad_span_find_any_of(s, NAD_SPAN_FROM_DATA(int32_t, set, 1), nad_eq_i32, &by_any));
     TEST_ASSERT_EQUAL_size_t(by_find, by_any);
 }
 
@@ -845,7 +857,7 @@ static void test_find_adjacent_reports_the_first_equal_pair() {
     constexpr int32_t buf[7] = {1, 2, 3, 3, 4, 5, 5};
 
     size_t idx = 999;
-    TEST_ASSERT_TRUE(nad_span_find_adjacent(NAD_SPAN_NEW(int32_t, buf, 7), nad_eq_i32, &idx));
+    TEST_ASSERT_TRUE(nad_span_find_adjacent(NAD_SPAN_FROM_DATA(int32_t, buf, 7), nad_eq_i32, &idx));
     TEST_ASSERT_EQUAL_size_t(2, idx);
 }
 
@@ -854,7 +866,7 @@ static void test_find_adjacent_misses_when_no_two_neighbours_are_equal() {
     constexpr int32_t buf[5] = {1, 2, 1, 2, 1};
 
     size_t idx = 888;
-    TEST_ASSERT_FALSE(nad_span_find_adjacent(NAD_SPAN_NEW(int32_t, buf, 5), nad_eq_i32, &idx));
+    TEST_ASSERT_FALSE(nad_span_find_adjacent(NAD_SPAN_FROM_DATA(int32_t, buf, 5), nad_eq_i32, &idx));
     TEST_ASSERT_EQUAL_size_t(888, idx);
 }
 
@@ -863,11 +875,11 @@ static void test_find_adjacent_on_the_short_spans() {
     constexpr int32_t buf[2] = {4, 4};
 
     size_t idx = 999;
-    TEST_ASSERT_FALSE(nad_span_find_adjacent(NAD_SPAN_NEW(int32_t, buf, 0), nad_eq_i32, &idx));
-    TEST_ASSERT_FALSE(nad_span_find_adjacent(NAD_SPAN_NEW(int32_t, buf, 1), nad_eq_i32, &idx));
+    TEST_ASSERT_FALSE(nad_span_find_adjacent(NAD_SPAN_FROM_DATA(int32_t, buf, 0), nad_eq_i32, &idx));
+    TEST_ASSERT_FALSE(nad_span_find_adjacent(NAD_SPAN_FROM_DATA(int32_t, buf, 1), nad_eq_i32, &idx));
     TEST_ASSERT_EQUAL_size_t(999, idx);
 
-    TEST_ASSERT_TRUE(nad_span_find_adjacent(NAD_SPAN_NEW(int32_t, buf, 2), nad_eq_i32, &idx));
+    TEST_ASSERT_TRUE(nad_span_find_adjacent(NAD_SPAN_FROM_DATA(int32_t, buf, 2), nad_eq_i32, &idx));
     TEST_ASSERT_EQUAL_size_t(0, idx);
 }
 
@@ -876,14 +888,14 @@ static void test_find_adjacent_sees_a_pair_at_the_end() {
     constexpr int32_t buf[4] = {1, 2, 3, 3};
 
     size_t idx = 0;
-    TEST_ASSERT_TRUE(nad_span_find_adjacent(NAD_SPAN_NEW(int32_t, buf, 4), nad_eq_i32, &idx));
+    TEST_ASSERT_TRUE(nad_span_find_adjacent(NAD_SPAN_FROM_DATA(int32_t, buf, 4), nad_eq_i32, &idx));
     TEST_ASSERT_EQUAL_size_t(2, idx);
 }
 
 // the same question as a run of two, so the two must answer alike
 static void test_find_adjacent_agrees_with_a_run_of_two() {
     constexpr int32_t buf[8] = {5, 1, 2, 2, 2, 7, 7, 0};
-    const nad_Span s = NAD_SPAN_NEW(int32_t, buf, 8);
+    const nad_Span s = NAD_SPAN_FROM_DATA(int32_t, buf, 8);
     constexpr int32_t key = 2;
 
     size_t by_adj = 0, by_run = 0;

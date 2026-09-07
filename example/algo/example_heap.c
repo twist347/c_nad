@@ -12,7 +12,7 @@
 int main() {
     /// [build]
     int32_t buf[6] = {5, 3, 1, 4, 2};
-    const nad_SpanMut s = NAD_SPAN_NEW_MUT(int32_t, buf, 5);
+    const nad_SpanMut s = NAD_SPAN_FROM_DATA_MUT(int32_t, buf, 5);
 
     // a max-heap: the largest is at 0, and nothing else is promised about the order
     nad_span_make_heap(s, nad_cmp_i32);
@@ -24,7 +24,7 @@ int main() {
     /// [push]
     // push: write the elem at the end, then sift it up over the span that now includes it
     buf[5] = 9;
-    const nad_SpanMut grown = NAD_SPAN_NEW_MUT(int32_t, buf, 6);
+    const nad_SpanMut grown = NAD_SPAN_FROM_DATA_MUT(int32_t, buf, 6);
     nad_span_push_heap(grown, nad_cmp_i32);
     printf("largest is %" PRId32 "\n", *NAD_SPAN_GET_MUT_AS(int32_t, grown, 0)); // 9
 

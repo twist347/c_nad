@@ -30,7 +30,7 @@ int main() {
     printf("%d %d\n", nad_bitset_test(a, 3), nad_bitset_test(a, 4)); // 1 0
 
     nad_bitset_flip(a, 3); // in, so now out
-    nad_bitset_assign(a, 4, true); // unlike flip, asking twice changes nothing
+    nad_bitset_set_to(a, 4, true); // unlike flip, asking twice changes nothing
     nad_bitset_print(a); // {0, 4, 7}
 
     nad_bitset_clear(a, 4);

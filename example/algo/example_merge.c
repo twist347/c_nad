@@ -15,7 +15,7 @@ int main() {
     const nad_Span b = NAD_SPAN_OF(int32_t, 2, 3, 8);
 
     int32_t buf[6];
-    const nad_SpanMut dst = NAD_SPAN_NEW_MUT(int32_t, buf, 6);
+    const nad_SpanMut dst = NAD_SPAN_FROM_DATA_MUT(int32_t, buf, 6);
 
     nad_span_merge(dst, a, b, nad_cmp_i32);
     nad_span_mut_print(dst, nad_fprint_i32); // [1, 2, 3, 4, 7, 8]

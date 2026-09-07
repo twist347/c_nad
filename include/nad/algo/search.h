@@ -166,8 +166,8 @@ bool nad_span_binary_search(nad_Span s, const void *key, nad_Cmp cmp, size_t *ou
 
 /// A half-open index range, [lo, hi).
 typedef struct {
-    size_t lo;  ///< the first index in the range
-    size_t hi;  ///< one past the last; lo == hi is empty
+    size_t lo; ///< the first index in the range
+    size_t hi; ///< one past the last; lo == hi is empty
 } nad_Range;
 
 /// every elem equal to 'key', as one range
@@ -243,8 +243,8 @@ size_t nad_span_max_elem(nad_Span s, nad_Cmp cmp);
 
 /// Where the smallest and the largest elems are.
 typedef struct {
-    size_t min;  ///< the index of the smallest
-    size_t max;  ///< the index of the largest
+    size_t min; ///< the index of the smallest
+    size_t max; ///< the index of the largest
 } nad_MinMax;
 
 /// both extremes, in one pass

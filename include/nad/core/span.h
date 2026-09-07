@@ -35,16 +35,16 @@
 
 /// A read-only view over contiguous elems.
 typedef struct {
-    const void *data;  ///< the first elem; null only while 'len' is 0
-    size_t len;        ///< how many elems the view spans
-    size_t elem_size;  ///< the size of one elem in bytes, greater than 0
+    const void *data; ///< the first elem; null only while 'len' is 0
+    size_t len;       ///< how many elems the view spans
+    size_t elem_size; ///< the size of one elem in bytes, greater than 0
 } nad_Span;
 
 /// A writable view over contiguous elems: nad_Span with a 'data' to write through.
 typedef struct {
-    void *data;        ///< the first elem; null only while 'len' is 0
-    size_t len;        ///< how many elems the view spans
-    size_t elem_size;  ///< the size of one elem in bytes, greater than 0
+    void *data;       ///< the first elem; null only while 'len' is 0
+    size_t len;       ///< how many elems the view spans
+    size_t elem_size; ///< the size of one elem in bytes, greater than 0
 } nad_SpanMut;
 
 /// @name invariant
@@ -68,16 +68,16 @@ typedef struct {
 /// @return the view
 /// @bigo{1}
 [[nodiscard]] NAD_API
-nad_Span nad_span_new(const void *data, size_t len, size_t elem_size);
+nad_Span nad_span_from_data(const void *data, size_t len, size_t elem_size);
 
-/// nad_span_new, writable
+/// nad_span_from_data, writable
 /// @param data the first elem; null only when 'len' is 0
 /// @param len elems in the view
 /// @param elem_size bytes in one elem, greater than 0
 /// @return the view
 /// @bigo{1}
 [[nodiscard]] NAD_API
-nad_SpanMut nad_span_new_mut(void *data, size_t len, size_t elem_size);
+nad_SpanMut nad_span_from_data_mut(void *data, size_t len, size_t elem_size);
 
 /// @}
 
@@ -208,21 +208,21 @@ void nad_span_mut_print(nad_SpanMut self, nad_FPrint fprint);
 /// @name macros
 /// @{
 
-/// nad_span_new with sizeof(T) for the elem size
+/// nad_span_from_data with sizeof(T) for the elem size
 /// @param T the elem type
 /// @param data the first elem, made to typecheck as a const T *
 /// @param len elems in the view
 /// @bigo{1}
-#define NAD_SPAN_NEW(T, data, len) \
-    nad_span_new((const T *){ (data) }, (len), sizeof(T))
+#define NAD_SPAN_FROM_DATA(T, data, len) \
+    nad_span_from_data((const T *){ (data) }, (len), sizeof(T))
 
-/// nad_span_new_mut with sizeof(T)
+/// nad_span_from_data_mut with sizeof(T)
 /// @param T the elem type
 /// @param data the first elem, made to typecheck as a T *
 /// @param len elems in the view
 /// @bigo{1}
-#define NAD_SPAN_NEW_MUT(T, data, len) \
-    nad_span_new_mut((T *){ (data) }, (len), sizeof(T))
+#define NAD_SPAN_FROM_DATA_MUT(T, data, len) \
+    nad_span_from_data_mut((T *){ (data) }, (len), sizeof(T))
 
 /// a view over the elems written out: NAD_SPAN_OF(int32_t, 5, 3, 1)
 /// @param T the elem type
@@ -230,7 +230,7 @@ void nad_span_mut_print(nad_SpanMut self, nad_FPrint fprint);
 /// @warning the elems are a compound literal, gone at the end of the enclosing block
 /// @bigo{1}
 #define NAD_SPAN_OF(T, ...)                             \
-    nad_span_new(                                       \
+    nad_span_from_data(                                 \
         (const T[]){ __VA_ARGS__ },                     \
         sizeof((const T[]){ __VA_ARGS__ }) / sizeof(T), \
         sizeof(T))
@@ -241,7 +241,7 @@ void nad_span_mut_print(nad_SpanMut self, nad_FPrint fprint);
 /// @warning the elems are a compound literal, gone at the end of the enclosing block
 /// @bigo{1}
 #define NAD_SPAN_OF_MUT(T, ...)                   \
-    nad_span_new_mut(                             \
+    nad_span_from_data_mut(                       \
         (T[]){ __VA_ARGS__ },                     \
         sizeof((T[]){ __VA_ARGS__ }) / sizeof(T), \
         sizeof(T))

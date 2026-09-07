@@ -195,17 +195,17 @@ static void test_flip_toggles_one() {
     nad_bitset_drop(b);
 }
 
-static void test_assign_writes_both_ways() {
+static void test_set_to_writes_both_ways() {
     constexpr size_t one[] = {9};
     nad_BitSet *b = make_bitset(200, nullptr, 0);
 
-    nad_bitset_assign(b, 9, true);
+    nad_bitset_set_to(b, 9, true);
     assert_members(b, 200, one, 1);
 
-    nad_bitset_assign(b, 9, true); // idempotent, not a toggle
+    nad_bitset_set_to(b, 9, true); // idempotent, not a toggle
     assert_members(b, 200, one, 1);
 
-    nad_bitset_assign(b, 9, false);
+    nad_bitset_set_to(b, 9, false);
     assert_members(b, 200, one, 0);
 
     nad_bitset_drop(b);
@@ -589,7 +589,7 @@ static void test_for_each_walks_the_members_in_order() {
 
     size_t seen[4];
     size_t n = 0;
-    NAD_BITSET_FOR_EACH (idx, b) {
+    NAD_BITSET_FOR_EACH(idx, b) {
         TEST_ASSERT_TRUE(n < 4);
         seen[n++] = idx;
     }
@@ -604,7 +604,7 @@ static void test_for_each_over_an_empty_set_runs_no_body() {
     nad_BitSet *b = make_bitset(129, nullptr, 0);
 
     size_t n = 0;
-    NAD_BITSET_FOR_EACH (idx, b) {
+    NAD_BITSET_FOR_EACH(idx, b) {
         NAD_UNUSED(idx);
         ++n;
     }
@@ -888,7 +888,7 @@ static void test_is_subset() {
     TEST_ASSERT_TRUE(nad_bitset_is_subset(small, big));
     TEST_ASSERT_FALSE(nad_bitset_is_subset(big, small));
     TEST_ASSERT_TRUE(nad_bitset_is_subset(small, small));
-    TEST_ASSERT_TRUE(nad_bitset_is_subset(empty, big));  // the empty set is in everything
+    TEST_ASSERT_TRUE(nad_bitset_is_subset(empty, big)); // the empty set is in everything
     TEST_ASSERT_FALSE(nad_bitset_is_subset(big, empty));
 
     nad_bitset_drop(small);
@@ -1078,7 +1078,7 @@ int main() {
     RUN_TEST(test_set_and_test_roundtrip);
     RUN_TEST(test_clear_takes_one_out);
     RUN_TEST(test_flip_toggles_one);
-    RUN_TEST(test_assign_writes_both_ways);
+    RUN_TEST(test_set_to_writes_both_ways);
     RUN_TEST(test_one_bit_leaves_the_rest_of_its_word_alone);
     RUN_TEST(test_the_bits_at_the_word_seams);
 

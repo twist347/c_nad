@@ -123,7 +123,7 @@ nad_Status nad_span_partition_stable(
     }
 
     const nad_Span view = nad_span_mut_to_span(s);
-    const nad_SpanMut rejected = nad_span_new_mut(buf, s.len, s.elem_size);
+    const nad_SpanMut rejected = nad_span_from_data_mut(buf, s.len, s.elem_size);
 
     size_t kept = 0, dropped = 0;
 

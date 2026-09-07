@@ -132,7 +132,7 @@ static void test_from_span_copies_the_elems() {
     constexpr int32_t src[4] = {9, 8, 7, 6};
 
     nad_Deque *d = nullptr;
-    NAD_TEST_OK(nad_deque_from_span(NAD_SPAN_NEW(int32_t, src, 4), nad_al_default(), &d));
+    NAD_TEST_OK(nad_deque_from_span(NAD_SPAN_FROM_DATA(int32_t, src, 4), nad_al_default(), &d));
 
     assert_elems(d, (int32_t[]){9, 8, 7, 6}, 4);
 
@@ -375,7 +375,7 @@ static void test_for_each_walks_a_split_ring_in_order() {
 
     int32_t seen[4];
     size_t n = 0;
-    NAD_DEQUE_FOR_EACH_AS (int32_t, elem, d) {
+    NAD_DEQUE_FOR_EACH_AS(int32_t, elem, d) {
         TEST_ASSERT_TRUE(n < 4);
         seen[n++] = *elem;
     }
@@ -390,7 +390,7 @@ static void test_for_each_over_an_empty_deque_runs_no_body() {
     nad_Deque *d = make_deque(0);
 
     size_t n = 0;
-    NAD_DEQUE_FOR_EACH_AS (int32_t, elem, d) {
+    NAD_DEQUE_FOR_EACH_AS(int32_t, elem, d) {
         NAD_UNUSED(elem);
         ++n;
     }
@@ -403,7 +403,7 @@ static void test_for_each_over_an_empty_deque_runs_no_body() {
 static void test_for_each_mut_writes_through_every_slot() {
     nad_Deque *d = make_wrapped();
 
-    NAD_DEQUE_FOR_EACH_MUT_AS (int32_t, elem, d) {
+    NAD_DEQUE_FOR_EACH_MUT_AS(int32_t, elem, d) {
         *elem += 1;
     }
 
@@ -529,7 +529,7 @@ static void test_copy_to_span_unwraps_the_contents() {
     nad_Deque *d = make_wrapped();
 
     int32_t buf[4] = {0, 0, 0, 0};
-    nad_deque_copy_to_span(d, NAD_SPAN_NEW_MUT(int32_t, buf, 4));
+    nad_deque_copy_to_span(d, NAD_SPAN_FROM_DATA_MUT(int32_t, buf, 4));
 
     TEST_ASSERT_EQUAL_INT32_ARRAY(((int32_t[]){10, 20, 30, 40}), buf, 4);
 
@@ -540,7 +540,7 @@ static void test_copy_from_span_writes_back_in_ring_order() {
     nad_Deque *d = make_wrapped();
 
     constexpr int32_t src[4] = {1, 2, 3, 4};
-    nad_deque_copy_from_span(d, NAD_SPAN_NEW(int32_t, src, 4));
+    nad_deque_copy_from_span(d, NAD_SPAN_FROM_DATA(int32_t, src, 4));
 
     // the ring is where it was; only the elems changed
     TEST_ASSERT_TRUE(wraps(d));
@@ -553,7 +553,7 @@ static void test_the_span_pair_round_trips_an_untouched_deque() {
     nad_Deque *d = make_wrapped();
 
     int32_t buf[4];
-    const nad_SpanMut s = NAD_SPAN_NEW_MUT(int32_t, buf, 4);
+    const nad_SpanMut s = NAD_SPAN_FROM_DATA_MUT(int32_t, buf, 4);
 
     nad_deque_copy_to_span(d, s);
     nad_deque_copy_from_span(d, nad_span_mut_to_span(s));
@@ -577,7 +577,7 @@ static void test_the_span_pair_carries_the_deque_through_algo() {
     TEST_ASSERT_TRUE(wraps(d));
 
     int32_t buf[4];
-    const nad_SpanMut s = NAD_SPAN_NEW_MUT(int32_t, buf, nad_deque_len(d));
+    const nad_SpanMut s = NAD_SPAN_FROM_DATA_MUT(int32_t, buf, nad_deque_len(d));
 
     nad_deque_copy_to_span(d, s);
     nad_span_sort(s, nad_cmp_i32);

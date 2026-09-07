@@ -43,7 +43,7 @@ void nad_span_transform(nad_SpanMut dst, nad_Span src, nad_UnOp op, void *ctx);
 /// @param ctx handed to 'op'
 /// @bigo{n}
 NAD_API
-void nad_span_zip(nad_SpanMut dst, nad_Span a, nad_Span b, nad_BinOp op, void *ctx);
+void nad_span_zip_with(nad_SpanMut dst, nad_Span a, nad_Span b, nad_BinOp op, void *ctx);
 
 /// @}
 

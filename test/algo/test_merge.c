@@ -34,9 +34,9 @@ static void test_merge_interleaves_both_sides() {
     int32_t dst[6] = {0};
 
     nad_span_merge(
-        NAD_SPAN_NEW_MUT(int32_t, dst, 6),
-        NAD_SPAN_NEW(int32_t, a, 3),
-        NAD_SPAN_NEW(int32_t, b, 3),
+        NAD_SPAN_FROM_DATA_MUT(int32_t, dst, 6),
+        NAD_SPAN_FROM_DATA(int32_t, a, 3),
+        NAD_SPAN_FROM_DATA(int32_t, b, 3),
         nad_cmp_i32
     );
 
@@ -51,9 +51,9 @@ static void test_merge_disjoint_ranges() {
     int32_t dst[6] = {0};
 
     nad_span_merge(
-        NAD_SPAN_NEW_MUT(int32_t, dst, 6),
-        NAD_SPAN_NEW(int32_t, a, 3),
-        NAD_SPAN_NEW(int32_t, b, 3),
+        NAD_SPAN_FROM_DATA_MUT(int32_t, dst, 6),
+        NAD_SPAN_FROM_DATA(int32_t, a, 3),
+        NAD_SPAN_FROM_DATA(int32_t, b, 3),
         nad_cmp_i32
     );
 
@@ -67,9 +67,9 @@ static void test_merge_second_side_comes_first() {
     int32_t dst[4] = {0};
 
     nad_span_merge(
-        NAD_SPAN_NEW_MUT(int32_t, dst, 4),
-        NAD_SPAN_NEW(int32_t, a, 2),
-        NAD_SPAN_NEW(int32_t, b, 2),
+        NAD_SPAN_FROM_DATA_MUT(int32_t, dst, 4),
+        NAD_SPAN_FROM_DATA(int32_t, a, 2),
+        NAD_SPAN_FROM_DATA(int32_t, b, 2),
         nad_cmp_i32
     );
 
@@ -83,9 +83,9 @@ static void test_merge_uneven_lengths() {
     int32_t dst[6] = {0};
 
     nad_span_merge(
-        NAD_SPAN_NEW_MUT(int32_t, dst, 6),
-        NAD_SPAN_NEW(int32_t, a, 1),
-        NAD_SPAN_NEW(int32_t, b, 5),
+        NAD_SPAN_FROM_DATA_MUT(int32_t, dst, 6),
+        NAD_SPAN_FROM_DATA(int32_t, a, 1),
+        NAD_SPAN_FROM_DATA(int32_t, b, 5),
         nad_cmp_i32
     );
 
@@ -98,9 +98,9 @@ static void test_merge_with_an_empty_side() {
     int32_t dst[3] = {0};
 
     nad_span_merge(
-        NAD_SPAN_NEW_MUT(int32_t, dst, 3),
-        NAD_SPAN_NEW(int32_t, a, 3),
-        NAD_SPAN_NEW(int32_t, a, 0),
+        NAD_SPAN_FROM_DATA_MUT(int32_t, dst, 3),
+        NAD_SPAN_FROM_DATA(int32_t, a, 3),
+        NAD_SPAN_FROM_DATA(int32_t, a, 0),
         nad_cmp_i32
     );
     TEST_ASSERT_EQUAL_INT32_ARRAY(a, dst, 3);
@@ -108,9 +108,9 @@ static void test_merge_with_an_empty_side() {
     // and the mirror case — the empty side leading
     int32_t dst2[3] = {0};
     nad_span_merge(
-        NAD_SPAN_NEW_MUT(int32_t, dst2, 3),
-        NAD_SPAN_NEW(int32_t, a, 0),
-        NAD_SPAN_NEW(int32_t, a, 3),
+        NAD_SPAN_FROM_DATA_MUT(int32_t, dst2, 3),
+        NAD_SPAN_FROM_DATA(int32_t, a, 0),
+        NAD_SPAN_FROM_DATA(int32_t, a, 3),
         nad_cmp_i32
     );
     TEST_ASSERT_EQUAL_INT32_ARRAY(a, dst2, 3);
@@ -121,9 +121,9 @@ static void test_merge_both_sides_empty() {
     int32_t dst[1] = {42};
 
     nad_span_merge(
-        NAD_SPAN_NEW_MUT(int32_t, dst, 0),
-        NAD_SPAN_NEW(int32_t, a, 0),
-        NAD_SPAN_NEW(int32_t, a, 0),
+        NAD_SPAN_FROM_DATA_MUT(int32_t, dst, 0),
+        NAD_SPAN_FROM_DATA(int32_t, a, 0),
+        NAD_SPAN_FROM_DATA(int32_t, a, 0),
         nad_cmp_i32
     );
 
@@ -136,9 +136,9 @@ static void test_merge_keeps_duplicates() {
     int32_t dst[5] = {0};
 
     nad_span_merge(
-        NAD_SPAN_NEW_MUT(int32_t, dst, 5),
-        NAD_SPAN_NEW(int32_t, a, 3),
-        NAD_SPAN_NEW(int32_t, b, 2),
+        NAD_SPAN_FROM_DATA_MUT(int32_t, dst, 5),
+        NAD_SPAN_FROM_DATA(int32_t, a, 3),
+        NAD_SPAN_FROM_DATA(int32_t, b, 2),
         nad_cmp_i32
     );
 
@@ -153,9 +153,9 @@ static void test_merge_is_stable_on_ties() {
     Tagged dst[4] = {};
 
     nad_span_merge(
-        NAD_SPAN_NEW_MUT(Tagged, dst, 4),
-        NAD_SPAN_NEW(Tagged, a, 2),
-        NAD_SPAN_NEW(Tagged, b, 2),
+        NAD_SPAN_FROM_DATA_MUT(Tagged, dst, 4),
+        NAD_SPAN_FROM_DATA(Tagged, a, 2),
+        NAD_SPAN_FROM_DATA(Tagged, b, 2),
         cmp_tagged
     );
 
@@ -173,12 +173,12 @@ static void test_merge_writes_only_into_the_destination_view() {
     constexpr int32_t a[1] = {1};
     constexpr int32_t b[1] = {2};
     int32_t dst[4] = {9, 0, 0, 9};
-    const nad_SpanMut s = NAD_SPAN_NEW_MUT(int32_t, dst, 4);
+    const nad_SpanMut s = NAD_SPAN_FROM_DATA_MUT(int32_t, dst, 4);
 
     nad_span_merge(
         nad_span_sub_mut(s, 1, 2),
-        NAD_SPAN_NEW(int32_t, a, 1),
-        NAD_SPAN_NEW(int32_t, b, 1),
+        NAD_SPAN_FROM_DATA(int32_t, a, 1),
+        NAD_SPAN_FROM_DATA(int32_t, b, 1),
         nad_cmp_i32
     );
 
@@ -199,7 +199,7 @@ static void assert_merges_in_place(const int32_t *src, size_t len, size_t mid, n
     memcpy(want, src, len * sizeof(int32_t));
     qsort(want, len, sizeof(int32_t), nad_cmp_i32);
 
-    nad_span_inplace_merge(NAD_SPAN_NEW_MUT(int32_t, buf, len), mid, nad_cmp_i32, al);
+    nad_span_inplace_merge(NAD_SPAN_FROM_DATA_MUT(int32_t, buf, len), mid, nad_cmp_i32, al);
 
     if (len > 0) {
         TEST_ASSERT_EQUAL_INT32_ARRAY(want, buf, len);
@@ -250,17 +250,17 @@ static void test_inplace_merge_at_the_edges_changes_nothing() {
     int32_t buf[4];
 
     memcpy(buf, src, sizeof buf);
-    nad_span_inplace_merge(NAD_SPAN_NEW_MUT(int32_t, buf, 4), 0, nad_cmp_i32, nad_al_default());
+    nad_span_inplace_merge(NAD_SPAN_FROM_DATA_MUT(int32_t, buf, 4), 0, nad_cmp_i32, nad_al_default());
     TEST_ASSERT_EQUAL_INT32_ARRAY(src, buf, 4);
 
     memcpy(buf, src, sizeof buf);
-    nad_span_inplace_merge(NAD_SPAN_NEW_MUT(int32_t, buf, 4), 4, nad_cmp_i32, nad_al_default());
+    nad_span_inplace_merge(NAD_SPAN_FROM_DATA_MUT(int32_t, buf, 4), 4, nad_cmp_i32, nad_al_default());
     TEST_ASSERT_EQUAL_INT32_ARRAY(src, buf, 4);
 }
 
 static void test_inplace_merge_of_short_spans() {
     int32_t one[1] = {7};
-    nad_span_inplace_merge(NAD_SPAN_NEW_MUT(int32_t, one, 1), 0, nad_cmp_i32, nad_al_default());
+    nad_span_inplace_merge(NAD_SPAN_FROM_DATA_MUT(int32_t, one, 1), 0, nad_cmp_i32, nad_al_default());
     TEST_ASSERT_EQUAL_INT32(7, one[0]);
 
     assert_merges_both_ways((const int32_t[]){2, 1}, 2, 1);
@@ -276,7 +276,7 @@ static void test_inplace_merge_is_stable_on_ties() {
         {1, 200}, {2, 201}, {3, 202},
     };
 
-    nad_span_inplace_merge(NAD_SPAN_NEW_MUT(Tagged, buf, 6), 3, cmp_tagged, nad_al_default());
+    nad_span_inplace_merge(NAD_SPAN_FROM_DATA_MUT(Tagged, buf, 6), 3, cmp_tagged, nad_al_default());
 
     constexpr int32_t want_keys[6] = {1, 1, 2, 2, 2, 3};
     constexpr int32_t want_tags[6] = {100, 200, 101, 102, 201, 202};
@@ -317,7 +317,7 @@ static void check_sweep(size_t left_len, size_t right_len, nad_Al *al) {
     }
     qsort(want_keys, len, sizeof(int32_t), nad_cmp_i32);
 
-    nad_span_inplace_merge(NAD_SPAN_NEW_MUT(Tagged, buf, len), left_len, cmp_tagged, al);
+    nad_span_inplace_merge(NAD_SPAN_FROM_DATA_MUT(Tagged, buf, len), left_len, cmp_tagged, al);
 
     for (size_t i = 0; i < len; ++i) {
         TEST_ASSERT_EQUAL_INT32_MESSAGE(want_keys[i], buf[i].key, "not the sorted order");
@@ -384,7 +384,7 @@ static void test_inplace_merge_asks_only_for_the_shorter_run() {
 
     int32_t buf[8] = {5, 1, 2, 3, 4, 6, 7, 8};
 
-    nad_span_inplace_merge(NAD_SPAN_NEW_MUT(int32_t, buf, 8), 1, nad_cmp_i32, &al);
+    nad_span_inplace_merge(NAD_SPAN_FROM_DATA_MUT(int32_t, buf, 8), 1, nad_cmp_i32, &al);
 
     TEST_ASSERT_EQUAL_size_t(1, nad_test_probe_requests(&probe));
     TEST_ASSERT_EQUAL_size_t(1 * sizeof(int32_t), probe.last_alloc_size);
@@ -392,7 +392,7 @@ static void test_inplace_merge_asks_only_for_the_shorter_run() {
     nad_test_probe_reset(&probe);
     int32_t other[8] = {1, 2, 3, 4, 5, 6, 7, 0};
 
-    nad_span_inplace_merge(NAD_SPAN_NEW_MUT(int32_t, other, 8), 7, nad_cmp_i32, &al);
+    nad_span_inplace_merge(NAD_SPAN_FROM_DATA_MUT(int32_t, other, 8), 7, nad_cmp_i32, &al);
 
     TEST_ASSERT_EQUAL_size_t(1 * sizeof(int32_t), probe.last_alloc_size);
 }
@@ -404,7 +404,7 @@ static void test_inplace_merge_gives_the_buffer_back() {
 
     int32_t buf[6] = {1, 3, 5, 2, 4, 6};
 
-    nad_span_inplace_merge(NAD_SPAN_NEW_MUT(int32_t, buf, 6), 3, nad_cmp_i32, &al);
+    nad_span_inplace_merge(NAD_SPAN_FROM_DATA_MUT(int32_t, buf, 6), 3, nad_cmp_i32, &al);
 
     TEST_ASSERT_EQUAL_size_t(0, probe.live);
 }
@@ -418,7 +418,7 @@ static void test_inplace_merge_falls_back_when_the_buffer_is_refused() {
 
     int32_t buf[6] = {1, 3, 5, 2, 4, 6};
 
-    nad_span_inplace_merge(NAD_SPAN_NEW_MUT(int32_t, buf, 6), 3, nad_cmp_i32, &al);
+    nad_span_inplace_merge(NAD_SPAN_FROM_DATA_MUT(int32_t, buf, 6), 3, nad_cmp_i32, &al);
 
     constexpr int32_t want[6] = {1, 2, 3, 4, 5, 6};
     TEST_ASSERT_EQUAL_INT32_ARRAY(want, buf, 6);
@@ -433,8 +433,8 @@ static void test_inplace_merge_at_the_edges_asks_for_nothing() {
 
     int32_t buf[4] = {2, 4, 1, 3};
 
-    nad_span_inplace_merge(NAD_SPAN_NEW_MUT(int32_t, buf, 4), 0, nad_cmp_i32, &al);
-    nad_span_inplace_merge(NAD_SPAN_NEW_MUT(int32_t, buf, 4), 4, nad_cmp_i32, &al);
+    nad_span_inplace_merge(NAD_SPAN_FROM_DATA_MUT(int32_t, buf, 4), 0, nad_cmp_i32, &al);
+    nad_span_inplace_merge(NAD_SPAN_FROM_DATA_MUT(int32_t, buf, 4), 4, nad_cmp_i32, &al);
 
     TEST_ASSERT_EQUAL_size_t(0, nad_test_probe_requests(&probe));
 }

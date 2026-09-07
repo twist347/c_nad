@@ -28,7 +28,7 @@ int main() {
     const nad_Span src = NAD_SPAN_OF(int32_t, 1, 2, 3, 4);
 
     int64_t wide[4];
-    const nad_SpanMut dst = NAD_SPAN_NEW_MUT(int64_t, wide, 4);
+    const nad_SpanMut dst = NAD_SPAN_FROM_DATA_MUT(int64_t, wide, 4);
 
     // only the lengths have to match; the elem sizes are 4 and 8
     nad_span_transform(dst, src, widen_and_square, nullptr);
@@ -38,7 +38,7 @@ int main() {
     const nad_Span other = NAD_SPAN_OF(int32_t, 10, 20, 30, 40);
     const nad_SpanMut sums = NAD_SPAN_OF_MUT(int32_t, 0, 0, 0, 0);
 
-    nad_span_zip(sums, src, other, add, nullptr);
+    nad_span_zip_with(sums, src, other, add, nullptr);
     nad_span_mut_print(sums, nad_fprint_i32); // [11, 22, 33, 44]
     /// [map]
 
