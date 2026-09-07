@@ -897,7 +897,8 @@ static void test_fprint_of_an_empty_pqueue() {
 // the stdout twin takes no stream, and C has no portable way to capture one and give it
 // back — so a case can only say that it runs and reaches the same printer
 static void test_print_writes_to_stdout() {
-    nad_PQueue *q = make_queue((constexpr int32_t[]){1, 2, 3}, 3);
+    constexpr int32_t src[3] = {1, 2, 3};
+    nad_PQueue *q = make_queue(src, 3);
 
     nad_pqueue_print(q, nad_fprint_i32);
 
