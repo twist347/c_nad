@@ -3,8 +3,8 @@
 #include "nad/core/export.h"
 #include "nad/core/print.h"
 
-#include <stddef.h>
 #include <assert.h>
+#include <stddef.h>
 
 /// @file
 

@@ -1,6 +1,7 @@
 #include "nad/alloc/pool.h"
 
 #include "nad/core/util.h"
+
 #include "internal/ptr.h"
 
 #include <assert.h>

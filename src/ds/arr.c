@@ -2,6 +2,7 @@
 
 #include "nad/algo/compare.h"
 #include "nad/core/util.h"
+
 #include "internal/ptr.h"
 
 #include <assert.h>

@@ -1,7 +1,7 @@
 #include "nad/ds/bitset.h"
-#include "nad/core/util.h"
 #include "nad/alloc/arena.h"
 #include "nad/alloc/default.h"
+#include "nad/core/util.h"
 
 #include "support/arena.h"
 #include "support/probe.h"

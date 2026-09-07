@@ -1,8 +1,8 @@
 #include "nad/algo/permute.h"
 #include "nad/algo/search.h"
 #include "nad/algo/sort.h"
-#include "nad/core/rng.h"
 #include "nad/alloc/default.h"
+#include "nad/core/rng.h"
 #include "nad/core/util.h"
 
 #include "support/pair.h"

@@ -2,8 +2,8 @@
 
 #include "nad/algo/fn.h"
 #include "nad/alloc/alloc.h"
-#include "nad/core/export.h"
 #include "nad/core/cmp.h"
+#include "nad/core/export.h"
 #include "nad/core/rng.h"
 #include "nad/core/span.h"
 #include "nad/core/status.h"

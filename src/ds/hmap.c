@@ -1,6 +1,7 @@
 #include "nad/ds/hmap.h"
 
 #include "nad/core/util.h"
+
 #include "internal/hmap_impl.h"
 #include "internal/ptr.h"
 

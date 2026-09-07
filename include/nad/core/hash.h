@@ -2,8 +2,8 @@
 
 #include "nad/core/export.h"
 
-#include <stdint.h>
 #include <stddef.h>
+#include <stdint.h>
 
 /// @file
 

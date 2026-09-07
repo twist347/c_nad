@@ -4,8 +4,8 @@
 #include "nad/core/cmp.h"
 #include "nad/core/span.h"
 
-#include <stdio.h>
 #include <stdint.h>
+#include <stdio.h>
 
 int main() {
     /// [compare]

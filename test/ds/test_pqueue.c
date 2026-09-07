@@ -1,10 +1,10 @@
 #include "nad/ds/pqueue.h"
-#include "nad/ds/vec.h"
 #include "nad/algo/heap.h"
 #include "nad/algo/permute.h"
 #include "nad/algo/sort.h"
 #include "nad/alloc/arena.h"
 #include "nad/alloc/default.h"
+#include "nad/ds/vec.h"
 
 #include "support/arena.h"
 #include "support/pair.h"
