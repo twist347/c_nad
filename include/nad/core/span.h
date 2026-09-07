@@ -96,23 +96,23 @@ nad_Span nad_span_mut_to_span(nad_SpanMut s);
 /// @name subspan
 /// @{
 
-/// a view over 'count' elems of 'self', starting at 'start'
+/// a view over 'count' elems of 'self', starting at 'idx'
 /// @param self the view to narrow
-/// @param start where it begins; asserts start <= self.len, == gives an empty view
-/// @param count elems it spans; asserts count <= self.len - start
+/// @param idx where it begins; asserts idx <= self.len, == gives an empty view
+/// @param count elems it spans; asserts count <= self.len - idx
 /// @return the narrower view, over the same memory — nothing is copied
 /// @bigo{1}
 [[nodiscard]] NAD_API
-nad_Span nad_span_sub(nad_Span self, size_t start, size_t count);
+nad_Span nad_span_sub(nad_Span self, size_t idx, size_t count);
 
 /// nad_span_sub, writable
 /// @param self the view to narrow
-/// @param start where it begins; asserts start <= self.len, == gives an empty view
-/// @param count elems it spans; asserts count <= self.len - start
+/// @param idx where it begins; asserts idx <= self.len, == gives an empty view
+/// @param count elems it spans; asserts count <= self.len - idx
 /// @return the narrower view, over the same memory — nothing is copied
 /// @bigo{1}
 [[nodiscard]] NAD_API
-nad_SpanMut nad_span_sub_mut(nad_SpanMut self, size_t start, size_t count);
+nad_SpanMut nad_span_sub_mut(nad_SpanMut self, size_t idx, size_t count);
 
 /// @}
 

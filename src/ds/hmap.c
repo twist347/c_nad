@@ -92,9 +92,9 @@ static nad_Status rehash(nad_HMap *self, size_t new_count);
 [[nodiscard]]
 static nad_Status reserve_one(nad_HMap *self);
 
-/// the first node from bucket 'start' onward, or null when the rest are empty
+/// the first node from bucket 'idx' onward, or null when the rest are empty
 [[nodiscard]]
-static nad_HMapNode *first_from(const nad_HMap *self, size_t start);
+static nad_HMapNode *first_from(const nad_HMap *self, size_t idx);
 
 static void clear_nodes(nad_HMap *self);
 
@@ -790,8 +790,8 @@ static nad_Status reserve_one(nad_HMap *self) {
     return rehash(self, grown);
 }
 
-static nad_HMapNode *first_from(const nad_HMap *self, size_t start) {
-    for (size_t i = start; i < self->bucket_count; ++i) {
+static nad_HMapNode *first_from(const nad_HMap *self, size_t idx) {
+    for (size_t i = idx; i < self->bucket_count; ++i) {
         if (self->buckets[i]) {
             return self->buckets[i];
         }

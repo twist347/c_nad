@@ -43,25 +43,25 @@ nad_Span nad_span_mut_to_span(nad_SpanMut s) {
 
 /* ========== subspan ========== */
 
-nad_Span nad_span_sub(nad_Span self, size_t start, size_t count) {
+nad_Span nad_span_sub(nad_Span self, size_t idx, size_t count) {
     NAD_SPAN_ASSERT(self);
-    assert(start <= self.len);
-    assert(count <= self.len - start);
+    assert(idx <= self.len);
+    assert(count <= self.len - idx);
 
     return (nad_Span){
-        .data = self.data ? nad_byte_offset(self.data, self.elem_size, start) : nullptr,
+        .data = self.data ? nad_byte_offset(self.data, self.elem_size, idx) : nullptr,
         .len = count,
         .elem_size = self.elem_size
     };
 }
 
-nad_SpanMut nad_span_sub_mut(nad_SpanMut self, size_t start, size_t count) {
+nad_SpanMut nad_span_sub_mut(nad_SpanMut self, size_t idx, size_t count) {
     NAD_SPAN_ASSERT(self);
-    assert(start <= self.len);
-    assert(count <= self.len - start);
+    assert(idx <= self.len);
+    assert(count <= self.len - idx);
 
     return (nad_SpanMut){
-        .data = self.data ? nad_byte_offset_mut(self.data, self.elem_size, start) : nullptr,
+        .data = self.data ? nad_byte_offset_mut(self.data, self.elem_size, idx) : nullptr,
         .len = count,
         .elem_size = self.elem_size
     };
