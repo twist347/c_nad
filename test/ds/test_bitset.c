@@ -971,6 +971,17 @@ static void test_fprint_shows_no_bit_above_the_universe() {
     nad_bitset_drop(b);
 }
 
+// the stdout twin takes no stream, and C has no portable way to capture one and give it
+// back — so a case can only say that it runs and reaches the same printer
+static void test_print_writes_to_stdout() {
+    constexpr size_t members[] = {0, 3};
+    nad_BitSet *b = make_bitset(8, members, 2);
+
+    nad_bitset_print(b);
+
+    nad_bitset_drop(b);
+}
+
 /* ========== allocation failure ========== */
 
 static void test_new_reports_a_refused_header() {
@@ -1128,6 +1139,7 @@ int main() {
     RUN_TEST(test_fprint_writes_the_members);
     RUN_TEST(test_fprint_of_an_empty_set);
     RUN_TEST(test_fprint_shows_no_bit_above_the_universe);
+    RUN_TEST(test_print_writes_to_stdout);
 
     RUN_TEST(test_new_reports_a_refused_header);
     RUN_TEST(test_refused_words_free_the_header);

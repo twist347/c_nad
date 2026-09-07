@@ -4,6 +4,7 @@
 #include "nad/alloc/arena.h"
 #include "nad/alloc/default.h"
 #include "nad/core/cmp.h"
+#include "nad/core/print.h"
 
 #include "support/arena.h"
 #include "support/pair.h"
@@ -962,6 +963,61 @@ static void test_into_vec_releases_the_header_alone() {
     TEST_ASSERT_EQUAL_size_t(0, probe.live);
 }
 
+/* ========== print ========== */
+
+// a printer writes to a stream, so a case has to read one back. tmpfile is the portable
+// way, the same one test/core/test_print.c takes
+static void assert_prints(const char *expected, const nad_Stack *s) {
+    FILE *stream = tmpfile();
+    TEST_ASSERT_NOT_NULL(stream);
+
+    nad_stack_fprint(s, stream, nad_fprint_i32);
+    rewind(stream);
+
+    char buf[128];
+    const size_t n = fread(buf, 1, sizeof buf - 1, stream);
+    buf[n] = '\0';
+    fclose(stream);
+
+    TEST_ASSERT_EQUAL_STRING(expected, buf);
+}
+
+static void test_fprint_writes_the_elems() {
+    nad_Stack *s = nullptr;
+    NAD_TEST_OK(NAD_STACK_OF(int32_t, nad_al_default(), &s, 5, 3, 1));
+
+    assert_prints("[5, 3, 1]\n", s);
+
+    nad_stack_drop(s);
+}
+
+static void test_fprint_of_a_single_elem_has_no_separator() {
+    nad_Stack *s = nullptr;
+    NAD_TEST_OK(NAD_STACK_OF(int32_t, nad_al_default(), &s, 7));
+
+    assert_prints("[7]\n", s);
+
+    nad_stack_drop(s);
+}
+
+static void test_fprint_of_an_empty_stack() {
+    nad_Stack *s = make_stack(nullptr, 0);
+
+    assert_prints("[]\n", s);
+
+    nad_stack_drop(s);
+}
+
+// the stdout twin takes no stream, and C has no portable way to capture one and give it
+// back — so a case can only say that it runs and reaches the same printer
+static void test_print_writes_to_stdout() {
+    nad_Stack *s = make_stack((constexpr int32_t[]){1, 2, 3}, 3);
+
+    nad_stack_print(s, nad_fprint_i32);
+
+    nad_stack_drop(s);
+}
+
 int main() {
     UNITY_BEGIN();
 
@@ -1037,6 +1093,11 @@ int main() {
     RUN_TEST(test_into_vec_hands_the_elems_over);
     RUN_TEST(test_into_vec_of_an_empty_stack);
     RUN_TEST(test_into_vec_releases_the_header_alone);
+
+    RUN_TEST(test_fprint_writes_the_elems);
+    RUN_TEST(test_fprint_of_a_single_elem_has_no_separator);
+    RUN_TEST(test_fprint_of_an_empty_stack);
+    RUN_TEST(test_print_writes_to_stdout);
 
     return UNITY_END();
 }

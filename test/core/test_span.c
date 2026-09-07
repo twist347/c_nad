@@ -1,3 +1,4 @@
+#include "nad/core/print.h"
 #include "nad/core/span.h"
 #include "nad/core/util.h"
 
@@ -11,6 +12,39 @@ void setUp() {
 }
 
 void tearDown() {
+}
+
+// a printer writes to a stream, so a case has to read one back. tmpfile is the portable
+// way, the same one test/core/test_print.c takes
+static void assert_prints(const char *expected, nad_Span s) {
+    FILE *stream = tmpfile();
+    TEST_ASSERT_NOT_NULL(stream);
+
+    nad_span_fprint(s, stream, nad_fprint_i32);
+    rewind(stream);
+
+    char buf[128];
+    const size_t n = fread(buf, 1, sizeof buf - 1, stream);
+    buf[n] = '\0';
+    fclose(stream);
+
+    TEST_ASSERT_EQUAL_STRING(expected, buf);
+}
+
+// the mut printer is its own symbol, so it needs its own capture
+static void assert_mut_prints(const char *expected, nad_SpanMut s) {
+    FILE *stream = tmpfile();
+    TEST_ASSERT_NOT_NULL(stream);
+
+    nad_span_mut_fprint(s, stream, nad_fprint_i32);
+    rewind(stream);
+
+    char buf[128];
+    const size_t n = fread(buf, 1, sizeof buf - 1, stream);
+    buf[n] = '\0';
+    fclose(stream);
+
+    TEST_ASSERT_EQUAL_STRING(expected, buf);
 }
 
 /* ========== construction ========== */
@@ -320,6 +354,43 @@ static void test_swap_elems_moves_whole_element() {
     TEST_ASSERT_EQUAL_INT64(2, buf[1].b);
 }
 
+/* ========== print ========== */
+
+static void test_fprint_writes_the_elems() {
+    constexpr int32_t buf[3] = {1, 2, 3};
+
+    assert_prints("[1, 2, 3]\n", NAD_SPAN_FROM_DATA(int32_t, buf, 3));
+}
+
+static void test_fprint_of_a_single_elem_has_no_separator() {
+    constexpr int32_t buf[1] = {7};
+
+    assert_prints("[7]\n", NAD_SPAN_FROM_DATA(int32_t, buf, 1));
+}
+
+static void test_fprint_of_an_empty_span() {
+    constexpr int32_t buf[1] = {7};
+
+    assert_prints("[]\n", NAD_SPAN_FROM_DATA(int32_t, buf, 0));
+    assert_prints("[]\n", NAD_SPAN_FROM_DATA(int32_t, nullptr, 0));
+}
+
+static void test_mut_fprint_writes_what_fprint_writes() {
+    int32_t buf[3] = {1, 2, 3};
+
+    assert_mut_prints("[1, 2, 3]\n", NAD_SPAN_FROM_DATA_MUT(int32_t, buf, 3));
+    assert_mut_prints("[]\n", NAD_SPAN_FROM_DATA_MUT(int32_t, buf, 0));
+}
+
+// the stdout twins take no stream, and C has no portable way to capture one and give it
+// back — so a case can only say that they run and reach the same printer
+static void test_print_twins_write_to_stdout() {
+    int32_t buf[2] = {4, 5};
+
+    nad_span_print(NAD_SPAN_FROM_DATA(int32_t, buf, 2), nad_fprint_i32);
+    nad_span_mut_print(NAD_SPAN_FROM_DATA_MUT(int32_t, buf, 2), nad_fprint_i32);
+}
+
 int main() {
     UNITY_BEGIN();
 
@@ -357,6 +428,12 @@ int main() {
     RUN_TEST(test_swap_elems);
     RUN_TEST(test_swap_elems_same_index_is_noop);
     RUN_TEST(test_swap_elems_moves_whole_element);
+
+    RUN_TEST(test_fprint_writes_the_elems);
+    RUN_TEST(test_fprint_of_a_single_elem_has_no_separator);
+    RUN_TEST(test_fprint_of_an_empty_span);
+    RUN_TEST(test_mut_fprint_writes_what_fprint_writes);
+    RUN_TEST(test_print_twins_write_to_stdout);
 
     return UNITY_END();
 }

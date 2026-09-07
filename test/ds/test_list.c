@@ -4,6 +4,7 @@
 #include "nad/alloc/arena.h"
 #include "nad/alloc/default.h"
 #include "nad/core/cmp.h"
+#include "nad/core/print.h"
 #include "nad/core/util.h"
 
 #include "support/arena.h"
@@ -560,6 +561,23 @@ static void test_the_ends_are_the_same_node_on_a_single_elem() {
     TEST_ASSERT_EQUAL_PTR(nad_list_front_node(l), nad_list_back_node(l));
     TEST_ASSERT_NULL(nad_list_node_next(nad_list_front_node(l)));
     TEST_ASSERT_NULL(nad_list_node_prev(nad_list_front_node(l)));
+
+    nad_list_drop(l);
+}
+
+// the backward walk has a mutable twin: one pass from the back writes through every elem
+static void test_node_prev_mut_writes_through_the_backward_walk() {
+    nad_List *l = make_list(4);
+
+    size_t seen = 0;
+    for (nad_ListNode *node = nad_list_back_node_mut(l); node; node = nad_list_node_prev_mut(node)) {
+        *NAD_LIST_NODE_ELEM_MUT_AS(int32_t, node) *= 10;
+        ++seen;
+    }
+    TEST_ASSERT_EQUAL_size_t(4, seen);
+
+    constexpr int32_t want[4] = {0, 10, 20, 30};
+    assert_elems(l, want, 4);
 
     nad_list_drop(l);
 }
@@ -1962,6 +1980,61 @@ static void test_eq_by_asks_the_equality() {
     nad_list_drop(b);
 }
 
+/* ========== print ========== */
+
+// a printer writes to a stream, so a case has to read one back. tmpfile is the portable
+// way, the same one test/core/test_print.c takes
+static void assert_prints(const char *expected, const nad_List *l) {
+    FILE *stream = tmpfile();
+    TEST_ASSERT_NOT_NULL(stream);
+
+    nad_list_fprint(l, stream, nad_fprint_i32);
+    rewind(stream);
+
+    char buf[128];
+    const size_t n = fread(buf, 1, sizeof buf - 1, stream);
+    buf[n] = '\0';
+    fclose(stream);
+
+    TEST_ASSERT_EQUAL_STRING(expected, buf);
+}
+
+static void test_fprint_writes_the_elems() {
+    nad_List *l = nullptr;
+    NAD_TEST_OK(NAD_LIST_OF(int32_t, nad_al_default(), &l, 5, 3, 1));
+
+    assert_prints("[5, 3, 1]\n", l);
+
+    nad_list_drop(l);
+}
+
+static void test_fprint_of_a_single_elem_has_no_separator() {
+    nad_List *l = nullptr;
+    NAD_TEST_OK(NAD_LIST_OF(int32_t, nad_al_default(), &l, 7));
+
+    assert_prints("[7]\n", l);
+
+    nad_list_drop(l);
+}
+
+static void test_fprint_of_an_empty_list() {
+    nad_List *l = make_list(0);
+
+    assert_prints("[]\n", l);
+
+    nad_list_drop(l);
+}
+
+// the stdout twin takes no stream, and C has no portable way to capture one and give it
+// back — so a case can only say that it runs and reaches the same printer
+static void test_print_writes_to_stdout() {
+    nad_List *l = make_list(3);
+
+    nad_list_print(l, nad_fprint_i32);
+
+    nad_list_drop(l);
+}
+
 int main() {
     UNITY_BEGIN();
 
@@ -2001,6 +2074,7 @@ int main() {
 
     RUN_TEST(test_nodes_of_an_empty_list_are_null);
     RUN_TEST(test_the_ends_are_the_same_node_on_a_single_elem);
+    RUN_TEST(test_node_prev_mut_writes_through_the_backward_walk);
     RUN_TEST(test_next_and_prev_are_each_others_inverse);
     RUN_TEST(test_node_elem_mut_writes_through);
 
@@ -2109,6 +2183,11 @@ int main() {
     RUN_TEST(test_eq_of_two_empties);
     RUN_TEST(test_eq_is_order_sensitive);
     RUN_TEST(test_eq_by_asks_the_equality);
+
+    RUN_TEST(test_fprint_writes_the_elems);
+    RUN_TEST(test_fprint_of_a_single_elem_has_no_separator);
+    RUN_TEST(test_fprint_of_an_empty_list);
+    RUN_TEST(test_print_writes_to_stdout);
 
     return UNITY_END();
 }

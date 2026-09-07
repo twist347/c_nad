@@ -93,6 +93,29 @@ static void test_rng_copies_as_a_value() {
     }
 }
 
+// u32 is the top half of a whole draw, so it must both replay and advance the generator
+// exactly as u64 does — and it must not be the low half, which is the weaker one here
+static void test_rng_u32_is_the_top_half_of_a_draw() {
+    nad_Rng a = nad_rng_from_seed(12345);
+    nad_Rng b = nad_rng_from_seed(12345);
+
+    for (size_t i = 0; i < 100; ++i) {
+        TEST_ASSERT_EQUAL_UINT32((uint32_t) (nad_rng_u64(&a) >> 32), nad_rng_u32(&b));
+    }
+}
+
+// a draw over the whole width has to reach both ends of it
+static void test_rng_u32_takes_the_full_width() {
+    nad_Rng rng = nad_rng_from_seed(1);
+
+    uint32_t seen_bits = 0;
+    for (size_t i = 0; i < 200; ++i) {
+        seen_bits |= nad_rng_u32(&rng);
+    }
+
+    TEST_ASSERT_EQUAL_HEX32(UINT32_MAX, seen_bits);
+}
+
 /* ========== bounded ints ========== */
 
 static void test_rng_u64_max_stays_in_range() {
@@ -369,6 +392,8 @@ int main() {
     RUN_TEST(test_rng_takes_zero_as_a_seed);
     RUN_TEST(test_rng_copies_as_a_value);
 
+    RUN_TEST(test_rng_u32_is_the_top_half_of_a_draw);
+    RUN_TEST(test_rng_u32_takes_the_full_width);
     RUN_TEST(test_rng_u64_max_stays_in_range);
     RUN_TEST(test_rng_u64_max_takes_the_full_width);
     RUN_TEST(test_rng_u32_max_stays_in_range);

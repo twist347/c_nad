@@ -3,6 +3,7 @@
 #include "nad/alloc/default.h"
 #include "nad/core/cmp.h"
 #include "nad/core/hash.h"
+#include "nad/core/print.h"
 #include "nad/core/util.h"
 
 #include "support/arena.h"
@@ -528,6 +529,33 @@ static void test_remove_every_key_of_a_chain_in_turn() {
     }
 
     TEST_ASSERT_NULL(nad_hmap_first_node(m));
+
+    nad_hmap_drop(m);
+}
+
+// the mutable walk is the const one with a value to write through: every entry doubled
+// in one pass, without a lookup per key
+static void test_mut_walk_writes_through_every_entry() {
+    nad_HMap *m = make_filled(nad_hash_i32, 4);
+
+    size_t seen = 0;
+    for (nad_HMapNode *node = nad_hmap_first_node_mut(m); node; node = nad_hmap_node_next_mut(m, node)) {
+        *NAD_HMAP_NODE_VAL_MUT_AS(int32_t, m, node) *= 2;
+        ++seen;
+    }
+    TEST_ASSERT_EQUAL_size_t(4, seen);
+
+    for (int32_t key = 0; key < 4; ++key) {
+        TEST_ASSERT_EQUAL_INT32(key * 20, *NAD_HMAP_GET_AS(int32_t, int32_t, m, key));
+    }
+
+    nad_hmap_drop(m);
+}
+
+static void test_mut_walk_of_an_empty_map_stops_at_once() {
+    nad_HMap *m = make_map(nad_hash_i32);
+
+    TEST_ASSERT_NULL(nad_hmap_first_node_mut(m));
 
     nad_hmap_drop(m);
 }
@@ -1553,6 +1581,54 @@ static void test_eq_matches_a_copy() {
     nad_hmap_drop(copy);
 }
 
+/* ========== print ========== */
+
+// a printer writes to a stream, so a case has to read one back. tmpfile is the portable
+// way, the same one test/core/test_print.c takes
+static void assert_prints(const char *expected, const nad_HMap *m) {
+    FILE *stream = tmpfile();
+    TEST_ASSERT_NOT_NULL(stream);
+
+    nad_hmap_fprint(m, stream, nad_fprint_i32, nad_fprint_i32);
+    rewind(stream);
+
+    char buf[128];
+    const size_t n = fread(buf, 1, sizeof buf - 1, stream);
+    buf[n] = '\0';
+    fclose(stream);
+
+    TEST_ASSERT_EQUAL_STRING(expected, buf);
+}
+
+static void test_fprint_writes_the_entry() {
+    nad_HMap *m = make_map(nad_hash_i32);
+    put(m, 1, 10);
+
+    assert_prints("{1: 10}\n", m);
+
+    nad_hmap_drop(m);
+}
+
+// with more than one entry the order is the buckets', which the header calls unspecified —
+// so a case may say what is printed only where there is nothing to order
+static void test_fprint_of_an_empty_map() {
+    nad_HMap *m = make_map(nad_hash_i32);
+
+    assert_prints("{}\n", m);
+
+    nad_hmap_drop(m);
+}
+
+// the stdout twin takes no stream, and C has no portable way to capture one and give it
+// back — so a case can only say that it runs and reaches the same printer
+static void test_print_writes_to_stdout() {
+    nad_HMap *m = make_filled(nad_hash_i32, 3);
+
+    nad_hmap_print(m, nad_fprint_i32, nad_fprint_i32);
+
+    nad_hmap_drop(m);
+}
+
 int main() {
     UNITY_BEGIN();
 
@@ -1602,6 +1678,8 @@ int main() {
     RUN_TEST(test_remove_on_an_empty_map_says_so);
     RUN_TEST(test_remove_from_the_middle_of_a_chain);
     RUN_TEST(test_remove_every_key_of_a_chain_in_turn);
+    RUN_TEST(test_mut_walk_writes_through_every_entry);
+    RUN_TEST(test_mut_walk_of_an_empty_map_stops_at_once);
     RUN_TEST(test_remove_node_drops_the_entry_it_names);
     RUN_TEST(test_a_key_can_be_put_back_after_removal);
     RUN_TEST(test_clear_empties_and_keeps_the_buckets);
@@ -1654,6 +1732,10 @@ int main() {
     RUN_TEST(test_eq_by_asks_the_equality_for_the_value_side);
     RUN_TEST(test_eq_and_eq_by_agree_on_plain_values);
     RUN_TEST(test_eq_matches_a_copy);
+
+    RUN_TEST(test_fprint_writes_the_entry);
+    RUN_TEST(test_fprint_of_an_empty_map);
+    RUN_TEST(test_print_writes_to_stdout);
 
     return UNITY_END();
 }

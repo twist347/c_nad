@@ -3,6 +3,7 @@
 #include "nad/alloc/default.h"
 #include "nad/core/cmp.h"
 #include "nad/core/hash.h"
+#include "nad/core/print.h"
 #include "nad/core/util.h"
 
 #include "support/arena.h"
@@ -355,6 +356,40 @@ static void test_remove_from_the_middle_of_a_chain() {
             assert_has(s, i);
         }
     }
+
+    nad_hset_drop(s);
+}
+
+// a set node carries no value, so the mutable walk is there to remove through: one pass
+// takes out every even key and leaves the rest
+static void test_mut_walk_removes_through_the_nodes() {
+    nad_HSet *s = make_filled(nad_hash_i32, 6);
+
+    nad_HSetNode *node = nad_hset_first_node_mut(s);
+    while (node) {
+        const int32_t key = *NAD_HSET_NODE_KEY_AS(int32_t, node);
+        nad_HSetNode *next = nad_hset_node_next_mut(s, node);
+        if (key % 2 == 0) {
+            nad_hset_remove_node(s, node);
+        }
+        node = next;
+    }
+
+    TEST_ASSERT_EQUAL_size_t(3, nad_hset_len(s));
+    assert_has(s, 1);
+    assert_has(s, 3);
+    assert_has(s, 5);
+    assert_missing(s, 0);
+    assert_missing(s, 2);
+    assert_missing(s, 4);
+
+    nad_hset_drop(s);
+}
+
+static void test_mut_walk_of_an_empty_set_stops_at_once() {
+    nad_HSet *s = make_set(nad_hash_i32);
+
+    TEST_ASSERT_NULL(nad_hset_first_node_mut(s));
 
     nad_hset_drop(s);
 }
@@ -992,6 +1027,56 @@ static void test_eq_matches_a_copy() {
     nad_hset_drop(copy);
 }
 
+/* ========== print ========== */
+
+// a printer writes to a stream, so a case has to read one back. tmpfile is the portable
+// way, the same one test/core/test_print.c takes
+static void assert_prints(const char *expected, const nad_HSet *s) {
+    FILE *stream = tmpfile();
+    TEST_ASSERT_NOT_NULL(stream);
+
+    nad_hset_fprint(s, stream, nad_fprint_i32);
+    rewind(stream);
+
+    char buf[128];
+    const size_t n = fread(buf, 1, sizeof buf - 1, stream);
+    buf[n] = '\0';
+    fclose(stream);
+
+    TEST_ASSERT_EQUAL_STRING(expected, buf);
+}
+
+static void test_fprint_writes_the_key() {
+    nad_HSet *s = make_set(nad_hash_i32);
+    put(s, 1);
+
+    assert_prints("{1}\n", s);
+
+    nad_hset_drop(s);
+}
+
+// with more than one key the order is the buckets', which the header calls unspecified —
+// so a case may say what is printed only where there is nothing to order
+static void test_fprint_of_an_empty_set() {
+    nad_HSet *s = make_set(nad_hash_i32);
+
+    assert_prints("{}\n", s);
+
+    nad_hset_drop(s);
+}
+
+// the stdout twin takes no stream, and C has no portable way to capture one and give it
+// back — so a case can only say that it runs and reaches the same printer
+static void test_print_writes_to_stdout() {
+    nad_HSet *s = make_set(nad_hash_i32);
+    put(s, 1);
+    put(s, 2);
+
+    nad_hset_print(s, nad_fprint_i32);
+
+    nad_hset_drop(s);
+}
+
 int main() {
     UNITY_BEGIN();
 
@@ -1021,6 +1106,8 @@ int main() {
     RUN_TEST(test_remove_takes_the_key_out);
     RUN_TEST(test_remove_of_a_missing_key_says_so);
     RUN_TEST(test_remove_from_the_middle_of_a_chain);
+    RUN_TEST(test_mut_walk_removes_through_the_nodes);
+    RUN_TEST(test_mut_walk_of_an_empty_set_stops_at_once);
     RUN_TEST(test_remove_node_drops_the_key_it_names);
     RUN_TEST(test_a_key_can_be_put_back_after_removal);
     RUN_TEST(test_clear_empties_and_keeps_the_buckets);
@@ -1062,6 +1149,10 @@ int main() {
     RUN_TEST(test_eq_of_two_empties);
     RUN_TEST(test_eq_walks_whole_chains);
     RUN_TEST(test_eq_matches_a_copy);
+
+    RUN_TEST(test_fprint_writes_the_key);
+    RUN_TEST(test_fprint_of_an_empty_set);
+    RUN_TEST(test_print_writes_to_stdout);
 
     return UNITY_END();
 }

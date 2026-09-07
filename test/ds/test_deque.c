@@ -3,6 +3,7 @@
 #include "nad/alloc/arena.h"
 #include "nad/alloc/default.h"
 #include "nad/core/cmp.h"
+#include "nad/core/print.h"
 #include "nad/core/util.h"
 
 #include "support/arena.h"
@@ -1118,6 +1119,61 @@ static void test_eq_by_asks_the_equality() {
     nad_deque_drop(b);
 }
 
+/* ========== print ========== */
+
+// a printer writes to a stream, so a case has to read one back. tmpfile is the portable
+// way, the same one test/core/test_print.c takes
+static void assert_prints(const char *expected, const nad_Deque *d) {
+    FILE *stream = tmpfile();
+    TEST_ASSERT_NOT_NULL(stream);
+
+    nad_deque_fprint(d, stream, nad_fprint_i32);
+    rewind(stream);
+
+    char buf[128];
+    const size_t n = fread(buf, 1, sizeof buf - 1, stream);
+    buf[n] = '\0';
+    fclose(stream);
+
+    TEST_ASSERT_EQUAL_STRING(expected, buf);
+}
+
+static void test_fprint_writes_the_elems() {
+    nad_Deque *d = nullptr;
+    NAD_TEST_OK(NAD_DEQUE_OF(int32_t, nad_al_default(), &d, 5, 3, 1));
+
+    assert_prints("[5, 3, 1]\n", d);
+
+    nad_deque_drop(d);
+}
+
+static void test_fprint_of_a_single_elem_has_no_separator() {
+    nad_Deque *d = nullptr;
+    NAD_TEST_OK(NAD_DEQUE_OF(int32_t, nad_al_default(), &d, 7));
+
+    assert_prints("[7]\n", d);
+
+    nad_deque_drop(d);
+}
+
+static void test_fprint_of_an_empty_deque() {
+    nad_Deque *d = make_deque(0);
+
+    assert_prints("[]\n", d);
+
+    nad_deque_drop(d);
+}
+
+// the stdout twin takes no stream, and C has no portable way to capture one and give it
+// back — so a case can only say that it runs and reaches the same printer
+static void test_print_writes_to_stdout() {
+    nad_Deque *d = make_deque(3);
+
+    nad_deque_print(d, nad_fprint_i32);
+
+    nad_deque_drop(d);
+}
+
 int main() {
     UNITY_BEGIN();
 
@@ -1200,6 +1256,11 @@ int main() {
     RUN_TEST(test_eq_ignores_where_the_ring_starts);
     RUN_TEST(test_eq_is_order_sensitive);
     RUN_TEST(test_eq_by_asks_the_equality);
+
+    RUN_TEST(test_fprint_writes_the_elems);
+    RUN_TEST(test_fprint_of_a_single_elem_has_no_separator);
+    RUN_TEST(test_fprint_of_an_empty_deque);
+    RUN_TEST(test_print_writes_to_stdout);
 
     return UNITY_END();
 }

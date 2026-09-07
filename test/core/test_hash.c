@@ -86,6 +86,22 @@ static void test_hash_folds_every_nan_together() {
     TEST_ASSERT_NOT_EQUAL_UINT64(nad_hash_f64(&quiet), nad_hash_f64(&zero));
 }
 
+// the narrow types have their own hashers, and each must keep the same contract: equal
+// keys agree, a neighbour does not
+static void test_hash_agrees_with_equality_for_every_width() {
+    TEST_ASSERT_EQUAL_UINT64(nad_hash_i8(&(int8_t){-8}), nad_hash_i8(&(int8_t){-8}));
+    TEST_ASSERT_NOT_EQUAL_UINT64(nad_hash_i8(&(int8_t){-8}), nad_hash_i8(&(int8_t){-7}));
+
+    TEST_ASSERT_EQUAL_UINT64(nad_hash_i16(&(int16_t){-16}), nad_hash_i16(&(int16_t){-16}));
+    TEST_ASSERT_NOT_EQUAL_UINT64(nad_hash_i16(&(int16_t){-16}), nad_hash_i16(&(int16_t){-15}));
+
+    TEST_ASSERT_EQUAL_UINT64(nad_hash_u16(&(uint16_t){16}), nad_hash_u16(&(uint16_t){16}));
+    TEST_ASSERT_NOT_EQUAL_UINT64(nad_hash_u16(&(uint16_t){16}), nad_hash_u16(&(uint16_t){17}));
+
+    TEST_ASSERT_EQUAL_UINT64(nad_hash_u32(&(uint32_t){32}), nad_hash_u32(&(uint32_t){32}));
+    TEST_ASSERT_NOT_EQUAL_UINT64(nad_hash_u32(&(uint32_t){32}), nad_hash_u32(&(uint32_t){33}));
+}
+
 /* ========== quality ========== */
 
 // fmix64 leaves zero at zero, so without the seed in hash_mix_u64 every zero key lands
@@ -265,6 +281,7 @@ int main() {
     UNITY_BEGIN();
 
     RUN_TEST(test_hash_agrees_with_equality);
+    RUN_TEST(test_hash_agrees_with_equality_for_every_width);
     RUN_TEST(test_hash_folds_the_two_zeroes_together);
     RUN_TEST(test_hash_folds_every_nan_together);
 

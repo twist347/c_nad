@@ -60,6 +60,19 @@ static void expect_order(int less, int equal, int greater) {
     TEST_ASSERT_EQUAL_INT(1, greater);
 }
 
+// a descending comparator is its ascending twin with the operands the other way round
+static void expect_desc(nad_Cmp desc, const void *small, const void *big) {
+    TEST_ASSERT_EQUAL_INT(1, desc(small, big));
+    TEST_ASSERT_EQUAL_INT(-1, desc(big, small));
+    TEST_ASSERT_EQUAL_INT(0, desc(small, small));
+}
+
+// an equality answers true on the same value and false on a neighbour of it
+static void expect_eq(nad_Eq eq, const void *val, const void *same, const void *other) {
+    TEST_ASSERT_TRUE(eq(val, same));
+    TEST_ASSERT_FALSE(eq(val, other));
+}
+
 /* ========== signed ========== */
 
 static void test_cmp_signed_orders_and_normalizes() {
@@ -220,6 +233,18 @@ static void test_eq_answers_true_only_on_equal() {
     TEST_ASSERT_FALSE(eq_cstr("abc", "abd"));
 }
 
+// the ready-made equalities the cases above do not spell out, one line per type
+static void test_eq_covers_every_ready_made_type() {
+    expect_eq(nad_eq_i8, &(int8_t){-8}, &(int8_t){-8}, &(int8_t){-7});
+    expect_eq(nad_eq_i16, &(int16_t){-16}, &(int16_t){-16}, &(int16_t){-15});
+    expect_eq(nad_eq_i64, &(int64_t){-64}, &(int64_t){-64}, &(int64_t){-63});
+    expect_eq(nad_eq_u16, &(uint16_t){16}, &(uint16_t){16}, &(uint16_t){17});
+    expect_eq(nad_eq_u32, &(uint32_t){32}, &(uint32_t){32}, &(uint32_t){33});
+    expect_eq(nad_eq_u64, &(uint64_t){UINT64_MAX}, &(uint64_t){UINT64_MAX}, &(uint64_t){0});
+    expect_eq(nad_eq_ptrdiff, &(ptrdiff_t){-1}, &(ptrdiff_t){-1}, &(ptrdiff_t){1});
+    expect_eq(nad_eq_f32, &(float){1.5f}, &(float){1.5f}, &(float){2.5f});
+}
+
 /* ========== descending ========== */
 
 // the descending form is the ascending one with its operands the other way round
@@ -241,6 +266,21 @@ static void test_descending_inverts_the_ascending_one() {
     const char *q = "abd";
     TEST_ASSERT_EQUAL_INT(1, nad_cmp_desc_cstr(&p, &q));
     TEST_ASSERT_EQUAL_INT(-1, nad_cmp_desc_cstr(&q, &p));
+}
+
+// the descending twins the case above does not spell out, one line per type
+static void test_descending_covers_every_ready_made_type() {
+    expect_desc(nad_cmp_desc_i8, &(int8_t){1}, &(int8_t){2});
+    expect_desc(nad_cmp_desc_i16, &(int16_t){1}, &(int16_t){2});
+    expect_desc(nad_cmp_desc_i64, &(int64_t){1}, &(int64_t){2});
+    expect_desc(nad_cmp_desc_u8, &(uint8_t){1}, &(uint8_t){2});
+    expect_desc(nad_cmp_desc_u16, &(uint16_t){1}, &(uint16_t){2});
+    expect_desc(nad_cmp_desc_u32, &(uint32_t){1}, &(uint32_t){2});
+    expect_desc(nad_cmp_desc_u64, &(uint64_t){1}, &(uint64_t){2});
+    expect_desc(nad_cmp_desc_size, &(size_t){1}, &(size_t){2});
+    expect_desc(nad_cmp_desc_ptrdiff, &(ptrdiff_t){-1}, &(ptrdiff_t){1});
+    expect_desc(nad_cmp_desc_char, &(char){'a'}, &(char){'b'});
+    expect_desc(nad_cmp_desc_f32, &(float){1.5f}, &(float){2.5f});
 }
 
 /* ========== through the algorithms ========== */
@@ -307,8 +347,10 @@ int main() {
     RUN_TEST(test_cmp_cstr_treats_a_prefix_as_smaller);
 
     RUN_TEST(test_eq_answers_true_only_on_equal);
+    RUN_TEST(test_eq_covers_every_ready_made_type);
 
     RUN_TEST(test_descending_inverts_the_ascending_one);
+    RUN_TEST(test_descending_covers_every_ready_made_type);
 
     RUN_TEST(test_comparators_drive_sort_both_ways);
     RUN_TEST(test_cstr_comparator_drives_sort);

@@ -4,6 +4,7 @@
 #include "nad/algo/sort.h"
 #include "nad/alloc/arena.h"
 #include "nad/alloc/default.h"
+#include "nad/core/print.h"
 #include "nad/ds/vec.h"
 
 #include "support/arena.h"
@@ -855,6 +856,54 @@ static void test_into_vec_releases_the_header_alone() {
     TEST_ASSERT_EQUAL_size_t(0, probe.live);
 }
 
+/* ========== print ========== */
+
+// a printer writes to a stream, so a case has to read one back. tmpfile is the portable
+// way, the same one test/core/test_print.c takes
+static void assert_prints(const char *expected, const nad_PQueue *q) {
+    FILE *stream = tmpfile();
+    TEST_ASSERT_NOT_NULL(stream);
+
+    nad_pqueue_fprint(q, stream, nad_fprint_i32);
+    rewind(stream);
+
+    char buf[128];
+    const size_t n = fread(buf, 1, sizeof buf - 1, stream);
+    buf[n] = '\0';
+    fclose(stream);
+
+    TEST_ASSERT_EQUAL_STRING(expected, buf);
+}
+
+static void test_fprint_writes_the_elem() {
+    nad_PQueue *q = nullptr;
+    NAD_TEST_OK(NAD_PQUEUE_OF(int32_t, nad_cmp_i32, nad_al_default(), &q, 7));
+
+    assert_prints("[7]\n", q);
+
+    nad_pqueue_drop(q);
+}
+
+// with more than one elem the order is the heap's, which the header calls unspecified —
+// so a case may say what is printed only where there is nothing to order
+static void test_fprint_of_an_empty_pqueue() {
+    nad_PQueue *q = make_queue(nullptr, 0);
+
+    assert_prints("[]\n", q);
+
+    nad_pqueue_drop(q);
+}
+
+// the stdout twin takes no stream, and C has no portable way to capture one and give it
+// back — so a case can only say that it runs and reaches the same printer
+static void test_print_writes_to_stdout() {
+    nad_PQueue *q = make_queue((constexpr int32_t[]){1, 2, 3}, 3);
+
+    nad_pqueue_print(q, nad_fprint_i32);
+
+    nad_pqueue_drop(q);
+}
+
 int main() {
     UNITY_BEGIN();
 
@@ -916,6 +965,10 @@ int main() {
     RUN_TEST(test_into_vec_then_sort_heap);
     RUN_TEST(test_into_vec_of_an_empty_queue);
     RUN_TEST(test_into_vec_releases_the_header_alone);
+
+    RUN_TEST(test_fprint_writes_the_elem);
+    RUN_TEST(test_fprint_of_an_empty_pqueue);
+    RUN_TEST(test_print_writes_to_stdout);
 
     return UNITY_END();
 }
