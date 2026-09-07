@@ -7,6 +7,7 @@
 #include "nad/core/export.h"
 #include "nad/core/hash.h"
 #include "nad/core/print.h"
+#include "nad/core/rng.h"
 #include "nad/core/span.h"
 #include "nad/core/status.h"
 #include "nad/core/util.h"

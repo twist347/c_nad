@@ -1,5 +1,7 @@
 #include "nad/algo/permute.h"
 #include "nad/algo/search.h"
+#include "nad/algo/sort.h"
+#include "nad/core/rng.h"
 #include "nad/alloc/default.h"
 #include "nad/core/util.h"
 
@@ -7,7 +9,7 @@
 #include "support/probe.h"
 #include "support/status.h"
 
-#include "unity.h"
+#include <unity.h>
 
 #include <stdint.h>
 #include <string.h>
@@ -433,7 +435,7 @@ static void test_partition_stable_keeps_the_order_on_both_sides() {
 
     size_t boundary = 999;
     NAD_TEST_OK(nad_span_partition_stable(NAD_SPAN_NEW_MUT(int32_t, buf, 6), is_even, nullptr,
-                                          nad_al_default(), &boundary));
+        nad_al_default(), &boundary));
 
     constexpr int32_t want[6] = {2, 4, 6, 1, 3, 5};
     TEST_ASSERT_EQUAL_size_t(3, boundary);
@@ -448,7 +450,7 @@ static void test_partition_stable_agrees_with_partition_on_the_boundary() {
 
     size_t stable = 999;
     NAD_TEST_OK(nad_span_partition_stable(NAD_SPAN_NEW_MUT(int32_t, stable_buf, 7), is_even,
-                                          nullptr, nad_al_default(), &stable));
+        nullptr, nad_al_default(), &stable));
 
     const size_t plain = nad_span_partition(NAD_SPAN_NEW_MUT(int32_t, plain_buf, 7), is_even, nullptr);
 
@@ -463,8 +465,8 @@ static void test_partition_stable_keeps_equal_elems_in_order() {
 
     size_t boundary = 999;
     NAD_TEST_OK(nad_span_partition_stable(NAD_SPAN_NEW_MUT(Pair, buf, 6),
-                                          nad_test_pair_a_is_positive, nullptr,
-                                          nad_al_default(), &boundary));
+        nad_test_pair_a_is_positive, nullptr,
+        nad_al_default(), &boundary));
 
     TEST_ASSERT_EQUAL_size_t(3, boundary);
     constexpr int64_t want_tags[6] = {0, 2, 5, 1, 3, 4};
@@ -479,7 +481,7 @@ static void test_partition_stable_leaves_a_partitioned_span_alone() {
 
     size_t boundary = 999;
     NAD_TEST_OK(nad_span_partition_stable(NAD_SPAN_NEW_MUT(int32_t, buf, 5), is_even, nullptr,
-                                          nad_al_default(), &boundary));
+        nad_al_default(), &boundary));
 
     constexpr int32_t want[5] = {2, 4, 1, 3, 5};
     TEST_ASSERT_EQUAL_size_t(2, boundary);
@@ -492,12 +494,12 @@ static void test_partition_stable_at_the_ends() {
 
     size_t boundary = 999;
     NAD_TEST_OK(nad_span_partition_stable(NAD_SPAN_NEW_MUT(int32_t, all, 3), is_even, nullptr,
-                                          nad_al_default(), &boundary));
+        nad_al_default(), &boundary));
     TEST_ASSERT_EQUAL_size_t(3, boundary);
     TEST_ASSERT_EQUAL_INT32_ARRAY(((int32_t[]){2, 4, 6}), all, 3);
 
     NAD_TEST_OK(nad_span_partition_stable(NAD_SPAN_NEW_MUT(int32_t, none, 3), is_even, nullptr,
-                                          nad_al_default(), &boundary));
+        nad_al_default(), &boundary));
     TEST_ASSERT_EQUAL_size_t(0, boundary);
     TEST_ASSERT_EQUAL_INT32_ARRAY(((int32_t[]){1, 3, 5}), none, 3);
 }
@@ -520,7 +522,7 @@ static void test_partition_stable_passes_the_ctx_through() {
 
     size_t boundary = 999;
     NAD_TEST_OK(nad_span_partition_stable(NAD_SPAN_NEW_MUT(int32_t, buf, 5), greater_than,
-                                          (void *) &bound, nad_al_default(), &boundary));
+        (void *) &bound, nad_al_default(), &boundary));
 
     constexpr int32_t want[5] = {5, 4, 3, 1, 2};
     TEST_ASSERT_EQUAL_size_t(3, boundary);
@@ -534,7 +536,7 @@ static void test_partition_stable_of_a_subspan_leaves_the_neighbours_alone() {
 
     size_t boundary = 999;
     NAD_TEST_OK(nad_span_partition_stable(nad_span_sub_mut(s, 1, 4), is_even, nullptr,
-                                          nad_al_default(), &boundary));
+        nad_al_default(), &boundary));
 
     constexpr int32_t want[6] = {9, 2, 4, 1, 3, 9};
     TEST_ASSERT_EQUAL_size_t(2, boundary);
@@ -549,7 +551,7 @@ static void test_partition_stable_asks_the_pred_once_per_elem() {
     size_t asked = 0;
     size_t boundary = 999;
     NAD_TEST_OK(nad_span_partition_stable(NAD_SPAN_NEW_MUT(int32_t, buf, 6), is_even_counting,
-                                          &asked, nad_al_default(), &boundary));
+        &asked, nad_al_default(), &boundary));
 
     TEST_ASSERT_EQUAL_size_t(6, asked);
 }
@@ -564,7 +566,7 @@ static void test_partition_stable_releases_its_scratch() {
 
     size_t boundary = 999;
     NAD_TEST_OK(nad_span_partition_stable(NAD_SPAN_NEW_MUT(int32_t, buf, 4), is_even, nullptr,
-                                          &al, &boundary));
+        &al, &boundary));
 
     TEST_ASSERT_EQUAL_size_t(1, probe.alloc_calls);
     TEST_ASSERT_EQUAL_size_t(1, probe.dealloc_calls);
@@ -603,7 +605,7 @@ static void test_partition_stable_of_an_empty_span_asks_for_nothing() {
 
     size_t boundary = 999;
     NAD_TEST_OK(nad_span_partition_stable(NAD_SPAN_NEW_MUT(int32_t, nullptr, 0), is_even,
-                                          nullptr, &al, &boundary));
+        nullptr, &al, &boundary));
 
     TEST_ASSERT_EQUAL_size_t(0, boundary);
     TEST_ASSERT_EQUAL_size_t(0, nad_test_probe_requests(&probe));
@@ -626,6 +628,134 @@ static void test_is_partitioned_on_uniform_and_empty_spans() {
     TEST_ASSERT_TRUE(nad_span_is_partitioned(NAD_SPAN_NEW(int32_t, all, 3), is_even, nullptr));
     TEST_ASSERT_TRUE(nad_span_is_partitioned(NAD_SPAN_NEW(int32_t, none, 3), is_even, nullptr));
     TEST_ASSERT_TRUE(nad_span_is_partitioned(NAD_SPAN_NEW(int32_t, nullptr, 0), is_even, nullptr));
+}
+
+
+/* ========== shuffle ========== */
+
+// the one property a shuffle must never break: it rearranges, it does not invent. Sorting
+// both and comparing is the cheapest way to say "same multiset".
+static void test_shuffle_keeps_every_elem() {
+    int32_t data[] = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
+    int32_t sorted[] = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
+
+    nad_Rng rng = nad_rng_from_seed(1);
+    nad_SpanMut s = NAD_SPAN_NEW_MUT(int32_t, data, 10);
+
+    nad_span_shuffle(s, &rng);
+    nad_span_sort(s, nad_cmp_i32);
+
+    TEST_ASSERT_EQUAL_INT32_ARRAY(sorted, data, 10);
+}
+
+static void test_shuffle_of_a_short_span_is_a_no_op() {
+    nad_Rng rng = nad_rng_from_seed(2);
+
+    int32_t one[] = {42};
+    nad_span_shuffle(NAD_SPAN_NEW_MUT(int32_t, one, 1), &rng);
+    TEST_ASSERT_EQUAL_INT32(42, one[0]);
+
+    nad_span_shuffle(NAD_SPAN_NEW_MUT(int32_t, one, 0), &rng);
+    TEST_ASSERT_EQUAL_INT32(42, one[0]);
+}
+
+// the test that catches the Fisher-Yates written wrong: drawing from the whole span each
+// step gives n^n equally likely paths over n! orders, which cannot come out flat. Over
+// three elems the six permutations have to land within a couple of percent of each other.
+static void test_shuffle_reaches_every_order_equally_often() {
+    static constexpr size_t TRIALS = 120000;
+
+    // the six orders of {0, 1, 2}, each read as a base-3 number
+    static constexpr size_t ORDERS[] = {5, 7, 11, 15, 19, 21};
+
+    nad_Rng rng = nad_rng_from_seed(3);
+    size_t seen[27] = {0};
+
+    for (size_t i = 0; i < TRIALS; ++i) {
+        int32_t data[] = {0, 1, 2};
+        nad_span_shuffle(NAD_SPAN_NEW_MUT(int32_t, data, 3), &rng);
+
+        ++seen[(size_t) (data[0] * 9 + data[1] * 3 + data[2])];
+    }
+
+    const double expected = (double) TRIALS / 6.0;
+    for (size_t i = 0; i < 6; ++i) {
+        TEST_ASSERT_DOUBLE_WITHIN(expected * 0.04, expected, (double) seen[ORDERS[i]]);
+        seen[ORDERS[i]] = 0;
+    }
+
+    // and nothing that is not a permutation ever came out
+    for (size_t i = 0; i < 27; ++i) {
+        TEST_ASSERT_EQUAL_size_t(0, seen[i]);
+    }
+}
+
+static void test_shuffle_replays_the_same_seed() {
+    int32_t a[] = {1, 2, 3, 4, 5, 6, 7, 8};
+    int32_t b[] = {1, 2, 3, 4, 5, 6, 7, 8};
+
+    nad_Rng one = nad_rng_from_seed(4);
+    nad_Rng two = nad_rng_from_seed(4);
+
+    nad_span_shuffle(NAD_SPAN_NEW_MUT(int32_t, a, 8), &one);
+    nad_span_shuffle(NAD_SPAN_NEW_MUT(int32_t, b, 8), &two);
+
+    TEST_ASSERT_EQUAL_INT32_ARRAY(a, b, 8);
+}
+
+static void test_shuffle_moves_whole_elems() {
+    Pair data[] = {{1, 100}, {2, 200}, {3, 300}, {4, 400}, {5, 500}};
+
+    nad_Rng rng = nad_rng_from_seed(5);
+    nad_span_shuffle(NAD_SPAN_NEW_MUT(Pair, data, 5), &rng);
+
+    // whatever order they came out in, no elem was torn in half
+    for (size_t i = 0; i < 5; ++i) {
+        TEST_ASSERT_EQUAL_INT64(data[i].a * 100, data[i].b);
+    }
+}
+
+static void test_shuffle_prefix_keeps_every_elem() {
+    int32_t data[] = {1, 2, 3, 4, 5, 6, 7, 8};
+    int32_t sorted[] = {1, 2, 3, 4, 5, 6, 7, 8};
+
+    nad_Rng rng = nad_rng_from_seed(6);
+    nad_SpanMut s = NAD_SPAN_NEW_MUT(int32_t, data, 8);
+
+    nad_span_shuffle_prefix(s, 3, &rng);
+    nad_span_sort(s, nad_cmp_i32);
+
+    TEST_ASSERT_EQUAL_INT32_ARRAY(sorted, data, 8);
+}
+
+static void test_shuffle_prefix_of_nothing_leaves_the_span_alone() {
+    int32_t data[] = {1, 2, 3, 4};
+
+    nad_Rng rng = nad_rng_from_seed(7);
+    nad_span_shuffle_prefix(NAD_SPAN_NEW_MUT(int32_t, data, 4), 0, &rng);
+
+    static constexpr int32_t untouched[] = {1, 2, 3, 4};
+    TEST_ASSERT_EQUAL_INT32_ARRAY(untouched, data, 4);
+}
+
+// what the prefix is for: it has to be a uniform sample of the whole span, not of the
+// front of it
+static void test_shuffle_prefix_draws_from_the_whole_span() {
+    static constexpr size_t TRIALS = 100000;
+
+    nad_Rng rng = nad_rng_from_seed(8);
+    size_t seen[5] = {0};
+
+    for (size_t i = 0; i < TRIALS; ++i) {
+        int32_t data[] = {0, 1, 2, 3, 4};
+        nad_span_shuffle_prefix(NAD_SPAN_NEW_MUT(int32_t, data, 5), 1, &rng);
+        ++seen[(size_t) data[0]];
+    }
+
+    const double expected = (double) TRIALS / 5.0;
+    for (size_t i = 0; i < 5; ++i) {
+        TEST_ASSERT_DOUBLE_WITHIN(expected * 0.04, expected, (double) seen[i]);
+    }
 }
 
 int main() {
@@ -682,6 +812,15 @@ int main() {
 
     RUN_TEST(test_is_partitioned_accepts_a_split_span);
     RUN_TEST(test_is_partitioned_on_uniform_and_empty_spans);
+
+    RUN_TEST(test_shuffle_keeps_every_elem);
+    RUN_TEST(test_shuffle_of_a_short_span_is_a_no_op);
+    RUN_TEST(test_shuffle_reaches_every_order_equally_often);
+    RUN_TEST(test_shuffle_replays_the_same_seed);
+    RUN_TEST(test_shuffle_moves_whole_elems);
+    RUN_TEST(test_shuffle_prefix_keeps_every_elem);
+    RUN_TEST(test_shuffle_prefix_of_nothing_leaves_the_span_alone);
+    RUN_TEST(test_shuffle_prefix_draws_from_the_whole_span);
 
     return UNITY_END();
 }

@@ -4,6 +4,7 @@
 #include "nad/alloc/alloc.h"
 #include "nad/core/export.h"
 #include "nad/core/cmp.h"
+#include "nad/core/rng.h"
 #include "nad/core/span.h"
 #include "nad/core/status.h"
 
@@ -16,11 +17,13 @@
 /// @brief rearranging a span without changing what it holds
 ///
 /// All in place and allocating nothing — except the one that keeps an order, which says
-/// so by taking an allocator and returning a nad_Status.
+/// so by taking an allocator and returning a nad_Status. The two that draw an order
+/// rather than compute it say so by taking a nad_Rng.
 ///
 /// @par Example
 /// @snippet algo/example_permute.c pred
 /// @snippet algo/example_permute.c move
+/// @snippet algo/example_permute.c shuffle
 /// @snippet algo/example_permute.c partition
 /// @{
 
@@ -68,6 +71,28 @@ bool nad_span_next_permutation(nad_SpanMut s, nad_Cmp cmp);
 /// @bigo{n}
 [[nodiscard]] NAD_API
 bool nad_span_prev_permutation(nad_SpanMut s, nad_Cmp cmp);
+
+/// @}
+
+/// @name shuffle
+/// @{
+
+/// rearranges into an order drawn from 'rng'
+/// @param s the span
+/// @param rng where the order comes from; the same seed replays the same shuffle
+/// @bigo{n} — Fisher-Yates: each position draws from the elems not placed yet, which is
+///            what makes all n! orders equally likely
+NAD_API
+void nad_span_shuffle(nad_SpanMut s, nad_Rng *rng);
+
+/// shuffles only far enough to settle the first 'count' positions
+/// @param s the span; every elem may move, not just the first 'count'
+/// @param count how many positions to settle; asserts count <= s.len
+/// @param rng where the order comes from
+/// @bigo{count} — the same walk stopped early, so the prefix is a uniform sample of the
+///                whole span and the rest holds what is left, in no promised order
+NAD_API
+void nad_span_shuffle_prefix(nad_SpanMut s, size_t count, nad_Rng *rng);
 
 /// @}
 

@@ -2,7 +2,7 @@
 #include "nad/alloc/arena.h"
 #include "nad/alloc/default.h"
 
-#include "unity.h"
+#include <unity.h>
 
 #include <stdint.h>
 #include <stdlib.h>

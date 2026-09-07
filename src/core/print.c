@@ -80,3 +80,5 @@ void nad_fprint_cstr(FILE *stream, const void *val) {
 
     fprintf(stream, "\"%s\"", str);
 }
+
+#undef DEFINE_FPRINT

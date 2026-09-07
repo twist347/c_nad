@@ -3,6 +3,7 @@
 #include "nad/algo/permute.h"
 #include "nad/alloc/default.h"
 #include "nad/core/print.h"
+#include "nad/core/rng.h"
 #include "nad/core/span.h"
 #include "nad/core/util.h"
 
@@ -29,6 +30,20 @@ int main() {
     nad_span_rotate(s, 2);
     nad_span_mut_print(s, nad_fprint_i32); // [3, 2, 1, 5, 4]
     /// [move]
+
+    /// [shuffle]
+    // the order comes from a generator, so the same seed replays the same shuffle
+    nad_Rng rng = nad_rng_from_seed(2026);
+    const nad_SpanMut deck = NAD_SPAN_OF_MUT(int32_t, 1, 2, 3, 4, 5, 6, 7, 8);
+
+    nad_span_shuffle(deck, &rng);
+    nad_span_mut_print(deck, nad_fprint_i32); // [8, 2, 3, 1, 6, 7, 5, 4]
+
+    // dealing a hand: only the first three positions are settled, and they are a uniform
+    // sample of the whole span rather than of its front
+    nad_span_shuffle_prefix(deck, 3, &rng);
+    nad_span_mut_print(nad_span_sub_mut(deck, 0, 3), nad_fprint_i32); // [4, 5, 6]
+    /// [shuffle]
 
     /// [partition]
     const nad_SpanMut t = NAD_SPAN_OF_MUT(int32_t, 1, 2, 3, 4, 5, 6);

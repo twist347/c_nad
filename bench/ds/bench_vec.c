@@ -5,7 +5,7 @@
 #include "nad/alloc/default.h"
 #include "nad/ds/vec.h"
 
-#include "ubench.h"
+#include <ubench.h>
 
 #include <stdint.h>
 

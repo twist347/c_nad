@@ -54,6 +54,7 @@ set(NAD_CORE_SOURCES
         src/core/cmp.c
         src/core/hash.c
         src/core/print.c
+        src/core/rng.c
         src/core/span.c
         src/core/status.c
 )

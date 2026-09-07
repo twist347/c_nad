@@ -11,7 +11,7 @@
 #include "support/probe.h"
 #include "support/status.h"
 
-#include "unity.h"
+#include <unity.h>
 
 #include <stddef.h>
 #include <stdint.h>

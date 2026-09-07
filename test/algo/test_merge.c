@@ -4,7 +4,7 @@
 
 #include "support/probe.h"
 
-#include "unity.h"
+#include <unity.h>
 
 #include <stdint.h>
 #include <stdlib.h>

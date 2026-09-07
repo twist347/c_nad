@@ -71,6 +71,7 @@ uses stays the better habit.
 | `span.h` | `nad_Span` / `nad_SpanMut`, a non-owning view over contiguous elems |
 | `cmp.h` | `nad_Cmp` and `nad_Eq`, plus ready-made ones for the built-in types |
 | `hash.h` | `nad_Hasher`, `nad_Hash`, hashers for the built-in types and `nad_hash_combine` |
+| `rng.h` | `nad_Rng` — a seeded generator, and uniform ints, floats and bools drawn from one |
 | `print.h` | `nad_FPrint`, the printer a container is handed to show itself, plus ready-made ones for the built-in types |
 | `util.h` | `NAD_SWAP`, `NAD_UNUSED`, `NAD_STRINGIFY` |
 | `export.h` | `NAD_API` and the visibility it carries |
@@ -94,7 +95,7 @@ uses stays the better habit.
 | `search.h` | find and its kin, count, the all_of/any_of/none_of trio, min_elem and max_elem, and the binary family over a sorted span |
 | `sort.h` | sort and sort_stable, insertion_sort, partial_sort, nth_elem and the is_sorted checks |
 | `heap.h` | make_heap, push_heap, pop_heap, sort_heap and the is_heap checks |
-| `permute.h` | reverse, rotate, swap_ranges, the partition family and stepping through permutations |
+| `permute.h` | reverse, rotate, swap_ranges, shuffle and shuffle_prefix, the partition family and stepping through permutations |
 | `modify.h` | remove, remove_if and unique, which return the new length; replace and replace_if, which write in place |
 | `copy.h` | copy, copy_if, copy_within |
 | `fill.h` | fill, fill_zero, generate |

@@ -171,6 +171,30 @@ bool nad_span_is_partitioned(nad_Span s, nad_Pred pred, void *ctx) {
     return i == s.len;
 }
 
+void nad_span_shuffle(nad_SpanMut s, nad_Rng *rng) {
+    NAD_SPAN_ASSERT(s);
+    assert(rng);
+
+    // walking down: each step settles position i - 1 by drawing from [0, i), the elems
+    // not placed yet. Drawing from the whole span every step instead is the classic bug
+    // — it looks the same and skews the result.
+    for (size_t i = s.len; i > 1; --i) {
+        nad_span_swap_elems(s, i - 1, nad_rng_idx(rng, i));
+    }
+}
+
+void nad_span_shuffle_prefix(nad_SpanMut s, size_t count, nad_Rng *rng) {
+    NAD_SPAN_ASSERT(s);
+    assert(count <= s.len);
+    assert(rng);
+
+    // the same walk from the other end, so stopping early leaves the settled positions
+    // at the front rather than the back
+    for (size_t i = 0; i < count; ++i) {
+        nad_span_swap_elems(s, i, i + nad_rng_idx(rng, s.len - i));
+    }
+}
+
 /* ========== internals ========== */
 
 static bool permute_step(nad_SpanMut s, nad_Cmp cmp, bool asc) {

@@ -2,7 +2,7 @@
 
 #include "support/status.h"
 
-#include "unity.h"
+#include <unity.h>
 
 #include <stdint.h>
 
