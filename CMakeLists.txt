@@ -23,7 +23,7 @@ option(NAD_BUILD_BENCH "Build the benchmarks" OFF)
 
 set(NAD_WARNINGS
         $<$<C_COMPILER_ID:GNU,Clang,AppleClang>:-Wall;-Wextra;-Wpedantic>
-        $<$<C_COMPILER_ID:MSVC>:/W4>
+        $<$<C_COMPILER_ID:MSVC>:/W4> #unused for now
 )
 
 set(NAD_ALGO_SOURCES
@@ -110,7 +110,6 @@ set_target_properties(nadc PROPERTIES
         POSITION_INDEPENDENT_CODE ON
         C_EXTENSIONS OFF
         C_VISIBILITY_PRESET hidden
-        VISIBILITY_INLINES_HIDDEN ON
 )
 
 include(CheckIPOSupported)

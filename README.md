@@ -143,9 +143,9 @@ doxygen docs/Doxyfile   # -> build-docs/html/index.html
 
 ## Use it in a project
 
-There is no `install` step yet, so nadc is consumed as a source dependency. Either way the
-target to link is the alias `nadc::nadc`, which carries the include path and the C23
-requirement with it.
+nadc is consumed as a source dependency; there is no `install` step and none is planned.
+Either way the target to link is the alias `nadc::nadc`, which carries
+the include path and the C23 requirement with it.
 
 With `FetchContent`:
 
