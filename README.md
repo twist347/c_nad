@@ -1,6 +1,6 @@
 # tda — taut data structures and algorithms in C23
 
-[![CI](https://github.com/twist347/c_tda/actions/workflows/ci.yml/badge.svg)](https://github.com/twist347/c_tda/actions/workflows/ci.yml)
+[![CI](https://github.com/twist347/tda/actions/workflows/ci.yml/badge.svg)](https://github.com/twist347/tda/actions/workflows/ci.yml)
 
 Classic containers and algorithms, written plainly. No dependencies.
 
@@ -156,7 +156,7 @@ With `FetchContent`:
 ```cmake
 include(FetchContent)
 FetchContent_Declare(tda
-    GIT_REPOSITORY https://github.com/twist347/c_tda.git
+    GIT_REPOSITORY https://github.com/twist347/tda.git
     GIT_TAG main
 )
 FetchContent_MakeAvailable(tda)
@@ -167,7 +167,7 @@ target_link_libraries(app PRIVATE tda::tda)
 As a submodule:
 
 ```sh
-git submodule add https://github.com/twist347/c_tda.git \
+git submodule add https://github.com/twist347/tda.git \
     thirdparty/tda
 ```
 
@@ -179,7 +179,7 @@ target_link_libraries(app PRIVATE tda::tda)
 
 ## License
 
-MIT — see [LICENSE](https://github.com/twist347/c_tda/blob/main/LICENSE).
+MIT — see [LICENSE](https://github.com/twist347/tda/blob/main/LICENSE).
 
 `thirdparty/Unity-2.7.0` is Unity, the test framework, vendored as is. It is third-party
 code under its own MIT license; its copyright notice lives in
