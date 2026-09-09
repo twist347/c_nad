@@ -1,8 +1,8 @@
 cmake_minimum_required(VERSION 3.22)
 
-project(tda
+project(terse-ds
         VERSION 0.1.0
-        DESCRIPTION "Taut data structures and algorithms in C23"
+        DESCRIPTION "Terse data structures and algorithms in C23"
         LANGUAGES C
 )
 
@@ -14,19 +14,19 @@ if (PROJECT_IS_TOP_LEVEL)
     set(CMAKE_C_EXTENSIONS OFF)
 endif ()
 
-set(TDA_C_STANDARD 23)
+set(TRS_C_STANDARD 23)
 
-option(TDA_BUILD_SHARED "Build tda as a shared library" ${PROJECT_IS_TOP_LEVEL})
-option(TDA_BUILD_TEST "Build unit tests" ${PROJECT_IS_TOP_LEVEL})
-option(TDA_BUILD_EXAMPLE "Build the examples the reference quotes" ${PROJECT_IS_TOP_LEVEL})
-option(TDA_BUILD_BENCH "Build the benchmarks" OFF)
+option(TRS_BUILD_SHARED "Build trs_ds as a shared library" ${PROJECT_IS_TOP_LEVEL})
+option(TRS_BUILD_TEST "Build unit tests" ${PROJECT_IS_TOP_LEVEL})
+option(TRS_BUILD_EXAMPLE "Build the examples the reference quotes" ${PROJECT_IS_TOP_LEVEL})
+option(TRS_BUILD_BENCH "Build the benchmarks" OFF)
 
-set(TDA_WARNINGS
+set(TRS_WARNINGS
         $<$<C_COMPILER_ID:GNU,Clang,AppleClang>:-Wall;-Wextra;-Wpedantic>
         $<$<C_COMPILER_ID:MSVC>:/W4> #unused for now
 )
 
-set(TDA_ALGO_SOURCES
+set(TRS_ALGO_SOURCES
         src/algo/compare.c
         src/algo/copy.c
         src/algo/fill.c
@@ -41,7 +41,7 @@ set(TDA_ALGO_SOURCES
         src/algo/transform.c
 )
 
-set(TDA_ALLOC_SOURCES
+set(TRS_ALLOC_SOURCES
         src/alloc/aligned.c
         src/alloc/alloc.c
         src/alloc/arena.c
@@ -50,7 +50,7 @@ set(TDA_ALLOC_SOURCES
         src/alloc/pool.c
 )
 
-set(TDA_CORE_SOURCES
+set(TRS_CORE_SOURCES
         src/core/cmp.c
         src/core/hash.c
         src/core/print.c
@@ -59,7 +59,7 @@ set(TDA_CORE_SOURCES
         src/core/status.c
 )
 
-set(TDA_DS_SOURCES
+set(TRS_DS_SOURCES
         src/ds/arr.c
         src/ds/bitset.c
         src/ds/deque.c
@@ -72,39 +72,39 @@ set(TDA_DS_SOURCES
         src/ds/vec.c
 )
 
-set(TDA_SOURCES
-        ${TDA_ALGO_SOURCES}
-        ${TDA_ALLOC_SOURCES}
-        ${TDA_CORE_SOURCES}
-        ${TDA_DS_SOURCES}
+set(TRS_SOURCES
+        ${TRS_ALGO_SOURCES}
+        ${TRS_ALLOC_SOURCES}
+        ${TRS_CORE_SOURCES}
+        ${TRS_DS_SOURCES}
 )
 
-if (TDA_BUILD_SHARED)
-    set(TDA_LIBRARY_TYPE SHARED)
+if (TRS_BUILD_SHARED)
+    set(TRS_LIBRARY_TYPE SHARED)
 else ()
-    set(TDA_LIBRARY_TYPE STATIC)
+    set(TRS_LIBRARY_TYPE STATIC)
 endif ()
 
-add_library(tda ${TDA_LIBRARY_TYPE} ${TDA_SOURCES})
-add_library(tda::tda ALIAS tda)
+add_library(trs_ds ${TRS_LIBRARY_TYPE} ${TRS_SOURCES})
+add_library(trs::ds ALIAS trs_ds)
 
-target_include_directories(tda
+target_include_directories(trs_ds
         PUBLIC $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
         PRIVATE ${PROJECT_SOURCE_DIR}/src
 )
-target_compile_features(tda PUBLIC c_std_${TDA_C_STANDARD})
-target_compile_options(tda PRIVATE ${TDA_WARNINGS})
+target_compile_features(trs_ds PUBLIC c_std_${TRS_C_STANDARD})
+target_compile_options(trs_ds PRIVATE ${TRS_WARNINGS})
 
 if (UNIX)
-    target_link_libraries(tda PUBLIC m)
+    target_link_libraries(trs_ds PUBLIC m)
 endif ()
 
-target_compile_definitions(tda
-        PRIVATE TDA_BUILD
-        PUBLIC $<$<NOT:$<BOOL:${TDA_BUILD_SHARED}>>:TDA_STATIC>
+target_compile_definitions(trs_ds
+        PRIVATE TRS_BUILD
+        PUBLIC $<$<NOT:$<BOOL:${TRS_BUILD_SHARED}>>:TRS_STATIC>
 )
 
-set_target_properties(tda PROPERTIES
+set_target_properties(trs_ds PROPERTIES
         VERSION ${PROJECT_VERSION}
         SOVERSION ${PROJECT_VERSION_MAJOR}
         POSITION_INDEPENDENT_CODE ON
@@ -113,21 +113,21 @@ set_target_properties(tda PROPERTIES
 )
 
 include(CheckIPOSupported)
-check_ipo_supported(RESULT TDA_IPO_SUPPORTED OUTPUT TDA_IPO_ERROR)
-if (TDA_IPO_SUPPORTED)
-    set_target_properties(tda PROPERTIES
+check_ipo_supported(RESULT TRS_IPO_SUPPORTED OUTPUT TRS_IPO_ERROR)
+if (TRS_IPO_SUPPORTED)
+    set_target_properties(trs_ds PROPERTIES
             INTERPROCEDURAL_OPTIMIZATION_RELEASE ON
             INTERPROCEDURAL_OPTIMIZATION_RELWITHDEBINFO ON
     )
 else ()
-    message(STATUS "  LTO unavailable : ${TDA_IPO_ERROR}")
+    message(STATUS "  LTO unavailable : ${TRS_IPO_ERROR}")
 endif ()
 
-if (TDA_BUILD_TEST OR TDA_BUILD_EXAMPLE)
+if (TRS_BUILD_TEST OR TRS_BUILD_EXAMPLE)
     enable_testing()
 endif ()
 
-if (TDA_BUILD_TEST)
+if (TRS_BUILD_TEST)
     set(UNITY_DIR ${PROJECT_SOURCE_DIR}/thirdparty/Unity-2.7.0)
     add_subdirectory(${UNITY_DIR} EXCLUDE_FROM_ALL)
     target_compile_definitions(unity PUBLIC UNITY_INCLUDE_DOUBLE UNITY_INCLUDE_FLOAT)
@@ -135,25 +135,25 @@ if (TDA_BUILD_TEST)
     add_subdirectory(test)
 endif ()
 
-if (TDA_BUILD_EXAMPLE)
+if (TRS_BUILD_EXAMPLE)
     add_subdirectory(example)
 endif ()
 
-if (TDA_BUILD_BENCH)
+if (TRS_BUILD_BENCH)
     add_subdirectory(bench)
 endif ()
 
 if (PROJECT_IS_TOP_LEVEL)
-    string(TOLOWER ${TDA_LIBRARY_TYPE} TDA_LIBRARY_TYPE_LOWER)
+    string(TOLOWER ${TRS_LIBRARY_TYPE} TRS_LIBRARY_TYPE_LOWER)
     message(STATUS "")
-    message(STATUS "tda configuration:")
+    message(STATUS "terse-ds configuration:")
     message(STATUS "  version        : ${PROJECT_VERSION}")
     message(STATUS "  build type     : ${CMAKE_BUILD_TYPE}")
-    message(STATUS "  library        : ${TDA_LIBRARY_TYPE_LOWER}")
+    message(STATUS "  library        : ${TRS_LIBRARY_TYPE_LOWER}")
     message(STATUS "  compiler       : ${CMAKE_C_COMPILER_ID} ${CMAKE_C_COMPILER_VERSION}")
-    message(STATUS "  C standard     : C${TDA_C_STANDARD}")
-    message(STATUS "  tests          : ${TDA_BUILD_TEST}")
-    message(STATUS "  examples       : ${TDA_BUILD_EXAMPLE}")
-    message(STATUS "  benchmarks     : ${TDA_BUILD_BENCH}")
+    message(STATUS "  C standard     : C${TRS_C_STANDARD}")
+    message(STATUS "  tests          : ${TRS_BUILD_TEST}")
+    message(STATUS "  examples       : ${TRS_BUILD_EXAMPLE}")
+    message(STATUS "  benchmarks     : ${TRS_BUILD_BENCH}")
     message(STATUS "")
 endif ()

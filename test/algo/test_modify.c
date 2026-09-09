@@ -1,6 +1,6 @@
-#include "tda/algo/modify.h"
-#include "tda/algo/sort.h"
-#include "tda/core/util.h"
+#include "terse/algo/modify.h"
+#include "terse/algo/sort.h"
+#include "terse/core/util.h"
 
 #include "support/pair.h"
 
@@ -15,7 +15,7 @@ void tearDown() {
 }
 
 static bool is_even(const void *elem, void *ctx) {
-    TDA_UNUSED(ctx);
+    TRS_UNUSED(ctx);
 
     return *(const int32_t *) elem % 2 == 0;
 }
@@ -32,7 +32,7 @@ static bool eq_abs_i32(const void *a, const void *b) {
     const int32_t ax = x < 0 ? -x : x;
     const int32_t ay = y < 0 ? -y : y;
 
-    return tda_eq_i32(&ax, &ay);
+    return trs_eq_i32(&ax, &ay);
 }
 
 // "within one" is deliberately NOT transitive: 1~2 and 2~3, but 1 !~ 3.
@@ -51,7 +51,7 @@ static bool eq_within_one(const void *a, const void *b) {
 static void test_unique_collapses_runs() {
     int32_t buf[7] = {1, 1, 2, 3, 3, 3, 4};
 
-    const size_t n = tda_span_unique(TDA_SPAN_FROM_DATA_MUT(int32_t, buf, 7), tda_eq_i32);
+    const size_t n = trs_span_unique(TRS_SPAN_FROM_DATA_MUT(int32_t, buf, 7), trs_eq_i32);
 
     TEST_ASSERT_EQUAL_size_t(4, n);
     constexpr int32_t want[4] = {1, 2, 3, 4};
@@ -62,7 +62,7 @@ static void test_unique_collapses_runs() {
 static void test_unique_keeps_non_adjacent_repeats() {
     int32_t buf[4] = {1, 1, 2, 1};
 
-    const size_t n = tda_span_unique(TDA_SPAN_FROM_DATA_MUT(int32_t, buf, 4), tda_eq_i32);
+    const size_t n = trs_span_unique(TRS_SPAN_FROM_DATA_MUT(int32_t, buf, 4), trs_eq_i32);
 
     TEST_ASSERT_EQUAL_size_t(3, n);
     constexpr int32_t want[3] = {1, 2, 1};
@@ -72,14 +72,14 @@ static void test_unique_keeps_non_adjacent_repeats() {
 static void test_unique_of_all_equal_keeps_one() {
     int32_t buf[4] = {7, 7, 7, 7};
 
-    TEST_ASSERT_EQUAL_size_t(1, tda_span_unique(TDA_SPAN_FROM_DATA_MUT(int32_t, buf, 4), tda_eq_i32));
+    TEST_ASSERT_EQUAL_size_t(1, trs_span_unique(TRS_SPAN_FROM_DATA_MUT(int32_t, buf, 4), trs_eq_i32));
     TEST_ASSERT_EQUAL_INT32(7, buf[0]);
 }
 
 static void test_unique_without_runs_changes_nothing() {
     int32_t buf[4] = {1, 2, 3, 4};
 
-    TEST_ASSERT_EQUAL_size_t(4, tda_span_unique(TDA_SPAN_FROM_DATA_MUT(int32_t, buf, 4), tda_eq_i32));
+    TEST_ASSERT_EQUAL_size_t(4, trs_span_unique(TRS_SPAN_FROM_DATA_MUT(int32_t, buf, 4), trs_eq_i32));
     constexpr int32_t want[4] = {1, 2, 3, 4};
     TEST_ASSERT_EQUAL_INT32_ARRAY(want, buf, 4);
 }
@@ -87,14 +87,14 @@ static void test_unique_without_runs_changes_nothing() {
 static void test_unique_of_short_spans() {
     int32_t one[1] = {5};
 
-    TEST_ASSERT_EQUAL_size_t(0, tda_span_unique(TDA_SPAN_FROM_DATA_MUT(int32_t, nullptr, 0), tda_eq_i32));
-    TEST_ASSERT_EQUAL_size_t(1, tda_span_unique(TDA_SPAN_FROM_DATA_MUT(int32_t, one, 1), tda_eq_i32));
+    TEST_ASSERT_EQUAL_size_t(0, trs_span_unique(TRS_SPAN_FROM_DATA_MUT(int32_t, nullptr, 0), trs_eq_i32));
+    TEST_ASSERT_EQUAL_size_t(1, trs_span_unique(TRS_SPAN_FROM_DATA_MUT(int32_t, one, 1), trs_eq_i32));
 }
 
 static void test_unique_honours_the_callback() {
     int32_t buf[4] = {1, -1, 2, 3};
 
-    const size_t n = tda_span_unique(TDA_SPAN_FROM_DATA_MUT(int32_t, buf, 4), eq_abs_i32);
+    const size_t n = trs_span_unique(TRS_SPAN_FROM_DATA_MUT(int32_t, buf, 4), eq_abs_i32);
 
     TEST_ASSERT_EQUAL_size_t(3, n); // 1 and -1 are equal by absolute value
     constexpr int32_t want[3] = {1, 2, 3};
@@ -107,7 +107,7 @@ static void test_unique_honours_the_callback() {
 static void test_unique_compares_against_the_last_kept_elem() {
     int32_t buf[3] = {1, 2, 3};
 
-    const size_t n = tda_span_unique(TDA_SPAN_FROM_DATA_MUT(int32_t, buf, 3), eq_within_one);
+    const size_t n = trs_span_unique(TRS_SPAN_FROM_DATA_MUT(int32_t, buf, 3), eq_within_one);
 
     TEST_ASSERT_EQUAL_size_t(2, n);
     constexpr int32_t want[2] = {1, 3};
@@ -116,10 +116,10 @@ static void test_unique_compares_against_the_last_kept_elem() {
 
 static void test_sort_then_unique_yields_a_set() {
     int32_t buf[8] = {3, 1, 2, 3, 1, 2, 1, 3};
-    const tda_SpanMut s = TDA_SPAN_FROM_DATA_MUT(int32_t, buf, 8);
+    const trs_SpanMut s = TRS_SPAN_FROM_DATA_MUT(int32_t, buf, 8);
 
-    tda_span_sort(s, tda_cmp_i32);
-    const size_t n = tda_span_unique(s, tda_eq_i32);
+    trs_span_sort(s, trs_cmp_i32);
+    const size_t n = trs_span_unique(s, trs_eq_i32);
 
     TEST_ASSERT_EQUAL_size_t(3, n);
     constexpr int32_t want[3] = {1, 2, 3};
@@ -129,7 +129,7 @@ static void test_sort_then_unique_yields_a_set() {
 static void test_unique_moves_whole_elems() {
     Pair buf[3] = {{1, 10}, {1, 20}, {2, 30}};
 
-    const size_t n = tda_span_unique(TDA_SPAN_FROM_DATA_MUT(Pair, buf, 3), tda_eq_i64);
+    const size_t n = trs_span_unique(TRS_SPAN_FROM_DATA_MUT(Pair, buf, 3), trs_eq_i64);
 
     TEST_ASSERT_EQUAL_size_t(2, n);
     TEST_ASSERT_EQUAL_INT64(1, buf[0].a);
@@ -144,7 +144,7 @@ static void test_remove_drops_every_occurrence() {
     int32_t buf[6] = {1, 9, 2, 9, 3, 9};
     constexpr int32_t key = 9;
 
-    const size_t n = tda_span_remove(TDA_SPAN_FROM_DATA_MUT(int32_t, buf, 6), &key, tda_eq_i32);
+    const size_t n = trs_span_remove(TRS_SPAN_FROM_DATA_MUT(int32_t, buf, 6), &key, trs_eq_i32);
 
     TEST_ASSERT_EQUAL_size_t(3, n);
     constexpr int32_t want[3] = {1, 2, 3};
@@ -155,7 +155,7 @@ static void test_remove_of_a_missing_key_changes_nothing() {
     int32_t buf[3] = {1, 2, 3};
     constexpr int32_t key = 9;
 
-    TEST_ASSERT_EQUAL_size_t(3, tda_span_remove(TDA_SPAN_FROM_DATA_MUT(int32_t, buf, 3), &key, tda_eq_i32));
+    TEST_ASSERT_EQUAL_size_t(3, trs_span_remove(TRS_SPAN_FROM_DATA_MUT(int32_t, buf, 3), &key, trs_eq_i32));
     constexpr int32_t want[3] = {1, 2, 3};
     TEST_ASSERT_EQUAL_INT32_ARRAY(want, buf, 3);
 }
@@ -164,19 +164,19 @@ static void test_remove_can_empty_the_span() {
     int32_t buf[3] = {9, 9, 9};
     constexpr int32_t key = 9;
 
-    TEST_ASSERT_EQUAL_size_t(0, tda_span_remove(TDA_SPAN_FROM_DATA_MUT(int32_t, buf, 3), &key, tda_eq_i32));
+    TEST_ASSERT_EQUAL_size_t(0, trs_span_remove(TRS_SPAN_FROM_DATA_MUT(int32_t, buf, 3), &key, trs_eq_i32));
 }
 
 static void test_remove_of_an_empty_span_is_zero() {
     constexpr int32_t key = 1;
 
-    TEST_ASSERT_EQUAL_size_t(0, tda_span_remove(TDA_SPAN_FROM_DATA_MUT(int32_t, nullptr, 0), &key, tda_eq_i32));
+    TEST_ASSERT_EQUAL_size_t(0, trs_span_remove(TRS_SPAN_FROM_DATA_MUT(int32_t, nullptr, 0), &key, trs_eq_i32));
 }
 
 static void test_remove_if_drops_matching_elems() {
     int32_t buf[6] = {1, 2, 3, 4, 5, 6};
 
-    const size_t n = tda_span_remove_if(TDA_SPAN_FROM_DATA_MUT(int32_t, buf, 6), is_even, nullptr);
+    const size_t n = trs_span_remove_if(TRS_SPAN_FROM_DATA_MUT(int32_t, buf, 6), is_even, nullptr);
 
     TEST_ASSERT_EQUAL_size_t(3, n);
     constexpr int32_t want[3] = {1, 3, 5};
@@ -187,7 +187,7 @@ static void test_remove_if_passes_the_ctx_through() {
     int32_t buf[5] = {1, 5, 2, 4, 3};
     int32_t bound = 3;
 
-    const size_t n = tda_span_remove_if(TDA_SPAN_FROM_DATA_MUT(int32_t, buf, 5), greater_than, &bound);
+    const size_t n = trs_span_remove_if(TRS_SPAN_FROM_DATA_MUT(int32_t, buf, 5), greater_than, &bound);
 
     TEST_ASSERT_EQUAL_size_t(3, n);
     constexpr int32_t want[3] = {1, 2, 3};
@@ -197,7 +197,7 @@ static void test_remove_if_passes_the_ctx_through() {
 static void test_remove_if_keeps_the_order_of_survivors() {
     int32_t buf[7] = {5, 2, 7, 4, 9, 6, 1};
 
-    const size_t n = tda_span_remove_if(TDA_SPAN_FROM_DATA_MUT(int32_t, buf, 7), is_even, nullptr);
+    const size_t n = trs_span_remove_if(TRS_SPAN_FROM_DATA_MUT(int32_t, buf, 7), is_even, nullptr);
 
     TEST_ASSERT_EQUAL_size_t(4, n);
     constexpr int32_t want[4] = {5, 7, 9, 1};
@@ -207,7 +207,7 @@ static void test_remove_if_keeps_the_order_of_survivors() {
 static void test_remove_if_moves_whole_elems() {
     Pair buf[4] = {{-1, 10}, {1, 20}, {-2, 30}, {2, 40}};
 
-    const size_t n = tda_span_remove_if(TDA_SPAN_FROM_DATA_MUT(Pair, buf, 4), tda_test_pair_a_is_negative, nullptr);
+    const size_t n = trs_span_remove_if(TRS_SPAN_FROM_DATA_MUT(Pair, buf, 4), trs_test_pair_a_is_negative, nullptr);
 
     TEST_ASSERT_EQUAL_size_t(2, n);
     TEST_ASSERT_EQUAL_INT64(1, buf[0].a);
@@ -223,7 +223,7 @@ static void test_replace_overwrites_every_occurrence() {
     constexpr int32_t key = 9;
     constexpr int32_t val = 0;
 
-    tda_span_replace(TDA_SPAN_FROM_DATA_MUT(int32_t, buf, 5), &key, &val, tda_eq_i32);
+    trs_span_replace(TRS_SPAN_FROM_DATA_MUT(int32_t, buf, 5), &key, &val, trs_eq_i32);
 
     constexpr int32_t want[5] = {1, 0, 2, 0, 3};
     TEST_ASSERT_EQUAL_INT32_ARRAY(want, buf, 5);
@@ -234,7 +234,7 @@ static void test_replace_of_a_missing_key_changes_nothing() {
     constexpr int32_t key = 9;
     constexpr int32_t val = 0;
 
-    tda_span_replace(TDA_SPAN_FROM_DATA_MUT(int32_t, buf, 3), &key, &val, tda_eq_i32);
+    trs_span_replace(TRS_SPAN_FROM_DATA_MUT(int32_t, buf, 3), &key, &val, trs_eq_i32);
 
     constexpr int32_t want[3] = {1, 2, 3};
     TEST_ASSERT_EQUAL_INT32_ARRAY(want, buf, 3);
@@ -244,7 +244,7 @@ static void test_replace_if_overwrites_matching_elems() {
     int32_t buf[6] = {1, 2, 3, 4, 5, 6};
     constexpr int32_t val = 0;
 
-    tda_span_replace_if(TDA_SPAN_FROM_DATA_MUT(int32_t, buf, 6), is_even, nullptr, &val);
+    trs_span_replace_if(TRS_SPAN_FROM_DATA_MUT(int32_t, buf, 6), is_even, nullptr, &val);
 
     constexpr int32_t want[6] = {1, 0, 3, 0, 5, 0};
     TEST_ASSERT_EQUAL_INT32_ARRAY(want, buf, 6);
@@ -255,7 +255,7 @@ static void test_replace_if_passes_the_ctx_through() {
     int32_t bound = 3;
     constexpr int32_t val = 0;
 
-    tda_span_replace_if(TDA_SPAN_FROM_DATA_MUT(int32_t, buf, 5), greater_than, &bound, &val);
+    trs_span_replace_if(TRS_SPAN_FROM_DATA_MUT(int32_t, buf, 5), greater_than, &bound, &val);
 
     constexpr int32_t want[5] = {1, 0, 2, 0, 3};
     TEST_ASSERT_EQUAL_INT32_ARRAY(want, buf, 5);
@@ -265,7 +265,7 @@ static void test_replace_writes_whole_elems() {
     Pair buf[3] = {{1, 10}, {-1, 20}, {2, 30}};
     constexpr Pair val = {7, 70};
 
-    tda_span_replace_if(TDA_SPAN_FROM_DATA_MUT(Pair, buf, 3), tda_test_pair_a_is_negative, nullptr, &val);
+    trs_span_replace_if(TRS_SPAN_FROM_DATA_MUT(Pair, buf, 3), trs_test_pair_a_is_negative, nullptr, &val);
 
     TEST_ASSERT_EQUAL_INT64(7, buf[1].a);
     TEST_ASSERT_EQUAL_INT64(70, buf[1].b);
@@ -277,7 +277,7 @@ static void test_replace_of_an_empty_span_is_a_noop() {
     constexpr int32_t key = 1;
     constexpr int32_t val = 0;
 
-    tda_span_replace(TDA_SPAN_FROM_DATA_MUT(int32_t, nullptr, 0), &key, &val, tda_eq_i32);
+    trs_span_replace(TRS_SPAN_FROM_DATA_MUT(int32_t, nullptr, 0), &key, &val, trs_eq_i32);
 }
 
 int main() {

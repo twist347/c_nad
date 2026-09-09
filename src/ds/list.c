@@ -1,6 +1,6 @@
-#include "tda/ds/list.h"
+#include "terse/ds/list.h"
 
-#include "tda/core/util.h"
+#include "terse/core/util.h"
 
 #include "internal/ptr.h"
 
@@ -22,77 +22,77 @@
      assert(!(n)->prev || (n)->prev->next == (n)), \
      assert(!(n)->next || (n)->next->prev == (n)))
 
-struct tda_ListNode {
-    tda_ListNode *next;
-    tda_ListNode *prev;
+struct trs_ListNode {
+    trs_ListNode *next;
+    trs_ListNode *prev;
     alignas(max_align_t) unsigned char elem[];
 };
 
-struct tda_List {
-    tda_ListNode *head;
-    tda_ListNode *tail;
+struct trs_List {
+    trs_ListNode *head;
+    trs_ListNode *tail;
     size_t len;
     size_t elem_size;
-    tda_Al *al;
+    trs_Al *al;
 };
 
 [[nodiscard]]
 static size_t node_bytes(size_t elem_size);
 
 [[nodiscard]]
-static tda_Status node_new(tda_Al *al, size_t elem_size, const void *val, tda_ListNode **out);
+static trs_Status node_new(trs_Al *al, size_t elem_size, const void *val, trs_ListNode **out);
 
-static void node_drop(tda_Al *al, size_t elem_size, tda_ListNode *node);
+static void node_drop(trs_Al *al, size_t elem_size, trs_ListNode *node);
 
-static void link_node(tda_List *self, tda_ListNode *node, tda_ListNode *prev, tda_ListNode *next);
+static void link_node(trs_List *self, trs_ListNode *node, trs_ListNode *prev, trs_ListNode *next);
 
 [[nodiscard]]
-static tda_Status insert_between(tda_List *self, tda_ListNode *prev, tda_ListNode *next, const void *val);
+static trs_Status insert_between(trs_List *self, trs_ListNode *prev, trs_ListNode *next, const void *val);
 
-static void unlink_node(tda_List *self, tda_ListNode *node);
+static void unlink_node(trs_List *self, trs_ListNode *node);
 
-static void remove_node(tda_List *self, tda_ListNode *node);
+static void remove_node(trs_List *self, trs_ListNode *node);
 
-static void splice_nodes(tda_List *self, tda_List *src, bool front);
+static void splice_nodes(trs_List *self, trs_List *src, bool front);
 
-static void swap_contents(tda_List *a, tda_List *b);
+static void swap_contents(trs_List *a, trs_List *b);
 
 /// the walk both find doors take. The node comes back mutable and the const door hands it
 /// out as const: the walk is the same either way
 [[nodiscard]]
-static tda_ListNode *find_node(const tda_List *self, const void *key, tda_Eq eq);
+static trs_ListNode *find_node(const trs_List *self, const void *key, trs_Eq eq);
 
-static void clear_nodes(tda_List *self);
+static void clear_nodes(trs_List *self);
 
 [[nodiscard]] [[maybe_unused]]
-static bool owns_node(const tda_List *self, const tda_ListNode *node);
+static bool owns_node(const trs_List *self, const trs_ListNode *node);
 
 /// merges two chains linked through 'next' alone and returns the head of the result.
 /// Equal elems keep 'a' before 'b', which is what makes the sort stable. 'prev' is left
 /// wrong on purpose: relink_prev repairs it once, at the end, instead of on every step
 [[nodiscard]]
-static tda_ListNode *merge_chains(tda_ListNode *a, tda_ListNode *b, tda_Cmp cmp);
+static trs_ListNode *merge_chains(trs_ListNode *a, trs_ListNode *b, trs_Cmp cmp);
 
 /// sorts a chain of 'len' nodes linked through 'next' alone and returns its new head
 [[nodiscard]]
-static tda_ListNode *sort_chain(tda_ListNode *head, size_t len, tda_Cmp cmp);
+static trs_ListNode *sort_chain(trs_ListNode *head, size_t len, trs_Cmp cmp);
 
 /// walks the list forward and rebuilds every 'prev' and the tail from the 'next' chain
-static void relink_prev(tda_List *self);
+static void relink_prev(trs_List *self);
 
 /// merges 'src' into 'self' by relinking and leaves 'src' empty; both already sorted
-static void merge_into(tda_List *self, tda_List *src, tda_Cmp cmp);
+static void merge_into(trs_List *self, trs_List *src, trs_Cmp cmp);
 
 /* ========== lifetime ========== */
 
-tda_Status tda_list_new(size_t elem_size, tda_Al *al, tda_List **out) {
+trs_Status trs_list_new(size_t elem_size, trs_Al *al, trs_List **out) {
     assert(elem_size > 0);
     assert(al);
     assert(out);
 
-    tda_List *obj = tda_alloc(al, sizeof(tda_List));
+    trs_List *obj = trs_alloc(al, sizeof(trs_List));
     if (!obj) {
-        return TDA_STATUS_ERR_NO_MEM;
+        return TRS_STATUS_ERR_NO_MEM;
     }
 
     obj->head = nullptr;
@@ -105,97 +105,97 @@ tda_Status tda_list_new(size_t elem_size, tda_Al *al, tda_List **out) {
 
     *out = obj;
 
-    return TDA_STATUS_OK;
+    return TRS_STATUS_OK;
 }
 
-tda_Status tda_list_from_data(const void *data, size_t len, size_t elem_size, tda_Al *al, tda_List **out) {
+trs_Status trs_list_from_data(const void *data, size_t len, size_t elem_size, trs_Al *al, trs_List **out) {
     assert(data || len == 0);
     assert(elem_size > 0);
     assert(al);
     assert(out);
 
-    tda_List *list;
-    tda_Status st = tda_list_new(elem_size, al, &list);
-    if (TDA_STATUS_IS_ERR(st)) {
+    trs_List *list;
+    trs_Status st = trs_list_new(elem_size, al, &list);
+    if (TRS_STATUS_IS_ERR(st)) {
         return st;
     }
 
     for (size_t i = 0; i < len; ++i) {
-        st = tda_list_push_back(list, tda_byte_offset(data, elem_size, i));
-        if (TDA_STATUS_IS_ERR(st)) {
-            tda_list_drop(list);
+        st = trs_list_push_back(list, trs_byte_offset(data, elem_size, i));
+        if (TRS_STATUS_IS_ERR(st)) {
+            trs_list_drop(list);
             return st;
         }
     }
 
     *out = list;
 
-    return TDA_STATUS_OK;
+    return TRS_STATUS_OK;
 }
 
-tda_Status tda_list_from_span(tda_Span s, tda_Al *al, tda_List **out) {
-    TDA_SPAN_ASSERT(s);
+trs_Status trs_list_from_span(trs_Span s, trs_Al *al, trs_List **out) {
+    TRS_SPAN_ASSERT(s);
     assert(al);
     assert(out);
 
-    return tda_list_from_data(s.data, s.len, s.elem_size, al, out);
+    return trs_list_from_data(s.data, s.len, s.elem_size, al, out);
 }
 
-void tda_list_drop(tda_List *self) {
+void trs_list_drop(trs_List *self) {
     if (!self) {
         return;
     }
 
     ASSERT_LIST(self);
 
-    tda_Al *al_copy = self->al;
+    trs_Al *al_copy = self->al;
     clear_nodes(self);
-    tda_dealloc(al_copy, self, sizeof(tda_List));
+    trs_dealloc(al_copy, self, sizeof(trs_List));
 }
 
 /* ========== copy ========== */
 
-tda_Status tda_list_copy(const tda_List *self, tda_List **out) {
+trs_Status trs_list_copy(const trs_List *self, trs_List **out) {
     ASSERT_LIST(self);
 
-    return tda_list_copy_with(self, self->al, out);
+    return trs_list_copy_with(self, self->al, out);
 }
 
-tda_Status tda_list_copy_with(const tda_List *self, tda_Al *al, tda_List **out) {
+trs_Status trs_list_copy_with(const trs_List *self, trs_Al *al, trs_List **out) {
     ASSERT_LIST(self);
     assert(al);
     assert(out);
 
-    tda_List *obj;
-    tda_Status st = tda_list_new(self->elem_size, al, &obj);
-    if (TDA_STATUS_IS_ERR(st)) {
+    trs_List *obj;
+    trs_Status st = trs_list_new(self->elem_size, al, &obj);
+    if (TRS_STATUS_IS_ERR(st)) {
         return st;
     }
 
-    for (const tda_ListNode *node = self->head; node; node = node->next) {
-        st = tda_list_push_back(obj, node->elem);
-        if (TDA_STATUS_IS_ERR(st)) {
-            tda_list_drop(obj);
+    for (const trs_ListNode *node = self->head; node; node = node->next) {
+        st = trs_list_push_back(obj, node->elem);
+        if (TRS_STATUS_IS_ERR(st)) {
+            trs_list_drop(obj);
             return st;
         }
     }
 
     *out = obj;
 
-    return TDA_STATUS_OK;
+    return TRS_STATUS_OK;
 }
 
-tda_Status tda_list_copy_assign(const tda_List *self, tda_List *other) {
+trs_Status trs_list_copy_assign(const trs_List *self, trs_List *other) {
     ASSERT_LIST(self);
     ASSERT_LIST(other);
     assert(self->elem_size == other->elem_size);
 
     if (self == other) {
-        return TDA_STATUS_OK;
+        return TRS_STATUS_OK;
     }
 
-    const tda_ListNode *src = self->head;
-    const tda_ListNode *dst = other->head;
+    const trs_ListNode *src = self->head;
+    const trs_ListNode *dst = other->head;
 
     while (src && dst) {
         src = src->next;
@@ -204,7 +204,7 @@ tda_Status tda_list_copy_assign(const tda_List *self, tda_List *other) {
 
     // 'src' is the first elem the target has no node for; those nodes are
     // allocated up front, so the only failure happens before any mutation
-    tda_List spare = {
+    trs_List spare = {
         .head = nullptr,
         .tail = nullptr,
         .len = 0,
@@ -212,17 +212,17 @@ tda_Status tda_list_copy_assign(const tda_List *self, tda_List *other) {
         .al = other->al,
     };
 
-    for (const tda_ListNode *node = src; node; node = node->next) {
-        const tda_Status st = tda_list_push_back(&spare, node->elem);
-        if (TDA_STATUS_IS_ERR(st)) {
+    for (const trs_ListNode *node = src; node; node = node->next) {
+        const trs_Status st = trs_list_push_back(&spare, node->elem);
+        if (TRS_STATUS_IS_ERR(st)) {
             clear_nodes(&spare);
             return st;
         }
     }
 
     // from here on nothing can fail
-    const tda_ListNode *from = self->head;
-    for (tda_ListNode *to = other->head; to && from; to = to->next, from = from->next) {
+    const trs_ListNode *from = self->head;
+    for (trs_ListNode *to = other->head; to && from; to = to->next, from = from->next) {
         memcpy(to->elem, from->elem, other->elem_size);
     }
 
@@ -236,51 +236,51 @@ tda_Status tda_list_copy_assign(const tda_List *self, tda_List *other) {
 
     ASSERT_LIST(other);
 
-    return TDA_STATUS_OK;
+    return TRS_STATUS_OK;
 }
 
-tda_Status tda_list_move_assign(tda_List *self, tda_List *other) {
+trs_Status trs_list_move_assign(trs_List *self, trs_List *other) {
     ASSERT_LIST(self);
     ASSERT_LIST(other);
     assert(self->elem_size == other->elem_size);
 
     if (self == other) {
-        return TDA_STATUS_OK;
+        return TRS_STATUS_OK;
     }
 
     // one allocator: the nodes change list without moving. What 'other' held ends up in 'self' and is released
     // there, through the very allocator that made it
     if (self->al == other->al) {
-        TDA_SWAP(*self, *other);
+        TRS_SWAP(*self, *other);
         clear_nodes(self);
 
         ASSERT_LIST(self);
         ASSERT_LIST(other);
 
-        return TDA_STATUS_OK;
+        return TRS_STATUS_OK;
     }
 
     // two allocators: the whole copy is built on the target's before anything of it is
     // touched, so a refusal leaves both as they were
-    tda_List *obj;
-    const tda_Status st = tda_list_copy_with(self, other->al, &obj);
-    if (TDA_STATUS_IS_ERR(st)) {
+    trs_List *obj;
+    const trs_Status st = trs_list_copy_with(self, other->al, &obj);
+    if (TRS_STATUS_IS_ERR(st)) {
         return st;
     }
 
-    TDA_SWAP(*other, *obj);
-    tda_list_drop(obj);
+    TRS_SWAP(*other, *obj);
+    trs_list_drop(obj);
     clear_nodes(self);
 
     ASSERT_LIST(self);
     ASSERT_LIST(other);
 
-    return TDA_STATUS_OK;
+    return TRS_STATUS_OK;
 }
 
 /* ========== compare ========== */
 
-bool tda_list_eq(const tda_List *a, const tda_List *b) {
+bool trs_list_eq(const trs_List *a, const trs_List *b) {
     ASSERT_LIST(a);
     ASSERT_LIST(b);
     assert(a->elem_size == b->elem_size);
@@ -293,8 +293,8 @@ bool tda_list_eq(const tda_List *a, const tda_List *b) {
         return false;
     }
 
-    const tda_ListNode *x = a->head;
-    const tda_ListNode *y = b->head;
+    const trs_ListNode *x = a->head;
+    const trs_ListNode *y = b->head;
     while (x) {
         if (memcmp(x->elem, y->elem, a->elem_size) != 0) {
             return false;
@@ -306,7 +306,7 @@ bool tda_list_eq(const tda_List *a, const tda_List *b) {
     return true;
 }
 
-bool tda_list_eq_by(const tda_List *a, const tda_List *b, tda_Eq eq) {
+bool trs_list_eq_by(const trs_List *a, const trs_List *b, trs_Eq eq) {
     ASSERT_LIST(a);
     ASSERT_LIST(b);
     assert(a->elem_size == b->elem_size);
@@ -320,8 +320,8 @@ bool tda_list_eq_by(const tda_List *a, const tda_List *b, tda_Eq eq) {
         return false;
     }
 
-    const tda_ListNode *x = a->head;
-    const tda_ListNode *y = b->head;
+    const trs_ListNode *x = a->head;
+    const trs_ListNode *y = b->head;
     while (x) {
         if (!eq(x->elem, y->elem)) {
             return false;
@@ -335,19 +335,19 @@ bool tda_list_eq_by(const tda_List *a, const tda_List *b, tda_Eq eq) {
 
 /* ========== info ========== */
 
-size_t tda_list_len(const tda_List *self) {
+size_t trs_list_len(const trs_List *self) {
     ASSERT_LIST(self);
 
     return self->len;
 }
 
-size_t tda_list_elem_size(const tda_List *self) {
+size_t trs_list_elem_size(const trs_List *self) {
     ASSERT_LIST(self);
 
     return self->elem_size;
 }
 
-tda_Al *tda_list_al(const tda_List *self) {
+trs_Al *trs_list_al(const trs_List *self) {
     ASSERT_LIST(self);
 
     return self->al;
@@ -355,28 +355,28 @@ tda_Al *tda_list_al(const tda_List *self) {
 
 /* ========== access ========== */
 
-const void *tda_list_front(const tda_List *self) {
+const void *trs_list_front(const trs_List *self) {
     ASSERT_LIST(self);
     assert(self->len > 0);
 
     return self->head->elem;
 }
 
-void *tda_list_front_mut(tda_List *self) {
+void *trs_list_front_mut(trs_List *self) {
     ASSERT_LIST(self);
     assert(self->len > 0);
 
     return self->head->elem;
 }
 
-const void *tda_list_back(const tda_List *self) {
+const void *trs_list_back(const trs_List *self) {
     ASSERT_LIST(self);
     assert(self->len > 0);
 
     return self->tail->elem;
 }
 
-void *tda_list_back_mut(tda_List *self) {
+void *trs_list_back_mut(trs_List *self) {
     ASSERT_LIST(self);
     assert(self->len > 0);
 
@@ -385,55 +385,55 @@ void *tda_list_back_mut(tda_List *self) {
 
 /* ========== nodes ========== */
 
-const tda_ListNode *tda_list_front_node(const tda_List *self) {
+const trs_ListNode *trs_list_front_node(const trs_List *self) {
     ASSERT_LIST(self);
 
     return self->head;
 }
 
-tda_ListNode *tda_list_front_node_mut(tda_List *self) {
+trs_ListNode *trs_list_front_node_mut(trs_List *self) {
     ASSERT_LIST(self);
 
     return self->head;
 }
 
-const tda_ListNode *tda_list_back_node(const tda_List *self) {
+const trs_ListNode *trs_list_back_node(const trs_List *self) {
     ASSERT_LIST(self);
 
     return self->tail;
 }
 
-tda_ListNode *tda_list_back_node_mut(tda_List *self) {
+trs_ListNode *trs_list_back_node_mut(trs_List *self) {
     ASSERT_LIST(self);
 
     return self->tail;
 }
 
-const tda_ListNode *tda_list_node_next(const tda_ListNode *node) {
+const trs_ListNode *trs_list_node_next(const trs_ListNode *node) {
     ASSERT_NODE(node);
 
     return node->next;
 }
 
-tda_ListNode *tda_list_node_next_mut(tda_ListNode *node) {
+trs_ListNode *trs_list_node_next_mut(trs_ListNode *node) {
     ASSERT_NODE(node);
 
     return node->next;
 }
 
-const tda_ListNode *tda_list_node_prev(const tda_ListNode *node) {
+const trs_ListNode *trs_list_node_prev(const trs_ListNode *node) {
     ASSERT_NODE(node);
 
     return node->prev;
 }
 
-tda_ListNode *tda_list_node_prev_mut(tda_ListNode *node) {
+trs_ListNode *trs_list_node_prev_mut(trs_ListNode *node) {
     ASSERT_NODE(node);
 
     return node->prev;
 }
 
-const tda_ListNode *tda_list_find(const tda_List *self, const void *key, tda_Eq eq) {
+const trs_ListNode *trs_list_find(const trs_List *self, const void *key, trs_Eq eq) {
     ASSERT_LIST(self);
     assert(key);
     assert(eq);
@@ -441,7 +441,7 @@ const tda_ListNode *tda_list_find(const tda_List *self, const void *key, tda_Eq 
     return find_node(self, key, eq);
 }
 
-tda_ListNode *tda_list_find_mut(tda_List *self, const void *key, tda_Eq eq) {
+trs_ListNode *trs_list_find_mut(trs_List *self, const void *key, trs_Eq eq) {
     ASSERT_LIST(self);
     assert(key);
     assert(eq);
@@ -449,13 +449,13 @@ tda_ListNode *tda_list_find_mut(tda_List *self, const void *key, tda_Eq eq) {
     return find_node(self, key, eq);
 }
 
-const void *tda_list_node_elem(const tda_ListNode *node) {
+const void *trs_list_node_elem(const trs_ListNode *node) {
     ASSERT_NODE(node);
 
     return node->elem;
 }
 
-void *tda_list_node_elem_mut(tda_ListNode *node) {
+void *trs_list_node_elem_mut(trs_ListNode *node) {
     ASSERT_NODE(node);
 
     return node->elem;
@@ -463,35 +463,35 @@ void *tda_list_node_elem_mut(tda_ListNode *node) {
 
 /* ========== mods ========== */
 
-tda_Status tda_list_push_front(tda_List *self, const void *val) {
+trs_Status trs_list_push_front(trs_List *self, const void *val) {
     ASSERT_LIST(self);
     assert(val);
 
     return insert_between(self, nullptr, self->head, val);
 }
 
-tda_Status tda_list_push_back(tda_List *self, const void *val) {
+trs_Status trs_list_push_back(trs_List *self, const void *val) {
     ASSERT_LIST(self);
     assert(val);
 
     return insert_between(self, self->tail, nullptr, val);
 }
 
-void tda_list_pop_front(tda_List *self) {
+void trs_list_pop_front(trs_List *self) {
     ASSERT_LIST(self);
     assert(self->len > 0);
 
     remove_node(self, self->head);
 }
 
-void tda_list_pop_back(tda_List *self) {
+void trs_list_pop_back(trs_List *self) {
     ASSERT_LIST(self);
     assert(self->len > 0);
 
     remove_node(self, self->tail);
 }
 
-tda_Status tda_list_insert_before(tda_List *self, tda_ListNode *at, const void *val) {
+trs_Status trs_list_insert_before(trs_List *self, trs_ListNode *at, const void *val) {
     ASSERT_LIST(self);
     ASSERT_NODE(at);
     assert(owns_node(self, at));
@@ -500,7 +500,7 @@ tda_Status tda_list_insert_before(tda_List *self, tda_ListNode *at, const void *
     return insert_between(self, at->prev, at, val);
 }
 
-tda_Status tda_list_insert_after(tda_List *self, tda_ListNode *at, const void *val) {
+trs_Status trs_list_insert_after(trs_List *self, trs_ListNode *at, const void *val) {
     ASSERT_LIST(self);
     ASSERT_NODE(at);
     assert(owns_node(self, at));
@@ -509,7 +509,7 @@ tda_Status tda_list_insert_after(tda_List *self, tda_ListNode *at, const void *v
     return insert_between(self, at, at->next, val);
 }
 
-void tda_list_remove(tda_List *self, tda_ListNode *node) {
+void trs_list_remove(trs_List *self, trs_ListNode *node) {
     ASSERT_LIST(self);
     ASSERT_NODE(node);
     assert(owns_node(self, node));
@@ -517,7 +517,7 @@ void tda_list_remove(tda_List *self, tda_ListNode *node) {
     remove_node(self, node);
 }
 
-void tda_list_clear(tda_List *self) {
+void trs_list_clear(trs_List *self) {
     ASSERT_LIST(self);
 
     clear_nodes(self);
@@ -525,69 +525,69 @@ void tda_list_clear(tda_List *self) {
     ASSERT_LIST(self);
 }
 
-tda_Status tda_list_splice_front(tda_List *self, tda_List *src) {
+trs_Status trs_list_splice_front(trs_List *self, trs_List *src) {
     ASSERT_LIST(self);
     ASSERT_LIST(src);
     assert(self != src);
     assert(self->elem_size == src->elem_size);
 
     if (src->len == 0) {
-        return TDA_STATUS_OK;
+        return TRS_STATUS_OK;
     }
 
     if (self->al == src->al) {
         splice_nodes(self, src, true);
-        return TDA_STATUS_OK;
+        return TRS_STATUS_OK;
     }
 
-    tda_List *copy;
-    const tda_Status st = tda_list_copy_with(src, self->al, &copy);
-    if (TDA_STATUS_IS_ERR(st)) {
+    trs_List *copy;
+    const trs_Status st = trs_list_copy_with(src, self->al, &copy);
+    if (TRS_STATUS_IS_ERR(st)) {
         return st;
     }
 
     splice_nodes(self, copy, true);
-    tda_list_drop(copy);
+    trs_list_drop(copy);
     clear_nodes(src);
 
     ASSERT_LIST(self);
     ASSERT_LIST(src);
 
-    return TDA_STATUS_OK;
+    return TRS_STATUS_OK;
 }
 
-tda_Status tda_list_splice_back(tda_List *self, tda_List *src) {
+trs_Status trs_list_splice_back(trs_List *self, trs_List *src) {
     ASSERT_LIST(self);
     ASSERT_LIST(src);
     assert(self != src);
     assert(self->elem_size == src->elem_size);
 
     if (src->len == 0) {
-        return TDA_STATUS_OK;
+        return TRS_STATUS_OK;
     }
 
     if (self->al == src->al) {
         splice_nodes(self, src, false);
-        return TDA_STATUS_OK;
+        return TRS_STATUS_OK;
     }
 
-    tda_List *copy;
-    const tda_Status st = tda_list_copy_with(src, self->al, &copy);
-    if (TDA_STATUS_IS_ERR(st)) {
+    trs_List *copy;
+    const trs_Status st = trs_list_copy_with(src, self->al, &copy);
+    if (TRS_STATUS_IS_ERR(st)) {
         return st;
     }
 
     splice_nodes(self, copy, false);
-    tda_list_drop(copy);
+    trs_list_drop(copy);
     clear_nodes(src);
 
     ASSERT_LIST(self);
     ASSERT_LIST(src);
 
-    return TDA_STATUS_OK;
+    return TRS_STATUS_OK;
 }
 
-void tda_list_swap(tda_List *self, tda_List *other) {
+void trs_list_swap(trs_List *self, trs_List *other) {
     ASSERT_LIST(self);
     ASSERT_LIST(other);
     assert(self->elem_size == other->elem_size);
@@ -603,7 +603,7 @@ void tda_list_swap(tda_List *self, tda_List *other) {
     ASSERT_LIST(other);
 }
 
-tda_Status tda_list_splice_node(tda_List *self, tda_ListNode *at, tda_List *src, tda_ListNode *node) {
+trs_Status trs_list_splice_node(trs_List *self, trs_ListNode *at, trs_List *src, trs_ListNode *node) {
     ASSERT_LIST(self);
     ASSERT_LIST(src);
     assert(self->elem_size == src->elem_size);
@@ -615,9 +615,9 @@ tda_Status tda_list_splice_node(tda_List *self, tda_ListNode *at, tda_List *src,
     if (self->al != src->al) {
         // a node belongs to the allocator that made it, so it cannot change lists: the
         // elem is copied into a node of 'self' and the old one goes
-        tda_ListNode *prev = at ? at->prev : self->tail;
-        const tda_Status st = insert_between(self, prev, at, node->elem);
-        if (TDA_STATUS_IS_ERR(st)) {
+        trs_ListNode *prev = at ? at->prev : self->tail;
+        const trs_Status st = insert_between(self, prev, at, node->elem);
+        if (TRS_STATUS_IS_ERR(st)) {
             return st;
         }
 
@@ -626,7 +626,7 @@ tda_Status tda_list_splice_node(tda_List *self, tda_ListNode *at, tda_List *src,
         ASSERT_LIST(self);
         ASSERT_LIST(src);
 
-        return TDA_STATUS_OK;
+        return TRS_STATUS_OK;
     }
 
     // unlinking first is what makes 'self == src' work: 'at->prev' is read from a list
@@ -638,27 +638,27 @@ tda_Status tda_list_splice_node(tda_List *self, tda_ListNode *at, tda_List *src,
     ASSERT_LIST(src);
     ASSERT_NODE(node);
 
-    return TDA_STATUS_OK;
+    return TRS_STATUS_OK;
 }
 
 /* ========== relink ========== */
 
-void tda_list_reverse(tda_List *self) {
+void trs_list_reverse(trs_List *self) {
     ASSERT_LIST(self);
 
-    tda_ListNode *cur = self->head;
+    trs_ListNode *cur = self->head;
     while (cur) {
-        tda_ListNode *next = cur->next;
-        TDA_SWAP(cur->next, cur->prev);
+        trs_ListNode *next = cur->next;
+        TRS_SWAP(cur->next, cur->prev);
         cur = next;
     }
 
-    TDA_SWAP(self->head, self->tail);
+    TRS_SWAP(self->head, self->tail);
 
     ASSERT_LIST(self);
 }
 
-void tda_list_sort(tda_List *self, tda_Cmp cmp) {
+void trs_list_sort(trs_List *self, trs_Cmp cmp) {
     ASSERT_LIST(self);
     assert(cmp);
 
@@ -672,7 +672,7 @@ void tda_list_sort(tda_List *self, tda_Cmp cmp) {
     ASSERT_LIST(self);
 }
 
-tda_Status tda_list_merge(tda_List *self, tda_List *src, tda_Cmp cmp) {
+trs_Status trs_list_merge(trs_List *self, trs_List *src, trs_Cmp cmp) {
     ASSERT_LIST(self);
     ASSERT_LIST(src);
     assert(self != src);
@@ -680,65 +680,65 @@ tda_Status tda_list_merge(tda_List *self, tda_List *src, tda_Cmp cmp) {
     assert(cmp);
 
     if (src->len == 0) {
-        return TDA_STATUS_OK;
+        return TRS_STATUS_OK;
     }
 
     if (self->al == src->al) {
         merge_into(self, src, cmp);
-        return TDA_STATUS_OK;
+        return TRS_STATUS_OK;
     }
 
-    tda_List *copy;
-    const tda_Status st = tda_list_copy_with(src, self->al, &copy);
-    if (TDA_STATUS_IS_ERR(st)) {
+    trs_List *copy;
+    const trs_Status st = trs_list_copy_with(src, self->al, &copy);
+    if (TRS_STATUS_IS_ERR(st)) {
         return st;
     }
 
     merge_into(self, copy, cmp);
-    tda_list_drop(copy);
+    trs_list_drop(copy);
     clear_nodes(src);
 
     ASSERT_LIST(self);
     ASSERT_LIST(src);
 
-    return TDA_STATUS_OK;
+    return TRS_STATUS_OK;
 }
 
 /* ========== copy to span ========== */
 
-void tda_list_copy_to_span(const tda_List *self, tda_SpanMut dst) {
+void trs_list_copy_to_span(const trs_List *self, trs_SpanMut dst) {
     ASSERT_LIST(self);
-    TDA_SPAN_ASSERT(dst);
+    TRS_SPAN_ASSERT(dst);
     assert(dst.elem_size == self->elem_size);
     assert(dst.len == self->len);
 
     size_t i = 0;
-    for (const tda_ListNode *node = self->head; node; node = node->next, ++i) {
-        memcpy(tda_byte_offset_mut(dst.data, self->elem_size, i), node->elem, self->elem_size);
+    for (const trs_ListNode *node = self->head; node; node = node->next, ++i) {
+        memcpy(trs_byte_offset_mut(dst.data, self->elem_size, i), node->elem, self->elem_size);
     }
 }
 
-void tda_list_copy_from_span(tda_List *self, tda_Span src) {
+void trs_list_copy_from_span(trs_List *self, trs_Span src) {
     ASSERT_LIST(self);
-    TDA_SPAN_ASSERT(src);
+    TRS_SPAN_ASSERT(src);
     assert(src.elem_size == self->elem_size);
     assert(src.len == self->len);
 
     size_t i = 0;
-    for (tda_ListNode *node = self->head; node; node = node->next, ++i) {
-        memcpy(node->elem, tda_byte_offset(src.data, self->elem_size, i), self->elem_size);
+    for (trs_ListNode *node = self->head; node; node = node->next, ++i) {
+        memcpy(node->elem, trs_byte_offset(src.data, self->elem_size, i), self->elem_size);
     }
 }
 
 /* ========== print ========== */
 
-void tda_list_fprint(const tda_List *self, FILE *stream, tda_FPrint fprint) {
+void trs_list_fprint(const trs_List *self, FILE *stream, trs_FPrint fprint) {
     ASSERT_LIST(self);
     assert(stream);
     assert(fprint);
 
     fputc('[', stream);
-    for (const tda_ListNode *node = self->head; node; node = node->next) {
+    for (const trs_ListNode *node = self->head; node; node = node->next) {
         if (node != self->head) {
             fputs(", ", stream);
         }
@@ -747,36 +747,36 @@ void tda_list_fprint(const tda_List *self, FILE *stream, tda_FPrint fprint) {
     fputs("]\n", stream);
 }
 
-void tda_list_print(const tda_List *self, tda_FPrint fprint) {
+void trs_list_print(const trs_List *self, trs_FPrint fprint) {
     ASSERT_LIST(self);
     assert(fprint);
 
-    tda_list_fprint(self, stdout, fprint);
+    trs_list_fprint(self, stdout, fprint);
 }
 
 /* ========== internals ========== */
 
 static size_t node_bytes(size_t elem_size) {
-    return sizeof(tda_ListNode) + elem_size;
+    return sizeof(trs_ListNode) + elem_size;
 }
 
-static tda_Status node_new(tda_Al *al, size_t elem_size, const void *val, tda_ListNode **out) {
+static trs_Status node_new(trs_Al *al, size_t elem_size, const void *val, trs_ListNode **out) {
     assert(al);
     assert(elem_size > 0);
     assert(val);
     assert(out);
 
     size_t bytes;
-    if (ckd_add(&bytes, sizeof(tda_ListNode), elem_size)) {
-        return TDA_STATUS_ERR_NO_MEM;
+    if (ckd_add(&bytes, sizeof(trs_ListNode), elem_size)) {
+        return TRS_STATUS_ERR_NO_MEM;
     }
 
-    tda_ListNode *node = tda_alloc(al, bytes);
+    trs_ListNode *node = trs_alloc(al, bytes);
     if (!node) {
-        return TDA_STATUS_ERR_NO_MEM;
+        return TRS_STATUS_ERR_NO_MEM;
     }
 
-    assert(tda_ptr_is_aligned(node, alignof(max_align_t)));
+    assert(trs_ptr_is_aligned(node, alignof(max_align_t)));
 
     node->next = nullptr;
     node->prev = nullptr;
@@ -784,14 +784,14 @@ static tda_Status node_new(tda_Al *al, size_t elem_size, const void *val, tda_Li
 
     *out = node;
 
-    return TDA_STATUS_OK;
+    return TRS_STATUS_OK;
 }
 
-static void node_drop(tda_Al *al, size_t elem_size, tda_ListNode *node) {
-    tda_dealloc(al, node, node_bytes(elem_size));
+static void node_drop(trs_Al *al, size_t elem_size, trs_ListNode *node) {
+    trs_dealloc(al, node, node_bytes(elem_size));
 }
 
-static void link_node(tda_List *self, tda_ListNode *node, tda_ListNode *prev, tda_ListNode *next) {
+static void link_node(trs_List *self, trs_ListNode *node, trs_ListNode *prev, trs_ListNode *next) {
     node->prev = prev;
     node->next = next;
 
@@ -813,10 +813,10 @@ static void link_node(tda_List *self, tda_ListNode *node, tda_ListNode *prev, td
 // the whole of push_front/push_back/insert_before/insert_after: the four differ only in
 // which pair of neighbours they hand over, and link_node already reads a null neighbour
 // as "this end of the list"
-static tda_Status insert_between(tda_List *self, tda_ListNode *prev, tda_ListNode *next, const void *val) {
-    tda_ListNode *node;
-    const tda_Status st = node_new(self->al, self->elem_size, val, &node);
-    if (TDA_STATUS_IS_ERR(st)) {
+static trs_Status insert_between(trs_List *self, trs_ListNode *prev, trs_ListNode *next, const void *val) {
+    trs_ListNode *node;
+    const trs_Status st = node_new(self->al, self->elem_size, val, &node);
+    if (TRS_STATUS_IS_ERR(st)) {
         return st;
     }
 
@@ -825,10 +825,10 @@ static tda_Status insert_between(tda_List *self, tda_ListNode *prev, tda_ListNod
     ASSERT_LIST(self);
     ASSERT_NODE(node);
 
-    return TDA_STATUS_OK;
+    return TRS_STATUS_OK;
 }
 
-static void unlink_node(tda_List *self, tda_ListNode *node) {
+static void unlink_node(trs_List *self, trs_ListNode *node) {
     ASSERT_NODE(node);
     assert(self->len > 0);
 
@@ -847,14 +847,14 @@ static void unlink_node(tda_List *self, tda_ListNode *node) {
     --self->len;
 }
 
-static void remove_node(tda_List *self, tda_ListNode *node) {
+static void remove_node(trs_List *self, trs_ListNode *node) {
     unlink_node(self, node);
     node_drop(self->al, self->elem_size, node);
 
     ASSERT_LIST(self);
 }
 
-static void splice_nodes(tda_List *self, tda_List *src, bool front) {
+static void splice_nodes(trs_List *self, trs_List *src, bool front) {
     assert(self->al == src->al);
     assert(self->elem_size == src->elem_size);
     assert(src->len > 0);
@@ -882,14 +882,14 @@ static void splice_nodes(tda_List *self, tda_List *src, bool front) {
     ASSERT_LIST(src);
 }
 
-static void swap_contents(tda_List *a, tda_List *b) {
-    TDA_SWAP(a->head, b->head);
-    TDA_SWAP(a->tail, b->tail);
-    TDA_SWAP(a->len, b->len);
+static void swap_contents(trs_List *a, trs_List *b) {
+    TRS_SWAP(a->head, b->head);
+    TRS_SWAP(a->tail, b->tail);
+    TRS_SWAP(a->len, b->len);
 }
 
-static tda_ListNode *find_node(const tda_List *self, const void *key, tda_Eq eq) {
-    for (tda_ListNode *node = self->head; node; node = node->next) {
+static trs_ListNode *find_node(const trs_List *self, const void *key, trs_Eq eq) {
+    for (trs_ListNode *node = self->head; node; node = node->next) {
         if (eq(node->elem, key)) {
             return node;
         }
@@ -898,10 +898,10 @@ static tda_ListNode *find_node(const tda_List *self, const void *key, tda_Eq eq)
     return nullptr;
 }
 
-static void clear_nodes(tda_List *self) {
-    tda_ListNode *node = self->head;
+static void clear_nodes(trs_List *self) {
+    trs_ListNode *node = self->head;
     while (node) {
-        tda_ListNode *next = node->next;
+        trs_ListNode *next = node->next;
         node_drop(self->al, self->elem_size, node);
         node = next;
     }
@@ -911,11 +911,11 @@ static void clear_nodes(tda_List *self) {
     self->len = 0;
 }
 
-static tda_ListNode *merge_chains(tda_ListNode *a, tda_ListNode *b, tda_Cmp cmp) {
+static trs_ListNode *merge_chains(trs_ListNode *a, trs_ListNode *b, trs_Cmp cmp) {
     assert(cmp);
 
-    tda_ListNode *head = nullptr;
-    tda_ListNode **tail = &head;
+    trs_ListNode *head = nullptr;
+    trs_ListNode **tail = &head;
 
     while (a && b) {
         if (cmp(a->elem, b->elem) <= 0) {
@@ -933,7 +933,7 @@ static tda_ListNode *merge_chains(tda_ListNode *a, tda_ListNode *b, tda_Cmp cmp)
     return head;
 }
 
-static tda_ListNode *sort_chain(tda_ListNode *head, size_t len, tda_Cmp cmp) {
+static trs_ListNode *sort_chain(trs_ListNode *head, size_t len, trs_Cmp cmp) {
     assert(head);
     assert(cmp);
 
@@ -944,21 +944,21 @@ static tda_ListNode *sort_chain(tda_ListNode *head, size_t len, tda_Cmp cmp) {
     const size_t half = len / 2;
 
     // walk to the LAST node of the left half, so the chain can be cut behind it
-    tda_ListNode *left_tail = head;
+    trs_ListNode *left_tail = head;
     for (size_t i = 1; i < half; ++i) {
         left_tail = left_tail->next;
     }
 
-    tda_ListNode *right = left_tail->next;
+    trs_ListNode *right = left_tail->next;
     left_tail->next = nullptr;
 
     return merge_chains(sort_chain(head, half, cmp), sort_chain(right, len - half, cmp), cmp);
 }
 
-static void relink_prev(tda_List *self) {
-    tda_ListNode *prev = nullptr;
+static void relink_prev(trs_List *self) {
+    trs_ListNode *prev = nullptr;
 
-    for (tda_ListNode *node = self->head; node; node = node->next) {
+    for (trs_ListNode *node = self->head; node; node = node->next) {
         node->prev = prev;
         prev = node;
     }
@@ -966,7 +966,7 @@ static void relink_prev(tda_List *self) {
     self->tail = prev;
 }
 
-static void merge_into(tda_List *self, tda_List *src, tda_Cmp cmp) {
+static void merge_into(trs_List *self, trs_List *src, trs_Cmp cmp) {
     assert(self->al == src->al);
     assert(self->elem_size == src->elem_size);
     assert(src->len > 0);
@@ -983,8 +983,8 @@ static void merge_into(tda_List *self, tda_List *src, tda_Cmp cmp) {
     ASSERT_LIST(src);
 }
 
-static bool owns_node(const tda_List *self, const tda_ListNode *node) {
-    for (const tda_ListNode *cur = self->head; cur; cur = cur->next) {
+static bool owns_node(const trs_List *self, const trs_ListNode *node) {
+    for (const trs_ListNode *cur = self->head; cur; cur = cur->next) {
         if (cur == node) {
             return true;
         }

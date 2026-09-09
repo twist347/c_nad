@@ -1,0 +1,45 @@
+#pragma once
+
+/// @file
+/// umbrella header
+
+#include "terse/core/cmp.h"
+#include "terse/core/export.h"
+#include "terse/core/hash.h"
+#include "terse/core/print.h"
+#include "terse/core/rng.h"
+#include "terse/core/span.h"
+#include "terse/core/status.h"
+#include "terse/core/util.h"
+
+#include "terse/alloc/aligned.h"
+#include "terse/alloc/alloc.h"
+#include "terse/alloc/arena.h"
+#include "terse/alloc/default.h"
+#include "terse/alloc/log.h"
+#include "terse/alloc/pool.h"
+
+#include "terse/algo/compare.h"
+#include "terse/algo/copy.h"
+#include "terse/algo/fill.h"
+#include "terse/algo/fn.h"
+#include "terse/algo/fold.h"
+#include "terse/algo/heap.h"
+#include "terse/algo/merge.h"
+#include "terse/algo/modify.h"
+#include "terse/algo/permute.h"
+#include "terse/algo/search.h"
+#include "terse/algo/set.h"
+#include "terse/algo/sort.h"
+#include "terse/algo/transform.h"
+
+#include "terse/ds/arr.h"
+#include "terse/ds/bitset.h"
+#include "terse/ds/deque.h"
+#include "terse/ds/hmap.h"
+#include "terse/ds/hset.h"
+#include "terse/ds/list.h"
+#include "terse/ds/pqueue.h"
+#include "terse/ds/queue.h"
+#include "terse/ds/stack.h"
+#include "terse/ds/vec.h"

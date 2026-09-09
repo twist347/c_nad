@@ -1,8 +1,8 @@
 // for @snippet
 
-#include "tda/alloc/default.h"
-#include "tda/core/hash.h"
-#include "tda/ds/hset.h"
+#include "terse/alloc/default.h"
+#include "terse/core/hash.h"
+#include "terse/ds/hset.h"
 
 #include <stdint.h>
 #include <stdio.h>
@@ -10,16 +10,16 @@
 /// [struct]
 // a hasher and an equality travel as a pair, and the pair has one law: what the equality
 // calls equal must hash alike. Build both out of the fields', never out of the bytes —
-// tda_hash_bytes would read the padding between them
+// trs_hash_bytes would read the padding between them
 typedef struct {
     int32_t x;
     int32_t y;
 } Point;
 
-static tda_Hash hash_point(const void *v) {
+static trs_Hash hash_point(const void *v) {
     const Point *p = v;
 
-    return tda_hash_combine(tda_hash_i32(&p->x), tda_hash_i32(&p->y));
+    return trs_hash_combine(trs_hash_i32(&p->x), trs_hash_i32(&p->y));
 }
 
 static bool eq_point(const void *lhs, const void *rhs) {
@@ -32,27 +32,27 @@ static bool eq_point(const void *lhs, const void *rhs) {
 
 int main() {
     /// [use]
-    tda_HSet *seen = nullptr;
-    if (TDA_STATUS_IS_ERR(TDA_HSET_NEW(Point, hash_point, eq_point, tda_al_default(), &seen))) {
+    trs_HSet *seen = nullptr;
+    if (TRS_STATUS_IS_ERR(TRS_HSET_NEW(Point, hash_point, eq_point, trs_al_default(), &seen))) {
         return 1;
     }
 
     bool is_new = false;
-    tda_Status st = tda_hset_insert(seen, &(Point){ 1, 2 }, &is_new);
-    if (TDA_STATUS_IS_ERR(st)) {
+    trs_Status st = trs_hset_insert(seen, &(Point){ 1, 2 }, &is_new);
+    if (TRS_STATUS_IS_ERR(st)) {
         goto out;
     }
     printf("%s\n", is_new ? "new" : "seen"); // new
 
     // an equal point hashes alike, so the set finds it and does not store it twice
-    st = tda_hset_insert(seen, &(Point){ 1, 2 }, &is_new);
-    if (TDA_STATUS_IS_ERR(st)) {
+    st = trs_hset_insert(seen, &(Point){ 1, 2 }, &is_new);
+    if (TRS_STATUS_IS_ERR(st)) {
         goto out;
     }
-    printf("%s, %zu in all\n", is_new ? "new" : "seen", tda_hset_len(seen)); // seen, 1 in all
+    printf("%s, %zu in all\n", is_new ? "new" : "seen", trs_hset_len(seen)); // seen, 1 in all
 
 out:
-    tda_hset_drop(seen);
-    return TDA_STATUS_IS_ERR(st) ? 1 : 0;
+    trs_hset_drop(seen);
+    return TRS_STATUS_IS_ERR(st) ? 1 : 0;
     /// [use]
 }

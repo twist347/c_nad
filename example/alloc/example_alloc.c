@@ -1,7 +1,7 @@
 // for @snippet
 
-#include "tda/alloc/alloc.h"
-#include "tda/alloc/default.h"
+#include "terse/alloc/alloc.h"
+#include "terse/alloc/default.h"
 
 #include <inttypes.h>
 #include <stdint.h>
@@ -12,14 +12,14 @@
 // wrappers build those two out of the other two. ctx is whatever the implementation
 // keeps, and it comes back to every callback
 typedef struct {
-    tda_Al *parent;
+    trs_Al *parent;
     size_t live;
 } CountingCtx;
 
 static void *counting_alloc(void *ctx, size_t size) {
     CountingCtx *c = ctx;
 
-    void *ptr = tda_alloc(c->parent, size);
+    void *ptr = trs_alloc(c->parent, size);
     if (ptr) {
         c->live += size;
     }
@@ -30,7 +30,7 @@ static void *counting_alloc(void *ctx, size_t size) {
 static void counting_dealloc(void *ctx, void *ptr, size_t size) {
     CountingCtx *c = ctx;
 
-    tda_dealloc(c->parent, ptr, size);
+    trs_dealloc(c->parent, ptr, size);
     c->live -= size;
 }
 
@@ -38,11 +38,11 @@ static void counting_dealloc(void *ctx, void *ptr, size_t size) {
 
 int main() {
     /// [use]
-    tda_Al *al = tda_al_default();
+    trs_Al *al = trs_al_default();
 
     // the macros carry sizeof(T) and check the multiplication, so a count that would
     // overflow gives null rather than a wrapped-around request
-    int32_t *xs = TDA_ALLOC(int32_t, al, 4);
+    int32_t *xs = TRS_ALLOC(int32_t, al, 4);
     if (!xs) {
         return 1;
     }
@@ -50,27 +50,27 @@ int main() {
     xs[0] = 7;
     printf("%" PRId32 "\n", xs[0]); // 7
 
-    TDA_DEALLOC(int32_t, al, xs, 4);
+    TRS_DEALLOC(int32_t, al, xs, 4);
     /// [use]
 
     /// [wrap]
     // an allocator built over another borrows it: the default one outlives this, and
     // nothing here owns it
-    CountingCtx ctx = {.parent = tda_al_default(), .live = 0};
-    tda_Al counting = {
+    CountingCtx ctx = {.parent = trs_al_default(), .live = 0};
+    trs_Al counting = {
         .ctx = &ctx,
         .alloc = counting_alloc,
         .dealloc = counting_dealloc,
     };
 
     // calloc is null in that table, so this is alloc and memset done by the wrapper
-    int32_t *zeros = TDA_CALLOC(int32_t, &counting, 4);
+    int32_t *zeros = TRS_CALLOC(int32_t, &counting, 4);
     if (!zeros) {
         return 1;
     }
     printf("%" PRId32 ", %zu bytes live\n", zeros[0], ctx.live); // 0, 16 bytes live
 
-    TDA_DEALLOC(int32_t, &counting, zeros, 4);
+    TRS_DEALLOC(int32_t, &counting, zeros, 4);
     printf("%zu bytes live\n", ctx.live); // 0 bytes live
     /// [wrap]
 

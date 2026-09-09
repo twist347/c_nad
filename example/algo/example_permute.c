@@ -1,18 +1,18 @@
 // for @snippet
 
-#include "tda/algo/permute.h"
-#include "tda/alloc/default.h"
-#include "tda/core/print.h"
-#include "tda/core/rng.h"
-#include "tda/core/span.h"
-#include "tda/core/util.h"
+#include "terse/algo/permute.h"
+#include "terse/alloc/default.h"
+#include "terse/core/print.h"
+#include "terse/core/rng.h"
+#include "terse/core/span.h"
+#include "terse/core/util.h"
 
 #include <stdint.h>
 #include <stdio.h>
 
 /// [pred]
 static bool is_even(const void *elem, void *ctx) {
-    TDA_UNUSED(ctx);
+    TRS_UNUSED(ctx);
 
     return *(const int32_t *) elem % 2 == 0;
 }
@@ -21,46 +21,46 @@ static bool is_even(const void *elem, void *ctx) {
 
 int main() {
     /// [move]
-    const tda_SpanMut s = TDA_SPAN_OF_MUT(int32_t, 1, 2, 3, 4, 5);
+    const trs_SpanMut s = TRS_SPAN_OF_MUT(int32_t, 1, 2, 3, 4, 5);
 
-    tda_span_reverse(s);
-    tda_span_mut_print(s, tda_fprint_i32); // [5, 4, 3, 2, 1]
+    trs_span_reverse(s);
+    trs_span_mut_print(s, trs_fprint_i32); // [5, 4, 3, 2, 1]
 
     // rotate left so that the elem at 'mid' becomes the first
-    tda_span_rotate(s, 2);
-    tda_span_mut_print(s, tda_fprint_i32); // [3, 2, 1, 5, 4]
+    trs_span_rotate(s, 2);
+    trs_span_mut_print(s, trs_fprint_i32); // [3, 2, 1, 5, 4]
     /// [move]
 
     /// [shuffle]
     // the order comes from a generator, so the same seed replays the same shuffle
-    tda_Rng rng = tda_rng_from_seed(2026);
-    const tda_SpanMut deck = TDA_SPAN_OF_MUT(int32_t, 1, 2, 3, 4, 5, 6, 7, 8);
+    trs_Rng rng = trs_rng_from_seed(2026);
+    const trs_SpanMut deck = TRS_SPAN_OF_MUT(int32_t, 1, 2, 3, 4, 5, 6, 7, 8);
 
-    tda_span_shuffle(deck, &rng);
-    tda_span_mut_print(deck, tda_fprint_i32); // [8, 2, 3, 1, 6, 7, 5, 4]
+    trs_span_shuffle(deck, &rng);
+    trs_span_mut_print(deck, trs_fprint_i32); // [8, 2, 3, 1, 6, 7, 5, 4]
 
     // dealing a hand: only the first three positions are settled, and they are a uniform
     // sample of the whole span rather than of its front
-    tda_span_shuffle_prefix(deck, 3, &rng);
-    tda_span_mut_print(tda_span_sub_mut(deck, 0, 3), tda_fprint_i32); // [4, 5, 6]
+    trs_span_shuffle_prefix(deck, 3, &rng);
+    trs_span_mut_print(trs_span_sub_mut(deck, 0, 3), trs_fprint_i32); // [4, 5, 6]
     /// [shuffle]
 
     /// [partition]
-    const tda_SpanMut t = TDA_SPAN_OF_MUT(int32_t, 1, 2, 3, 4, 5, 6);
+    const trs_SpanMut t = TRS_SPAN_OF_MUT(int32_t, 1, 2, 3, 4, 5, 6);
 
     // the fast split: it swaps, so neither side keeps the order it had
-    const size_t at = tda_span_partition(t, is_even, nullptr);
+    const size_t at = trs_span_partition(t, is_even, nullptr);
     printf("%zu even, ", at);
-    tda_span_mut_print(t, tda_fprint_i32); // 3 even, [2, 4, 6, 1, 5, 3]
+    trs_span_mut_print(t, trs_fprint_i32); // 3 even, [2, 4, 6, 1, 5, 3]
 
     // keeping both orders costs a buffer, so that one takes an allocator and can fail
-    const tda_SpanMut u = TDA_SPAN_OF_MUT(int32_t, 1, 2, 3, 4, 5, 6);
+    const trs_SpanMut u = TRS_SPAN_OF_MUT(int32_t, 1, 2, 3, 4, 5, 6);
     size_t boundary;
-    if (TDA_STATUS_IS_ERR(tda_span_partition_stable(u, is_even, nullptr, tda_al_default(), &boundary))) {
+    if (TRS_STATUS_IS_ERR(trs_span_partition_stable(u, is_even, nullptr, trs_al_default(), &boundary))) {
         return 1;
     }
     printf("%zu even, ", boundary);
-    tda_span_mut_print(u, tda_fprint_i32); // 3 even, [2, 4, 6, 1, 3, 5]
+    trs_span_mut_print(u, trs_fprint_i32); // 3 even, [2, 4, 6, 1, 3, 5]
     /// [partition]
 
     return 0;

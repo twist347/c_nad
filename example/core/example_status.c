@@ -1,34 +1,34 @@
 // for @snippet
 
-#include "tda/alloc/default.h"
-#include "tda/core/print.h"
-#include "tda/core/status.h"
-#include "tda/ds/arr.h"
+#include "terse/alloc/default.h"
+#include "terse/core/print.h"
+#include "terse/core/status.h"
+#include "terse/ds/arr.h"
 
 #include <stdio.h>
 
 /// [propagate]
 // a fallible op returns the status and writes its result through a trailing 'out'
 [[nodiscard]]
-static tda_Status two_arrs(tda_Al *al, tda_Arr **out) {
-    tda_Arr *a = nullptr;
-    tda_Status st = TDA_ARR_OF(int32_t, al, &a, 5, 3, 1);
-    if (TDA_STATUS_IS_ERR(st)) {
+static trs_Status two_arrs(trs_Al *al, trs_Arr **out) {
+    trs_Arr *a = nullptr;
+    trs_Status st = TRS_ARR_OF(int32_t, al, &a, 5, 3, 1);
+    if (TRS_STATUS_IS_ERR(st)) {
         return st; // nothing is held yet, so the error goes straight back
     }
 
-    tda_Arr *b = nullptr;
-    st = tda_arr_copy(a, &b);
-    if (TDA_STATUS_IS_ERR(st)) {
+    trs_Arr *b = nullptr;
+    st = trs_arr_copy(a, &b);
+    if (TRS_STATUS_IS_ERR(st)) {
         goto drop_a; // 'a' is held, and C has no defer: the failure path is a goto
     }
-    tda_arr_drop(b);
+    trs_arr_drop(b);
 
     *out = a; // 'out' is written on the one path that succeeded, and only there
-    return TDA_STATUS_OK;
+    return TRS_STATUS_OK;
 
 drop_a:
-    tda_arr_drop(a);
+    trs_arr_drop(a);
     return st;
 }
 
@@ -36,16 +36,16 @@ drop_a:
 
 int main() {
     /// [report]
-    tda_Arr *a = nullptr;
-    const tda_Status st = two_arrs(tda_al_default(), &a);
+    trs_Arr *a = nullptr;
+    const trs_Status st = two_arrs(trs_al_default(), &a);
 
-    printf("%s\n", tda_status_to_str(st)); // TDA_STATUS_OK
-    if (TDA_STATUS_IS_ERR(st)) {
+    printf("%s\n", trs_status_to_str(st)); // TRS_STATUS_OK
+    if (TRS_STATUS_IS_ERR(st)) {
         return 1;
     }
 
-    tda_arr_print(a, tda_fprint_i32); // [5, 3, 1]
-    tda_arr_drop(a);
+    trs_arr_print(a, trs_fprint_i32); // [5, 3, 1]
+    trs_arr_drop(a);
     /// [report]
 
     return 0;

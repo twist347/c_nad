@@ -1,4 +1,4 @@
-#include "tda/algo/modify.h"
+#include "terse/algo/modify.h"
 
 #include <assert.h>
 #include <string.h>
@@ -9,7 +9,7 @@
 // its equality travel together as the predicate's ctx
 typedef struct {
     const void *key;
-    tda_Eq eq;
+    trs_Eq eq;
 } KeyMatch;
 
 [[nodiscard]]
@@ -21,26 +21,26 @@ static bool key_matches(const void *elem, void *ctx) {
 
 /* ========== unique ========== */
 
-size_t tda_span_unique(tda_SpanMut s, tda_Eq eq) {
-    TDA_SPAN_ASSERT(s);
+size_t trs_span_unique(trs_SpanMut s, trs_Eq eq) {
+    TRS_SPAN_ASSERT(s);
     assert(eq);
 
     if (s.len < 2) {
         return s.len;
     }
 
-    const tda_Span view = tda_span_mut_to_span(s);
+    const trs_Span view = trs_span_mut_to_span(s);
     size_t write = 1;
 
     for (size_t read = 1; read < s.len; ++read) {
-        const void *cur = tda_span_get(view, read);
+        const void *cur = trs_span_get(view, read);
 
         // compared against the last elem KEPT, not the previous one read —
         // otherwise a run whose head was dropped would compare against a
         // value that is no longer there
-        if (!eq(tda_span_get(view, write - 1), cur)) {
+        if (!eq(trs_span_get(view, write - 1), cur)) {
             if (write != read) {
-                memcpy(tda_span_get_mut(s, write), cur, s.elem_size);
+                memcpy(trs_span_get_mut(s, write), cur, s.elem_size);
             }
             ++write;
         }
@@ -51,29 +51,29 @@ size_t tda_span_unique(tda_SpanMut s, tda_Eq eq) {
 
 /* ========== remove ========== */
 
-size_t tda_span_remove(tda_SpanMut s, const void *key, tda_Eq eq) {
-    TDA_SPAN_ASSERT(s);
+size_t trs_span_remove(trs_SpanMut s, const void *key, trs_Eq eq) {
+    TRS_SPAN_ASSERT(s);
     assert(key);
     assert(eq);
 
     KeyMatch match = {.key = key, .eq = eq};
 
-    return tda_span_remove_if(s, key_matches, &match);
+    return trs_span_remove_if(s, key_matches, &match);
 }
 
-size_t tda_span_remove_if(tda_SpanMut s, tda_Pred pred, void *ctx) {
-    TDA_SPAN_ASSERT(s);
+size_t trs_span_remove_if(trs_SpanMut s, trs_Pred pred, void *ctx) {
+    TRS_SPAN_ASSERT(s);
     assert(pred);
 
-    const tda_Span view = tda_span_mut_to_span(s);
+    const trs_Span view = trs_span_mut_to_span(s);
     size_t write = 0;
 
     for (size_t read = 0; read < s.len; ++read) {
-        const void *cur = tda_span_get(view, read);
+        const void *cur = trs_span_get(view, read);
 
         if (!pred(cur, ctx)) {
             if (write != read) {
-                memcpy(tda_span_get_mut(s, write), cur, s.elem_size);
+                memcpy(trs_span_get_mut(s, write), cur, s.elem_size);
             }
             ++write;
         }
@@ -84,27 +84,27 @@ size_t tda_span_remove_if(tda_SpanMut s, tda_Pred pred, void *ctx) {
 
 /* ========== replace ========== */
 
-void tda_span_replace(tda_SpanMut s, const void *key, const void *val, tda_Eq eq) {
-    TDA_SPAN_ASSERT(s);
+void trs_span_replace(trs_SpanMut s, const void *key, const void *val, trs_Eq eq) {
+    TRS_SPAN_ASSERT(s);
     assert(key);
     assert(val);
     assert(eq);
 
     KeyMatch match = {.key = key, .eq = eq};
 
-    tda_span_replace_if(s, key_matches, &match, val);
+    trs_span_replace_if(s, key_matches, &match, val);
 }
 
-void tda_span_replace_if(tda_SpanMut s, tda_Pred pred, void *ctx, const void *val) {
-    TDA_SPAN_ASSERT(s);
+void trs_span_replace_if(trs_SpanMut s, trs_Pred pred, void *ctx, const void *val) {
+    TRS_SPAN_ASSERT(s);
     assert(pred);
     assert(val);
 
-    const tda_Span view = tda_span_mut_to_span(s);
+    const trs_Span view = trs_span_mut_to_span(s);
 
     for (size_t i = 0; i < s.len; ++i) {
-        if (pred(tda_span_get(view, i), ctx)) {
-            memcpy(tda_span_get_mut(s, i), val, s.elem_size);
+        if (pred(trs_span_get(view, i), ctx)) {
+            memcpy(trs_span_get_mut(s, i), val, s.elem_size);
         }
     }
 }

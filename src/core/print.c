@@ -1,4 +1,4 @@
-#include "tda/core/print.h"
+#include "terse/core/print.h"
 
 #include <assert.h>
 #include <ctype.h>
@@ -11,7 +11,7 @@
 // One body per type, differing only in the cast and the conversion. The format stays a
 // literal at the call site, so the compiler still checks it against the argument.
 #define DEFINE_FPRINT(name, T, fmt)                         \
-    void tda_fprint_##name(FILE *stream, const void *val) { \
+    void trs_fprint_##name(FILE *stream, const void *val) { \
         assert(stream);                                     \
         assert(val);                                        \
         fprintf(stream, fmt, *(const T *) val);             \
@@ -40,7 +40,7 @@ DEFINE_FPRINT(f64, double, "%g")
 
 // the one entry core/cmp and core/hash do without: for them u8 carries a bool whole, but
 // the readable form of a bool is a word, not a digit
-void tda_fprint_bool(FILE *stream, const void *val) {
+void trs_fprint_bool(FILE *stream, const void *val) {
     assert(stream);
     assert(val);
 
@@ -49,7 +49,7 @@ void tda_fprint_bool(FILE *stream, const void *val) {
 
 /* ========== char ========== */
 
-void tda_fprint_char(FILE *stream, const void *val) {
+void trs_fprint_char(FILE *stream, const void *val) {
     assert(stream);
     assert(val);
 
@@ -66,11 +66,11 @@ void tda_fprint_char(FILE *stream, const void *val) {
 
 /* ========== cstr ========== */
 
-void tda_fprint_cstr(FILE *stream, const void *val) {
+void trs_fprint_cstr(FILE *stream, const void *val) {
     assert(stream);
     assert(val);
 
-    // the operand is a pointer to a pointer, as in tda_cmp_cstr and tda_hash_cstr
+    // the operand is a pointer to a pointer, as in trs_cmp_cstr and trs_hash_cstr
     const char *str = *(const char *const *) val;
 
     if (!str) {

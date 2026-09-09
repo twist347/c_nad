@@ -3,10 +3,10 @@
 
 cmake_minimum_required(VERSION 3.22)
 
-project(tda_consumer LANGUAGES C)
+project(trs_consumer LANGUAGES C)
 
-add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../.. tda)
+add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../.. trs)
 
 add_executable(consumer_app main.c)
 
-target_link_libraries(consumer_app PRIVATE tda::tda)
+target_link_libraries(consumer_app PRIVATE trs::ds)

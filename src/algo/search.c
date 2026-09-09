@@ -1,22 +1,22 @@
-#include "tda/algo/search.h"
+#include "terse/algo/search.h"
 
 #include <assert.h>
 
 /* ========== private decls ========== */
 
 /// whether 'sub' sits in 's' starting at 'at'. The caller guarantees the room
-static bool matches_at(tda_Span s, tda_Span sub, size_t at, tda_Eq eq);
+static bool matches_at(trs_Span s, trs_Span sub, size_t at, trs_Eq eq);
 
 /* ========== find ========== */
 
-bool tda_span_find(tda_Span s, const void *key, tda_Eq eq, size_t *out_idx) {
-    TDA_SPAN_ASSERT(s);
+bool trs_span_find(trs_Span s, const void *key, trs_Eq eq, size_t *out_idx) {
+    TRS_SPAN_ASSERT(s);
     assert(key);
     assert(eq);
     assert(out_idx);
 
     for (size_t i = 0; i < s.len; ++i) {
-        if (eq(tda_span_get(s, i), key)) {
+        if (eq(trs_span_get(s, i), key)) {
             *out_idx = i;
             return true;
         }
@@ -24,13 +24,13 @@ bool tda_span_find(tda_Span s, const void *key, tda_Eq eq, size_t *out_idx) {
     return false;
 }
 
-bool tda_span_find_if(tda_Span s, tda_Pred pred, void *ctx, size_t *out_idx) {
-    TDA_SPAN_ASSERT(s);
+bool trs_span_find_if(trs_Span s, trs_Pred pred, void *ctx, size_t *out_idx) {
+    TRS_SPAN_ASSERT(s);
     assert(pred);
     assert(out_idx);
 
     for (size_t i = 0; i < s.len; ++i) {
-        if (pred(tda_span_get(s, i), ctx)) {
+        if (pred(trs_span_get(s, i), ctx)) {
             *out_idx = i;
             return true;
         }
@@ -38,9 +38,9 @@ bool tda_span_find_if(tda_Span s, tda_Pred pred, void *ctx, size_t *out_idx) {
     return false;
 }
 
-bool tda_span_find_sub(tda_Span s, tda_Span sub, tda_Eq eq, size_t *out_idx) {
-    TDA_SPAN_ASSERT(s);
-    TDA_SPAN_ASSERT(sub);
+bool trs_span_find_sub(trs_Span s, trs_Span sub, trs_Eq eq, size_t *out_idx) {
+    TRS_SPAN_ASSERT(s);
+    TRS_SPAN_ASSERT(sub);
     assert(s.elem_size == sub.elem_size);
     assert(eq);
     assert(out_idx);
@@ -64,9 +64,9 @@ bool tda_span_find_sub(tda_Span s, tda_Span sub, tda_Eq eq, size_t *out_idx) {
     return false;
 }
 
-bool tda_span_find_sub_last(tda_Span s, tda_Span sub, tda_Eq eq, size_t *out_idx) {
-    TDA_SPAN_ASSERT(s);
-    TDA_SPAN_ASSERT(sub);
+bool trs_span_find_sub_last(trs_Span s, trs_Span sub, trs_Eq eq, size_t *out_idx) {
+    TRS_SPAN_ASSERT(s);
+    TRS_SPAN_ASSERT(sub);
     assert(s.elem_size == sub.elem_size);
     assert(eq);
     assert(out_idx);
@@ -90,9 +90,9 @@ bool tda_span_find_sub_last(tda_Span s, tda_Span sub, tda_Eq eq, size_t *out_idx
     return false;
 }
 
-bool tda_span_find_run(tda_Span s, const void *key, size_t count, tda_Eq eq,
+bool trs_span_find_run(trs_Span s, const void *key, size_t count, trs_Eq eq,
                        size_t *out_idx) {
-    TDA_SPAN_ASSERT(s);
+    TRS_SPAN_ASSERT(s);
     assert(key);
     assert(eq);
     assert(out_idx);
@@ -104,7 +104,7 @@ bool tda_span_find_run(tda_Span s, const void *key, size_t count, tda_Eq eq,
 
     size_t run = 0;
     for (size_t i = 0; i < s.len; ++i) {
-        run = eq(tda_span_get(s, i), key) ? run + 1 : 0;
+        run = eq(trs_span_get(s, i), key) ? run + 1 : 0;
 
         if (run == count) {
             *out_idx = i + 1 - count;
@@ -114,18 +114,18 @@ bool tda_span_find_run(tda_Span s, const void *key, size_t count, tda_Eq eq,
     return false;
 }
 
-bool tda_span_find_any_of(tda_Span s, tda_Span set, tda_Eq eq, size_t *out_idx) {
-    TDA_SPAN_ASSERT(s);
-    TDA_SPAN_ASSERT(set);
+bool trs_span_find_any_of(trs_Span s, trs_Span set, trs_Eq eq, size_t *out_idx) {
+    TRS_SPAN_ASSERT(s);
+    TRS_SPAN_ASSERT(set);
     assert(s.elem_size == set.elem_size);
     assert(eq);
     assert(out_idx);
 
     for (size_t i = 0; i < s.len; ++i) {
-        const void *elem = tda_span_get(s, i);
+        const void *elem = trs_span_get(s, i);
 
         for (size_t j = 0; j < set.len; ++j) {
-            if (eq(elem, tda_span_get(set, j))) {
+            if (eq(elem, trs_span_get(set, j))) {
                 *out_idx = i;
                 return true;
             }
@@ -134,15 +134,15 @@ bool tda_span_find_any_of(tda_Span s, tda_Span set, tda_Eq eq, size_t *out_idx) 
     return false;
 }
 
-bool tda_span_find_adjacent(tda_Span s, tda_Eq eq, size_t *out_idx) {
-    TDA_SPAN_ASSERT(s);
+bool trs_span_find_adjacent(trs_Span s, trs_Eq eq, size_t *out_idx) {
+    TRS_SPAN_ASSERT(s);
     assert(eq);
     assert(out_idx);
 
     // starts at 1 so that an empty span has nothing to compare rather than
     // s.len - 1 wrapping around
     for (size_t i = 1; i < s.len; ++i) {
-        if (eq(tda_span_get(s, i - 1), tda_span_get(s, i))) {
+        if (eq(trs_span_get(s, i - 1), trs_span_get(s, i))) {
             *out_idx = i - 1;
             return true;
         }
@@ -150,38 +150,38 @@ bool tda_span_find_adjacent(tda_Span s, tda_Eq eq, size_t *out_idx) {
     return false;
 }
 
-bool tda_span_contains(tda_Span s, const void *key, tda_Eq eq) {
-    TDA_SPAN_ASSERT(s);
+bool trs_span_contains(trs_Span s, const void *key, trs_Eq eq) {
+    TRS_SPAN_ASSERT(s);
     assert(key);
     assert(eq);
 
     size_t idx;
-    return tda_span_find(s, key, eq, &idx);
+    return trs_span_find(s, key, eq, &idx);
 }
 
 /* ========== count ========== */
 
-size_t tda_span_count(tda_Span s, const void *key, tda_Eq eq) {
-    TDA_SPAN_ASSERT(s);
+size_t trs_span_count(trs_Span s, const void *key, trs_Eq eq) {
+    TRS_SPAN_ASSERT(s);
     assert(key);
     assert(eq);
 
     size_t count = 0;
     for (size_t i = 0; i < s.len; ++i) {
-        if (eq(tda_span_get(s, i), key)) {
+        if (eq(trs_span_get(s, i), key)) {
             ++count;
         }
     }
     return count;
 }
 
-size_t tda_span_count_if(tda_Span s, tda_Pred pred, void *ctx) {
-    TDA_SPAN_ASSERT(s);
+size_t trs_span_count_if(trs_Span s, trs_Pred pred, void *ctx) {
+    TRS_SPAN_ASSERT(s);
     assert(pred);
 
     size_t count = 0;
     for (size_t i = 0; i < s.len; ++i) {
-        if (pred(tda_span_get(s, i), ctx)) {
+        if (pred(trs_span_get(s, i), ctx)) {
             ++count;
         }
     }
@@ -190,8 +190,8 @@ size_t tda_span_count_if(tda_Span s, tda_Pred pred, void *ctx) {
 
 /* ========== binary search ========== */
 
-size_t tda_span_lower_bound(tda_Span s, const void *key, tda_Cmp cmp) {
-    TDA_SPAN_ASSERT(s);
+size_t trs_span_lower_bound(trs_Span s, const void *key, trs_Cmp cmp) {
+    TRS_SPAN_ASSERT(s);
     assert(key);
     assert(cmp);
 
@@ -199,7 +199,7 @@ size_t tda_span_lower_bound(tda_Span s, const void *key, tda_Cmp cmp) {
 
     while (lo < hi) {
         const size_t mid = lo + (hi - lo) / 2;
-        const void *midp = tda_span_get(s, mid);
+        const void *midp = trs_span_get(s, mid);
 
         if (cmp(midp, key) < 0) {
             lo = mid + 1;
@@ -211,8 +211,8 @@ size_t tda_span_lower_bound(tda_Span s, const void *key, tda_Cmp cmp) {
     return lo;
 }
 
-size_t tda_span_upper_bound(tda_Span s, const void *key, tda_Cmp cmp) {
-    TDA_SPAN_ASSERT(s);
+size_t trs_span_upper_bound(trs_Span s, const void *key, trs_Cmp cmp) {
+    TRS_SPAN_ASSERT(s);
     assert(key);
     assert(cmp);
 
@@ -220,7 +220,7 @@ size_t tda_span_upper_bound(tda_Span s, const void *key, tda_Cmp cmp) {
 
     while (lo < hi) {
         const size_t mid = lo + (hi - lo) / 2;
-        const void *midp = tda_span_get(s, mid);
+        const void *midp = trs_span_get(s, mid);
 
         if (cmp(midp, key) <= 0) {
             lo = mid + 1;
@@ -232,18 +232,18 @@ size_t tda_span_upper_bound(tda_Span s, const void *key, tda_Cmp cmp) {
     return lo;
 }
 
-bool tda_span_binary_search(tda_Span s, const void *key, tda_Cmp cmp, size_t *out_idx) {
-    TDA_SPAN_ASSERT(s);
+bool trs_span_binary_search(trs_Span s, const void *key, trs_Cmp cmp, size_t *out_idx) {
+    TRS_SPAN_ASSERT(s);
     assert(key);
     assert(cmp);
     assert(out_idx);
 
-    const size_t pos = tda_span_lower_bound(s, key, cmp);
+    const size_t pos = trs_span_lower_bound(s, key, cmp);
     if (pos >= s.len) {
         return false;
     }
 
-    const void *p = tda_span_get(s, pos);
+    const void *p = trs_span_get(s, pos);
     if (cmp(p, key) == 0) {
         *out_idx = pos;
         return true;
@@ -251,23 +251,23 @@ bool tda_span_binary_search(tda_Span s, const void *key, tda_Cmp cmp, size_t *ou
     return false;
 }
 
-tda_Range tda_span_equal_range(tda_Span s, const void *key, tda_Cmp cmp) {
-    TDA_SPAN_ASSERT(s);
+trs_Range trs_span_equal_range(trs_Span s, const void *key, trs_Cmp cmp) {
+    TRS_SPAN_ASSERT(s);
     assert(key);
     assert(cmp);
 
-    const size_t lo = tda_span_lower_bound(s, key, cmp);
+    const size_t lo = trs_span_lower_bound(s, key, cmp);
 
-    const tda_Span tail = tda_span_sub(s, lo, s.len - lo);
+    const trs_Span tail = trs_span_sub(s, lo, s.len - lo);
 
-    return (tda_Range){
+    return (trs_Range){
         .lo = lo,
-        .hi = lo + tda_span_upper_bound(tail, key, cmp)
+        .hi = lo + trs_span_upper_bound(tail, key, cmp)
     };
 }
 
-size_t tda_span_partition_point(tda_Span s, tda_Pred pred, void *ctx) {
-    TDA_SPAN_ASSERT(s);
+size_t trs_span_partition_point(trs_Span s, trs_Pred pred, void *ctx) {
+    TRS_SPAN_ASSERT(s);
     assert(pred);
 
     size_t lo = 0, hi = s.len;
@@ -275,7 +275,7 @@ size_t tda_span_partition_point(tda_Span s, tda_Pred pred, void *ctx) {
     while (lo < hi) {
         const size_t mid = lo + (hi - lo) / 2;
 
-        if (pred(tda_span_get(s, mid), ctx)) {
+        if (pred(trs_span_get(s, mid), ctx)) {
             lo = mid + 1;
         } else {
             hi = mid;
@@ -287,45 +287,45 @@ size_t tda_span_partition_point(tda_Span s, tda_Pred pred, void *ctx) {
 
 /* ========== predicates ========== */
 
-bool tda_span_all_of(tda_Span s, tda_Pred pred, void *ctx) {
-    TDA_SPAN_ASSERT(s);
+bool trs_span_all_of(trs_Span s, trs_Pred pred, void *ctx) {
+    TRS_SPAN_ASSERT(s);
     assert(pred);
 
     for (size_t i = 0; i < s.len; ++i) {
-        if (!pred(tda_span_get(s, i), ctx)) {
+        if (!pred(trs_span_get(s, i), ctx)) {
             return false;
         }
     }
     return true;
 }
 
-bool tda_span_any_of(tda_Span s, tda_Pred pred, void *ctx) {
-    TDA_SPAN_ASSERT(s);
+bool trs_span_any_of(trs_Span s, trs_Pred pred, void *ctx) {
+    TRS_SPAN_ASSERT(s);
     assert(pred);
 
     size_t idx;
-    return tda_span_find_if(s, pred, ctx, &idx);
+    return trs_span_find_if(s, pred, ctx, &idx);
 }
 
-bool tda_span_none_of(tda_Span s, tda_Pred pred, void *ctx) {
-    TDA_SPAN_ASSERT(s);
+bool trs_span_none_of(trs_Span s, trs_Pred pred, void *ctx) {
+    TRS_SPAN_ASSERT(s);
     assert(pred);
 
-    return !tda_span_any_of(s, pred, ctx);
+    return !trs_span_any_of(s, pred, ctx);
 }
 
 /* ========== extremes ========== */
 
-size_t tda_span_min_elem(tda_Span s, tda_Cmp cmp) {
-    TDA_SPAN_ASSERT(s);
+size_t trs_span_min_elem(trs_Span s, trs_Cmp cmp) {
+    TRS_SPAN_ASSERT(s);
     assert(cmp);
     assert(s.len > 0);
 
     size_t best = 0;
-    const void *best_p = tda_span_get(s, 0);
+    const void *best_p = trs_span_get(s, 0);
 
     for (size_t i = 1; i < s.len; ++i) {
-        const void *cur = tda_span_get(s, i);
+        const void *cur = trs_span_get(s, i);
         if (cmp(cur, best_p) < 0) {
             best = i;
             best_p = cur;
@@ -335,16 +335,16 @@ size_t tda_span_min_elem(tda_Span s, tda_Cmp cmp) {
     return best;
 }
 
-size_t tda_span_max_elem(tda_Span s, tda_Cmp cmp) {
-    TDA_SPAN_ASSERT(s);
+size_t trs_span_max_elem(trs_Span s, trs_Cmp cmp) {
+    TRS_SPAN_ASSERT(s);
     assert(cmp);
     assert(s.len > 0);
 
     size_t best = 0;
-    const void *best_p = tda_span_get(s, 0);
+    const void *best_p = trs_span_get(s, 0);
 
     for (size_t i = 1; i < s.len; ++i) {
-        const void *cur = tda_span_get(s, i);
+        const void *cur = trs_span_get(s, i);
         if (cmp(cur, best_p) > 0) {
             best = i;
             best_p = cur;
@@ -354,17 +354,17 @@ size_t tda_span_max_elem(tda_Span s, tda_Cmp cmp) {
     return best;
 }
 
-tda_MinMax tda_span_minmax_elem(tda_Span s, tda_Cmp cmp) {
-    TDA_SPAN_ASSERT(s);
+trs_MinMax trs_span_minmax_elem(trs_Span s, trs_Cmp cmp) {
+    TRS_SPAN_ASSERT(s);
     assert(cmp);
     assert(s.len > 0);
 
-    tda_MinMax out = {.min = 0, .max = 0};
-    const void *min_p = tda_span_get(s, 0);
+    trs_MinMax out = {.min = 0, .max = 0};
+    const void *min_p = trs_span_get(s, 0);
     const void *max_p = min_p;
 
     for (size_t i = 1; i < s.len; ++i) {
-        const void *cur = tda_span_get(s, i);
+        const void *cur = trs_span_get(s, i);
 
         if (cmp(cur, min_p) < 0) {
             out.min = i;
@@ -381,11 +381,11 @@ tda_MinMax tda_span_minmax_elem(tda_Span s, tda_Cmp cmp) {
 
 /* ========== private defs ========== */
 
-static bool matches_at(tda_Span s, tda_Span sub, size_t at, tda_Eq eq) {
+static bool matches_at(trs_Span s, trs_Span sub, size_t at, trs_Eq eq) {
     assert(at + sub.len <= s.len);
 
     for (size_t j = 0; j < sub.len; ++j) {
-        if (!eq(tda_span_get(s, at + j), tda_span_get(sub, j))) {
+        if (!eq(trs_span_get(s, at + j), trs_span_get(sub, j))) {
             return false;
         }
     }

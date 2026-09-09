@@ -1,6 +1,6 @@
-#include "tda/alloc/pool.h"
+#include "terse/alloc/pool.h"
 
-#include "tda/core/util.h"
+#include "terse/core/util.h"
 
 #include "internal/ptr.h"
 
@@ -17,7 +17,7 @@ struct PoolNode {
 };
 
 typedef struct {
-    tda_Al *parent_al;
+    trs_Al *parent_al;
     unsigned char *data;
     PoolNode *free_head;
     size_t block_size;
@@ -45,7 +45,7 @@ static bool pool_owns(const PoolCtx *ctx, const void *ptr);
 
 /* ========== lifetime ========== */
 
-tda_Al *tda_al_pool_new(tda_Al *parent, size_t block_size, size_t block_count) {
+trs_Al *trs_al_pool_new(trs_Al *parent, size_t block_size, size_t block_count) {
     assert(parent);
     assert(block_size > 0);
     assert(block_count > 0);
@@ -55,12 +55,12 @@ tda_Al *tda_al_pool_new(tda_Al *parent, size_t block_size, size_t block_count) {
         block_size = sizeof(PoolNode);
     }
 
-    if (block_size > SIZE_MAX - (TDA_DEFAULT_ALIGNMENT - 1)) {
+    if (block_size > SIZE_MAX - (TRS_DEFAULT_ALIGNMENT - 1)) {
         return nullptr;
     }
 
     // align up
-    block_size = tda_align_up(block_size, TDA_DEFAULT_ALIGNMENT);
+    block_size = trs_align_up(block_size, TRS_DEFAULT_ALIGNMENT);
 
     // allocate backing buffer
     size_t total_bytes;
@@ -69,18 +69,18 @@ tda_Al *tda_al_pool_new(tda_Al *parent, size_t block_size, size_t block_count) {
     }
 
     // allocate context
-    PoolCtx *pool_ctx = tda_alloc(parent, sizeof(PoolCtx));
+    PoolCtx *pool_ctx = trs_alloc(parent, sizeof(PoolCtx));
     if (!pool_ctx) {
         return nullptr;
     }
 
-    unsigned char *data = tda_alloc(parent, total_bytes);
+    unsigned char *data = trs_alloc(parent, total_bytes);
     if (!data) {
-        tda_dealloc(parent, pool_ctx, sizeof(PoolCtx));
+        trs_dealloc(parent, pool_ctx, sizeof(PoolCtx));
         return nullptr;
     }
 
-    assert(tda_ptr_is_aligned(data, TDA_DEFAULT_ALIGNMENT));
+    assert(trs_ptr_is_aligned(data, TRS_DEFAULT_ALIGNMENT));
 
     pool_ctx->parent_al = parent;
     pool_ctx->data = data;
@@ -91,24 +91,24 @@ tda_Al *tda_al_pool_new(tda_Al *parent, size_t block_size, size_t block_count) {
 
     pool_build_free_list(pool_ctx);
 
-    // allocate the tda_Al itself
-    tda_Al *obj = tda_alloc(parent, sizeof(tda_Al));
+    // allocate the trs_Al itself
+    trs_Al *obj = trs_alloc(parent, sizeof(trs_Al));
     if (!obj) {
-        tda_dealloc(parent, data, total_bytes);
-        tda_dealloc(parent, pool_ctx, sizeof(PoolCtx));
+        trs_dealloc(parent, data, total_bytes);
+        trs_dealloc(parent, pool_ctx, sizeof(PoolCtx));
         return nullptr;
     }
 
     obj->ctx = pool_ctx;
     obj->alloc = pool_alloc;
     obj->calloc = pool_calloc;
-    obj->realloc = nullptr; // fallback in tda_al
+    obj->realloc = nullptr; // fallback in trs_al
     obj->dealloc = pool_dealloc;
 
     return obj;
 }
 
-void tda_al_pool_drop(tda_Al *self) {
+void trs_al_pool_drop(trs_Al *self) {
     if (!self) {
         return;
     }
@@ -116,15 +116,15 @@ void tda_al_pool_drop(tda_Al *self) {
     ASSERT_POOL(self);
 
     PoolCtx *pool_ctx = self->ctx;
-    tda_Al *parent_al = pool_ctx->parent_al;
+    trs_Al *parent_al = pool_ctx->parent_al;
     assert(parent_al);
 
-    tda_dealloc(parent_al, pool_ctx->data, pool_ctx->block_size * pool_ctx->block_count);
-    tda_dealloc(parent_al, pool_ctx, sizeof(PoolCtx));
-    tda_dealloc(parent_al, self, sizeof(tda_Al));
+    trs_dealloc(parent_al, pool_ctx->data, pool_ctx->block_size * pool_ctx->block_count);
+    trs_dealloc(parent_al, pool_ctx, sizeof(PoolCtx));
+    trs_dealloc(parent_al, self, sizeof(trs_Al));
 }
 
-void tda_al_pool_reset(tda_Al *self) {
+void trs_al_pool_reset(trs_Al *self) {
     ASSERT_POOL(self);
 
     PoolCtx *pool_ctx = self->ctx;
@@ -132,12 +132,12 @@ void tda_al_pool_reset(tda_Al *self) {
     pool_build_free_list(pool_ctx);
 }
 
-tda_AlPoolStats tda_al_pool_stats(const tda_Al *self) {
+trs_AlPoolStats trs_al_pool_stats(const trs_Al *self) {
     ASSERT_POOL(self);
 
     const PoolCtx *pool_ctx = self->ctx;
 
-    return (tda_AlPoolStats){
+    return (trs_AlPoolStats){
         .block_size = pool_ctx->block_size,
         .block_count = pool_ctx->block_count,
         .used = pool_ctx->used,
@@ -186,7 +186,7 @@ static void *pool_calloc(void *ctx, size_t num, size_t size) {
 
 static void pool_dealloc(void *ctx, void *ptr, size_t size) {
     assert(ctx);
-    TDA_UNUSED(size);
+    TRS_UNUSED(size);
 
     if (!ptr) {
         return;

@@ -1,29 +1,29 @@
 // for @snippet
 
-#include "tda/algo/compare.h"
-#include "tda/core/cmp.h"
-#include "tda/core/span.h"
+#include "terse/algo/compare.h"
+#include "terse/core/cmp.h"
+#include "terse/core/span.h"
 
 #include <stdint.h>
 #include <stdio.h>
 
 int main() {
     /// [compare]
-    const tda_Span a = TDA_SPAN_OF(int32_t, 1, 2, 3);
-    const tda_Span b = TDA_SPAN_OF(int32_t, 1, 2, 4);
+    const trs_Span a = TRS_SPAN_OF(int32_t, 1, 2, 3);
+    const trs_Span b = TRS_SPAN_OF(int32_t, 1, 2, 4);
 
-    printf("%d %d\n", tda_span_eq(a, b), tda_span_eq_by(a, b, tda_eq_i32)); // 0 0
+    printf("%d %d\n", trs_span_eq(a, b), trs_span_eq_by(a, b, trs_eq_i32)); // 0 0
 
     size_t idx;
-    if (tda_span_mismatch(a, b, tda_eq_i32, &idx)) {
+    if (trs_span_mismatch(a, b, trs_eq_i32, &idx)) {
         printf("they part at %zu\n", idx); // they part at 2
     }
 
     // dictionary order: the first differing pair decides, and a prefix orders first
-    const tda_Span shorter = TDA_SPAN_OF(int32_t, 1, 2);
+    const trs_Span shorter = TRS_SPAN_OF(int32_t, 1, 2);
     printf(
-        "%d %d\n", tda_span_cmp(a, b, tda_cmp_i32),
-        tda_span_cmp(shorter, a, tda_cmp_i32)
+        "%d %d\n", trs_span_cmp(a, b, trs_cmp_i32),
+        trs_span_cmp(shorter, a, trs_cmp_i32)
     ); // -1 -1
     /// [compare]
 

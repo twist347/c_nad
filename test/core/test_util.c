@@ -1,6 +1,6 @@
-#include "tda/core/util.h"
-#include "tda/core/span.h"
-#include "tda/core/status.h"
+#include "terse/core/util.h"
+#include "terse/core/span.h"
+#include "terse/core/status.h"
 
 #include "support/pair.h"
 
@@ -39,33 +39,33 @@ static int nodiscard_bump() {
 
 // the whole point of the two-level form: the argument is macro expanded first
 static void test_stringify_expands_a_macro_argument() {
-    TEST_ASSERT_EQUAL_STRING("42", TDA_STRINGIFY(ANSWER));
+    TEST_ASSERT_EQUAL_STRING("42", TRS_STRINGIFY(ANSWER));
 }
 
 // and the inner form is what it is expanded THROUGH — on its own it spells the name
 static void test_stringify_inner_form_takes_the_name_as_written() {
-    TEST_ASSERT_EQUAL_STRING("ANSWER", TDA_STRINGIFY_(ANSWER));
+    TEST_ASSERT_EQUAL_STRING("ANSWER", TRS_STRINGIFY_(ANSWER));
 }
 
 // what status.c relies on: an enumerator is not a macro, so expansion is a no-op and the
-// name survives. Were it a macro, tda_status_to_str would return its value instead
+// name survives. Were it a macro, trs_status_to_str would return its value instead
 static void test_stringify_leaves_an_enumerator_as_its_own_name() {
-    TEST_ASSERT_EQUAL_STRING("TDA_STATUS_OK", TDA_STRINGIFY(TDA_STATUS_OK));
+    TEST_ASSERT_EQUAL_STRING("TRS_STATUS_OK", TRS_STRINGIFY(TRS_STATUS_OK));
 }
 
 // spelling is the preprocessor's, not the caller's: runs of whitespace collapse to one
 static void test_stringify_normalizes_spacing() {
-    TEST_ASSERT_EQUAL_STRING("1 + 2", TDA_STRINGIFY( 1 + 2 ));
+    TEST_ASSERT_EQUAL_STRING("1 + 2", TRS_STRINGIFY( 1 + 2 ));
 }
 
 /* ========== unused ========== */
 
-// TDA_UNUSED discards the VALUE, not the work: the expression still runs, so it is safe
+// TRS_UNUSED discards the VALUE, not the work: the expression still runs, so it is safe
 // to wrap a call whose side effect is wanted
 static void test_unused_evaluates_its_argument() {
     calls = 0;
 
-    TDA_UNUSED(bump());
+    TRS_UNUSED(bump());
 
     TEST_ASSERT_EQUAL_INT(1, calls);
 }
@@ -73,8 +73,8 @@ static void test_unused_evaluates_its_argument() {
 static void test_unused_evaluates_its_argument_exactly_once() {
     calls = 0;
 
-    TDA_UNUSED(bump());
-    TDA_UNUSED(bump());
+    TRS_UNUSED(bump());
+    TRS_UNUSED(bump());
 
     TEST_ASSERT_EQUAL_INT(2, calls);
 }
@@ -85,7 +85,7 @@ static void test_unused_evaluates_its_argument_exactly_once() {
 static void test_unused_silences_a_nodiscard_result() {
     calls = 0;
 
-    TDA_UNUSED(nodiscard_bump());
+    TRS_UNUSED(nodiscard_bump());
 
     TEST_ASSERT_EQUAL_INT(1, calls);
 }
@@ -96,7 +96,7 @@ static void test_swap_exchanges_scalars() {
     int32_t a = 1;
     int32_t b = 2;
 
-    TDA_SWAP(a, b);
+    TRS_SWAP(a, b);
 
     TEST_ASSERT_EQUAL_INT32(2, a);
     TEST_ASSERT_EQUAL_INT32(1, b);
@@ -107,7 +107,7 @@ static void test_swap_exchanges_structs() {
     Pair a = {.a = 1, .b = 2};
     Pair b = {.a = 30, .b = 40};
 
-    TDA_SWAP(a, b);
+    TRS_SWAP(a, b);
 
     TEST_ASSERT_EQUAL_INT64(30, a.a);
     TEST_ASSERT_EQUAL_INT64(40, a.b);
@@ -121,21 +121,21 @@ static void test_swap_exchanges_pointers() {
     int32_t *p = &x;
     int32_t *q = &y;
 
-    TDA_SWAP(p, q);
+    TRS_SWAP(p, q);
 
     TEST_ASSERT_EQUAL_PTR(&y, p);
     TEST_ASSERT_EQUAL_PTR(&x, q);
 }
 
-// the shape the library actually uses: tda_vec_swap and tda_arr_swap swap whole headers
-// through TDA_SWAP(*self, *other)
+// the shape the library actually uses: trs_vec_swap and trs_arr_swap swap whole headers
+// through TRS_SWAP(*self, *other)
 static void test_swap_exchanges_through_dereferenced_pointers() {
     Pair x = {.a = 1, .b = 2};
     Pair y = {.a = 3, .b = 4};
     Pair *px = &x;
     Pair *py = &y;
 
-    TDA_SWAP(*px, *py);
+    TRS_SWAP(*px, *py);
 
     TEST_ASSERT_EQUAL_INT64(3, x.a);
     TEST_ASSERT_EQUAL_INT64(1, y.a);
@@ -144,10 +144,10 @@ static void test_swap_exchanges_through_dereferenced_pointers() {
 // a view is a struct of three fields; swapping must move all of them, not just data
 static void test_swap_exchanges_whole_spans() {
     int32_t buf[4] = {1, 2, 3, 4};
-    tda_Span a = TDA_SPAN_FROM_DATA(int32_t, buf, 4);
-    tda_Span b = tda_span_from_data(nullptr, 0, sizeof(Pair));
+    trs_Span a = TRS_SPAN_FROM_DATA(int32_t, buf, 4);
+    trs_Span b = trs_span_from_data(nullptr, 0, sizeof(Pair));
 
-    TDA_SWAP(a, b);
+    TRS_SWAP(a, b);
 
     TEST_ASSERT_NULL(a.data);
     TEST_ASSERT_EQUAL_size_t(0, a.len);
@@ -165,7 +165,7 @@ static void test_swap_evaluates_each_side_exactly_once() {
     size_t i = 0;
     size_t j = 2;
 
-    TDA_SWAP(v[i++], v[j++]);
+    TRS_SWAP(v[i++], v[j++]);
 
     TEST_ASSERT_EQUAL_size_t(1, i);
     TEST_ASSERT_EQUAL_size_t(3, j);
@@ -175,12 +175,12 @@ static void test_swap_evaluates_each_side_exactly_once() {
     TEST_ASSERT_EQUAL_INT32(40, v[3]);
 }
 
-// self swap is a real call site: tda_vec_swap(v, v) reaches it before the identity check
+// self swap is a real call site: trs_vec_swap(v, v) reaches it before the identity check
 // would, and a macro that wrote through both pointers in the wrong order would lose x
 static void test_swap_with_itself_changes_nothing() {
     int32_t x = 5;
 
-    TDA_SWAP(x, x);
+    TRS_SWAP(x, x);
 
     TEST_ASSERT_EQUAL_INT32(5, x);
 }
@@ -191,7 +191,7 @@ static void test_swap_is_a_single_statement() {
     int32_t b = 2;
 
     if (a < b)
-        TDA_SWAP(a, b);
+        TRS_SWAP(a, b);
     else
         TEST_FAIL_MESSAGE("took the wrong branch");
 
@@ -202,12 +202,12 @@ static void test_swap_is_a_single_statement() {
 // the macro's own temporary is declared after the typeof that reads the argument, so a
 // caller variable of that very name is still swapped correctly
 static void test_swap_survives_a_caller_variable_named_like_its_temporary() {
-    int32_t tda_swap_tmp_ = 1;
+    int32_t trs_swap_tmp_ = 1;
     int32_t other = 2;
 
-    TDA_SWAP(tda_swap_tmp_, other);
+    TRS_SWAP(trs_swap_tmp_, other);
 
-    TEST_ASSERT_EQUAL_INT32(2, tda_swap_tmp_);
+    TEST_ASSERT_EQUAL_INT32(2, trs_swap_tmp_);
     TEST_ASSERT_EQUAL_INT32(1, other);
 }
 
@@ -216,8 +216,8 @@ static void test_swap_is_repeatable() {
     int32_t a = 1;
     int32_t b = 2;
 
-    TDA_SWAP(a, b);
-    TDA_SWAP(a, b);
+    TRS_SWAP(a, b);
+    TRS_SWAP(a, b);
 
     TEST_ASSERT_EQUAL_INT32(1, a);
     TEST_ASSERT_EQUAL_INT32(2, b);

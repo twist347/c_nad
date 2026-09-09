@@ -1,13 +1,13 @@
-#include "tda/algo/compare.h"
+#include "terse/algo/compare.h"
 
 #include <assert.h>
 #include <string.h>
 
 /* ========== equality ========== */
 
-bool tda_span_eq(tda_Span a, tda_Span b) {
-    TDA_SPAN_ASSERT(a);
-    TDA_SPAN_ASSERT(b);
+bool trs_span_eq(trs_Span a, trs_Span b) {
+    TRS_SPAN_ASSERT(a);
+    TRS_SPAN_ASSERT(b);
     assert(a.elem_size == b.elem_size);
 
     if (a.len != b.len) {
@@ -21,9 +21,9 @@ bool tda_span_eq(tda_Span a, tda_Span b) {
     return memcmp(a.data, b.data, a.len * a.elem_size) == 0;
 }
 
-bool tda_span_eq_by(tda_Span a, tda_Span b, tda_Eq eq) {
-    TDA_SPAN_ASSERT(a);
-    TDA_SPAN_ASSERT(b);
+bool trs_span_eq_by(trs_Span a, trs_Span b, trs_Eq eq) {
+    TRS_SPAN_ASSERT(a);
+    TRS_SPAN_ASSERT(b);
     assert(a.elem_size == b.elem_size);
     assert(eq);
 
@@ -36,8 +36,8 @@ bool tda_span_eq_by(tda_Span a, tda_Span b, tda_Eq eq) {
     }
 
     for (size_t i = 0; i < a.len; ++i) {
-        const void *x = tda_span_get(a, i);
-        const void *y = tda_span_get(b, i);
+        const void *x = trs_span_get(a, i);
+        const void *y = trs_span_get(b, i);
         if (!eq(x, y)) {
             return false;
         }
@@ -45,9 +45,9 @@ bool tda_span_eq_by(tda_Span a, tda_Span b, tda_Eq eq) {
     return true;
 }
 
-bool tda_span_mismatch(tda_Span a, tda_Span b, tda_Eq eq, size_t *out_idx) {
-    TDA_SPAN_ASSERT(a);
-    TDA_SPAN_ASSERT(b);
+bool trs_span_mismatch(trs_Span a, trs_Span b, trs_Eq eq, size_t *out_idx) {
+    TRS_SPAN_ASSERT(a);
+    TRS_SPAN_ASSERT(b);
     assert(eq);
     assert(out_idx);
     assert(a.elem_size == b.elem_size);
@@ -59,7 +59,7 @@ bool tda_span_mismatch(tda_Span a, tda_Span b, tda_Eq eq, size_t *out_idx) {
     const size_t common = a.len < b.len ? a.len : b.len;
 
     for (size_t i = 0; i < common; ++i) {
-        if (!eq(tda_span_get(a, i), tda_span_get(b, i))) {
+        if (!eq(trs_span_get(a, i), trs_span_get(b, i))) {
             *out_idx = i;
             return true;
         }
@@ -69,9 +69,9 @@ bool tda_span_mismatch(tda_Span a, tda_Span b, tda_Eq eq, size_t *out_idx) {
 
 /* ========== ordering ========== */
 
-int tda_span_cmp(tda_Span a, tda_Span b, tda_Cmp cmp) {
-    TDA_SPAN_ASSERT(a);
-    TDA_SPAN_ASSERT(b);
+int trs_span_cmp(trs_Span a, trs_Span b, trs_Cmp cmp) {
+    TRS_SPAN_ASSERT(a);
+    TRS_SPAN_ASSERT(b);
     assert(cmp);
     assert(a.elem_size == b.elem_size);
 
@@ -82,7 +82,7 @@ int tda_span_cmp(tda_Span a, tda_Span b, tda_Cmp cmp) {
     const size_t common = a.len < b.len ? a.len : b.len;
 
     for (size_t i = 0; i < common; ++i) {
-        const int c = cmp(tda_span_get(a, i), tda_span_get(b, i));
+        const int c = cmp(trs_span_get(a, i), trs_span_get(b, i));
         if (c != 0) {
             return c < 0 ? -1 : 1;
         }

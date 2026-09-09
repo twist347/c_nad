@@ -1,8 +1,8 @@
-#include "tda/ds/pqueue.h"
+#include "terse/ds/pqueue.h"
 
-#include "tda/algo/heap.h"
-#include "tda/core/util.h"
-#include "tda/ds/vec.h"
+#include "terse/algo/heap.h"
+#include "terse/core/util.h"
+#include "terse/ds/vec.h"
 
 #include <assert.h>
 
@@ -17,115 +17,115 @@
 // every mutation leaves algo/heap's invariant standing over that buffer. Reusing the vec
 // is what keeps the growth policy, the allocator handling and the copy semantics in one
 // place instead of two.
-struct tda_PQueue {
-    tda_Vec *vec;
-    tda_Cmp cmp;
+struct trs_PQueue {
+    trs_Vec *vec;
+    trs_Cmp cmp;
 };
 
 /// takes ownership of 'vec' either way: on failure it is dropped, not handed back
 [[nodiscard]]
-static tda_Status wrap(tda_Vec *vec, tda_Cmp cmp, tda_PQueue **out);
+static trs_Status wrap(trs_Vec *vec, trs_Cmp cmp, trs_PQueue **out);
 
 /* ========== lifetime ========== */
 
-tda_Status tda_pqueue_new(size_t elem_size, tda_Cmp cmp, tda_Al *al, tda_PQueue **out) {
+trs_Status trs_pqueue_new(size_t elem_size, trs_Cmp cmp, trs_Al *al, trs_PQueue **out) {
     assert(elem_size > 0);
     assert(cmp);
     assert(al);
     assert(out);
 
-    tda_Vec *vec;
-    const tda_Status st = tda_vec_new(elem_size, al, &vec);
-    if (TDA_STATUS_IS_ERR(st)) {
+    trs_Vec *vec;
+    const trs_Status st = trs_vec_new(elem_size, al, &vec);
+    if (TRS_STATUS_IS_ERR(st)) {
         return st;
     }
 
     return wrap(vec, cmp, out);
 }
 
-tda_Status tda_pqueue_new_cap(size_t cap, size_t elem_size, tda_Cmp cmp, tda_Al *al, tda_PQueue **out) {
+trs_Status trs_pqueue_new_cap(size_t cap, size_t elem_size, trs_Cmp cmp, trs_Al *al, trs_PQueue **out) {
     assert(elem_size > 0);
     assert(cmp);
     assert(al);
     assert(out);
 
-    tda_Vec *vec;
-    const tda_Status st = tda_vec_new_cap(cap, elem_size, al, &vec);
-    if (TDA_STATUS_IS_ERR(st)) {
+    trs_Vec *vec;
+    const trs_Status st = trs_vec_new_cap(cap, elem_size, al, &vec);
+    if (TRS_STATUS_IS_ERR(st)) {
         return st;
     }
 
     return wrap(vec, cmp, out);
 }
 
-tda_Status tda_pqueue_from_data(
+trs_Status trs_pqueue_from_data(
     const void *data, size_t len, size_t elem_size,
-    tda_Cmp cmp,
-    tda_Al *al,
-    tda_PQueue **out
+    trs_Cmp cmp,
+    trs_Al *al,
+    trs_PQueue **out
 ) {
     assert(elem_size > 0);
     assert(cmp);
     assert(al);
     assert(out);
 
-    tda_Vec *vec;
-    const tda_Status st = tda_vec_from_data(data, len, elem_size, al, &vec);
-    if (TDA_STATUS_IS_ERR(st)) {
+    trs_Vec *vec;
+    const trs_Status st = trs_vec_from_data(data, len, elem_size, al, &vec);
+    if (TRS_STATUS_IS_ERR(st)) {
         return st;
     }
 
-    tda_span_make_heap(tda_vec_to_span_mut(vec), cmp);
+    trs_span_make_heap(trs_vec_to_span_mut(vec), cmp);
 
     return wrap(vec, cmp, out);
 }
 
-tda_Status tda_pqueue_from_span(tda_Span s, tda_Cmp cmp, tda_Al *al, tda_PQueue **out) {
-    TDA_SPAN_ASSERT(s);
+trs_Status trs_pqueue_from_span(trs_Span s, trs_Cmp cmp, trs_Al *al, trs_PQueue **out) {
+    TRS_SPAN_ASSERT(s);
     assert(cmp);
     assert(al);
     assert(out);
 
-    return tda_pqueue_from_data(s.data, s.len, s.elem_size, cmp, al, out);
+    return trs_pqueue_from_data(s.data, s.len, s.elem_size, cmp, al, out);
 }
 
-void tda_pqueue_drop(tda_PQueue *self) {
+void trs_pqueue_drop(trs_PQueue *self) {
     if (!self) {
         return;
     }
 
     ASSERT_PQUEUE(self);
 
-    tda_Al *al_copy = tda_vec_al(self->vec);
-    tda_vec_drop(self->vec);
-    tda_dealloc(al_copy, self, sizeof(tda_PQueue));
+    trs_Al *al_copy = trs_vec_al(self->vec);
+    trs_vec_drop(self->vec);
+    trs_dealloc(al_copy, self, sizeof(trs_PQueue));
 }
 
-tda_Vec *tda_pqueue_into_vec(tda_PQueue *self) {
+trs_Vec *trs_pqueue_into_vec(trs_PQueue *self) {
     ASSERT_PQUEUE(self);
 
-    tda_Vec *vec = self->vec;
-    tda_dealloc(tda_vec_al(vec), self, sizeof(tda_PQueue));
+    trs_Vec *vec = self->vec;
+    trs_dealloc(trs_vec_al(vec), self, sizeof(trs_PQueue));
 
     return vec;
 }
 
 /* ========== copy ========== */
 
-tda_Status tda_pqueue_copy(const tda_PQueue *self, tda_PQueue **out) {
+trs_Status trs_pqueue_copy(const trs_PQueue *self, trs_PQueue **out) {
     ASSERT_PQUEUE(self);
 
-    return tda_pqueue_copy_with(self, tda_vec_al(self->vec), out);
+    return trs_pqueue_copy_with(self, trs_vec_al(self->vec), out);
 }
 
-tda_Status tda_pqueue_copy_with(const tda_PQueue *self, tda_Al *al, tda_PQueue **out) {
+trs_Status trs_pqueue_copy_with(const trs_PQueue *self, trs_Al *al, trs_PQueue **out) {
     ASSERT_PQUEUE(self);
     assert(al);
     assert(out);
 
-    tda_Vec *vec;
-    const tda_Status st = tda_vec_copy_with(self->vec, al, &vec);
-    if (TDA_STATUS_IS_ERR(st)) {
+    trs_Vec *vec;
+    const trs_Status st = trs_vec_copy_with(self->vec, al, &vec);
+    if (TRS_STATUS_IS_ERR(st)) {
         return st;
     }
 
@@ -133,17 +133,17 @@ tda_Status tda_pqueue_copy_with(const tda_PQueue *self, tda_Al *al, tda_PQueue *
     return wrap(vec, self->cmp, out);
 }
 
-tda_Status tda_pqueue_copy_assign(const tda_PQueue *self, tda_PQueue *other) {
+trs_Status trs_pqueue_copy_assign(const trs_PQueue *self, trs_PQueue *other) {
     ASSERT_PQUEUE(self);
     ASSERT_PQUEUE(other);
-    assert(tda_vec_elem_size(self->vec) == tda_vec_elem_size(other->vec));
+    assert(trs_vec_elem_size(self->vec) == trs_vec_elem_size(other->vec));
 
     if (self == other) {
-        return TDA_STATUS_OK;
+        return TRS_STATUS_OK;
     }
 
-    const tda_Status st = tda_vec_copy_assign(self->vec, other->vec);
-    if (TDA_STATUS_IS_ERR(st)) {
+    const trs_Status st = trs_vec_copy_assign(self->vec, other->vec);
+    if (TRS_STATUS_IS_ERR(st)) {
         return st;
     }
 
@@ -153,20 +153,20 @@ tda_Status tda_pqueue_copy_assign(const tda_PQueue *self, tda_PQueue *other) {
 
     ASSERT_PQUEUE(other);
 
-    return TDA_STATUS_OK;
+    return TRS_STATUS_OK;
 }
 
-tda_Status tda_pqueue_move_assign(tda_PQueue *self, tda_PQueue *other) {
+trs_Status trs_pqueue_move_assign(trs_PQueue *self, trs_PQueue *other) {
     ASSERT_PQUEUE(self);
     ASSERT_PQUEUE(other);
-    assert(tda_vec_elem_size(self->vec) == tda_vec_elem_size(other->vec));
+    assert(trs_vec_elem_size(self->vec) == trs_vec_elem_size(other->vec));
 
     if (self == other) {
-        return TDA_STATUS_OK;
+        return TRS_STATUS_OK;
     }
 
-    const tda_Status st = tda_vec_move_assign(self->vec, other->vec);
-    if (TDA_STATUS_IS_ERR(st)) {
+    const trs_Status st = trs_vec_move_assign(self->vec, other->vec);
+    if (TRS_STATUS_IS_ERR(st)) {
         return st;
     }
 
@@ -176,36 +176,36 @@ tda_Status tda_pqueue_move_assign(tda_PQueue *self, tda_PQueue *other) {
 
     ASSERT_PQUEUE(other);
 
-    return TDA_STATUS_OK;
+    return TRS_STATUS_OK;
 }
 
 /* ========== info ========== */
 
-size_t tda_pqueue_len(const tda_PQueue *self) {
+size_t trs_pqueue_len(const trs_PQueue *self) {
     ASSERT_PQUEUE(self);
 
-    return tda_vec_len(self->vec);
+    return trs_vec_len(self->vec);
 }
 
-size_t tda_pqueue_cap(const tda_PQueue *self) {
+size_t trs_pqueue_cap(const trs_PQueue *self) {
     ASSERT_PQUEUE(self);
 
-    return tda_vec_cap(self->vec);
+    return trs_vec_cap(self->vec);
 }
 
-size_t tda_pqueue_elem_size(const tda_PQueue *self) {
+size_t trs_pqueue_elem_size(const trs_PQueue *self) {
     ASSERT_PQUEUE(self);
 
-    return tda_vec_elem_size(self->vec);
+    return trs_vec_elem_size(self->vec);
 }
 
-tda_Al *tda_pqueue_al(const tda_PQueue *self) {
+trs_Al *trs_pqueue_al(const trs_PQueue *self) {
     ASSERT_PQUEUE(self);
 
-    return tda_vec_al(self->vec);
+    return trs_vec_al(self->vec);
 }
 
-tda_Cmp tda_pqueue_cmp(const tda_PQueue *self) {
+trs_Cmp trs_pqueue_cmp(const trs_PQueue *self) {
     ASSERT_PQUEUE(self);
 
     return self->cmp;
@@ -213,104 +213,104 @@ tda_Cmp tda_pqueue_cmp(const tda_PQueue *self) {
 
 /* ========== access ========== */
 
-const void *tda_pqueue_top(const tda_PQueue *self) {
+const void *trs_pqueue_top(const trs_PQueue *self) {
     ASSERT_PQUEUE(self);
-    assert(tda_vec_len(self->vec) > 0);
+    assert(trs_vec_len(self->vec) > 0);
 
-    return tda_vec_front(self->vec);
+    return trs_vec_front(self->vec);
 }
 
 /* ========== mods ========== */
 
-tda_Status tda_pqueue_push(tda_PQueue *self, const void *val) {
+trs_Status trs_pqueue_push(trs_PQueue *self, const void *val) {
     ASSERT_PQUEUE(self);
     assert(val);
 
-    const tda_Status st = tda_vec_push(self->vec, val);
-    if (TDA_STATUS_IS_ERR(st)) {
+    const trs_Status st = trs_vec_push(self->vec, val);
+    if (TRS_STATUS_IS_ERR(st)) {
         return st;
     }
 
     // the new elem sits last, which is exactly where push_heap expects it
-    tda_span_push_heap(tda_vec_to_span_mut(self->vec), self->cmp);
+    trs_span_push_heap(trs_vec_to_span_mut(self->vec), self->cmp);
 
-    return TDA_STATUS_OK;
+    return TRS_STATUS_OK;
 }
 
-void tda_pqueue_pop(tda_PQueue *self) {
+void trs_pqueue_pop(trs_PQueue *self) {
     ASSERT_PQUEUE(self);
-    assert(tda_vec_len(self->vec) > 0);
+    assert(trs_vec_len(self->vec) > 0);
 
     // pop_heap parks the greatest elem last and leaves a heap in front of it; dropping
     // the tail is then the vec's business
-    tda_span_pop_heap(tda_vec_to_span_mut(self->vec), self->cmp);
-    tda_vec_pop(self->vec);
+    trs_span_pop_heap(trs_vec_to_span_mut(self->vec), self->cmp);
+    trs_vec_pop(self->vec);
 }
 
-void tda_pqueue_clear(tda_PQueue *self) {
+void trs_pqueue_clear(trs_PQueue *self) {
     ASSERT_PQUEUE(self);
 
-    tda_vec_clear(self->vec);
+    trs_vec_clear(self->vec);
 }
 
-tda_Status tda_pqueue_reserve(tda_PQueue *self, size_t new_cap) {
+trs_Status trs_pqueue_reserve(trs_PQueue *self, size_t new_cap) {
     ASSERT_PQUEUE(self);
 
-    return tda_vec_reserve(self->vec, new_cap);
+    return trs_vec_reserve(self->vec, new_cap);
 }
 
-tda_Status tda_pqueue_shrink_to_fit(tda_PQueue *self) {
+trs_Status trs_pqueue_shrink_to_fit(trs_PQueue *self) {
     ASSERT_PQUEUE(self);
 
-    return tda_vec_shrink_to_fit(self->vec);
+    return trs_vec_shrink_to_fit(self->vec);
 }
 
-void tda_pqueue_swap(tda_PQueue *self, tda_PQueue *other) {
+void trs_pqueue_swap(trs_PQueue *self, trs_PQueue *other) {
     ASSERT_PQUEUE(self);
     ASSERT_PQUEUE(other);
-    assert(tda_vec_elem_size(self->vec) == tda_vec_elem_size(other->vec));
+    assert(trs_vec_elem_size(self->vec) == trs_vec_elem_size(other->vec));
 
     if (self == other) {
         return;
     }
 
-    tda_vec_swap(self->vec, other->vec);
-    TDA_SWAP(self->cmp, other->cmp);
+    trs_vec_swap(self->vec, other->vec);
+    TRS_SWAP(self->cmp, other->cmp);
 }
 
 /* ========== to span ========== */
 
-tda_Span tda_pqueue_to_span(const tda_PQueue *self) {
+trs_Span trs_pqueue_to_span(const trs_PQueue *self) {
     ASSERT_PQUEUE(self);
 
-    return tda_vec_to_span(self->vec);
+    return trs_vec_to_span(self->vec);
 }
 
 /* ========== print ========== */
 
-void tda_pqueue_fprint(const tda_PQueue *self, FILE *stream, tda_FPrint fprint) {
+void trs_pqueue_fprint(const trs_PQueue *self, FILE *stream, trs_FPrint fprint) {
     ASSERT_PQUEUE(self);
 
-    tda_vec_fprint(self->vec, stream, fprint);
+    trs_vec_fprint(self->vec, stream, fprint);
 }
 
-void tda_pqueue_print(const tda_PQueue *self, tda_FPrint fprint) {
+void trs_pqueue_print(const trs_PQueue *self, trs_FPrint fprint) {
     ASSERT_PQUEUE(self);
 
-    tda_vec_print(self->vec, fprint);
+    trs_vec_print(self->vec, fprint);
 }
 
 /* ========== internals ========== */
 
-static tda_Status wrap(tda_Vec *vec, tda_Cmp cmp, tda_PQueue **out) {
+static trs_Status wrap(trs_Vec *vec, trs_Cmp cmp, trs_PQueue **out) {
     assert(vec);
     assert(cmp);
     assert(out);
 
-    tda_PQueue *obj = tda_alloc(tda_vec_al(vec), sizeof(tda_PQueue));
+    trs_PQueue *obj = trs_alloc(trs_vec_al(vec), sizeof(trs_PQueue));
     if (!obj) {
-        tda_vec_drop(vec);
-        return TDA_STATUS_ERR_NO_MEM;
+        trs_vec_drop(vec);
+        return TRS_STATUS_ERR_NO_MEM;
     }
 
     obj->vec = vec;
@@ -318,5 +318,5 @@ static tda_Status wrap(tda_Vec *vec, tda_Cmp cmp, tda_PQueue **out) {
 
     *out = obj;
 
-    return TDA_STATUS_OK;
+    return TRS_STATUS_OK;
 }

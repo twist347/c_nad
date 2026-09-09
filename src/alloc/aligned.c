@@ -1,4 +1,4 @@
-#include "tda/alloc/aligned.h"
+#include "terse/alloc/aligned.h"
 
 #include "internal/ptr.h"
 
@@ -17,7 +17,7 @@ static void aligned_dealloc_block(void *ctx, void *ptr, size_t size);
 static size_t parent_size(size_t size, size_t alignment);
 
 typedef struct {
-    tda_Al *parent_al;
+    trs_Al *parent_al;
     size_t alignment;
 } AlignedCtx;
 
@@ -28,20 +28,20 @@ typedef struct {
 
 /* ========== lifetime ========== */
 
-tda_Al *tda_al_aligned_new(tda_Al *parent, size_t alignment) {
+trs_Al *trs_al_aligned_new(trs_Al *parent, size_t alignment) {
     assert(parent);
     assert(alignment > 0);
     assert((alignment & (alignment - 1)) == 0);
-    assert(alignment >= TDA_DEFAULT_ALIGNMENT);
+    assert(alignment >= TRS_DEFAULT_ALIGNMENT);
 
-    AlignedCtx *aligned_ctx = tda_alloc(parent, sizeof(AlignedCtx));
+    AlignedCtx *aligned_ctx = trs_alloc(parent, sizeof(AlignedCtx));
     if (!aligned_ctx) {
         return nullptr;
     }
 
-    tda_Al *obj = tda_alloc(parent, sizeof(tda_Al));
+    trs_Al *obj = trs_alloc(parent, sizeof(trs_Al));
     if (!obj) {
-        tda_dealloc(parent, aligned_ctx, sizeof(AlignedCtx));
+        trs_dealloc(parent, aligned_ctx, sizeof(AlignedCtx));
         return nullptr;
     }
 
@@ -57,7 +57,7 @@ tda_Al *tda_al_aligned_new(tda_Al *parent, size_t alignment) {
     return obj;
 }
 
-void tda_al_aligned_drop(tda_Al *self) {
+void trs_al_aligned_drop(trs_Al *self) {
     if (!self) {
         return;
     }
@@ -65,11 +65,11 @@ void tda_al_aligned_drop(tda_Al *self) {
     ASSERT_ALIGNED(self);
 
     AlignedCtx *aligned_ctx = self->ctx;
-    tda_Al *parent_al = aligned_ctx->parent_al;
+    trs_Al *parent_al = aligned_ctx->parent_al;
     assert(parent_al);
 
-    tda_dealloc(parent_al, aligned_ctx, sizeof(AlignedCtx));
-    tda_dealloc(parent_al, self, sizeof(tda_Al));
+    trs_dealloc(parent_al, aligned_ctx, sizeof(AlignedCtx));
+    trs_dealloc(parent_al, self, sizeof(trs_Al));
 }
 
 /* ========== internals ========== */
@@ -88,16 +88,16 @@ static void *aligned_alloc_block(void *ctx, size_t size) {
         return nullptr;
     }
 
-    unsigned char *base = tda_alloc(aligned_ctx->parent_al, parent_size(size, alignment));
+    unsigned char *base = trs_alloc(aligned_ctx->parent_al, parent_size(size, alignment));
     if (!base) {
         return nullptr;
     }
 
-    unsigned char *ptr = tda_ptr_align_up(base + sizeof(void *), alignment);
+    unsigned char *ptr = trs_ptr_align_up(base + sizeof(void *), alignment);
 
     ((void **) ptr)[-1] = base;
 
-    assert(tda_ptr_is_aligned(ptr, alignment));
+    assert(trs_ptr_is_aligned(ptr, alignment));
 
     return ptr;
 }
@@ -111,7 +111,7 @@ static void aligned_dealloc_block(void *ctx, void *ptr, size_t size) {
     void *base = ((void **) ptr)[-1];
     assert((unsigned char *) base <= (unsigned char *) ptr);
 
-    tda_dealloc(aligned_ctx->parent_al, base, parent_size(size, aligned_ctx->alignment));
+    trs_dealloc(aligned_ctx->parent_al, base, parent_size(size, aligned_ctx->alignment));
 }
 
 static size_t parent_size(size_t size, size_t alignment) {
