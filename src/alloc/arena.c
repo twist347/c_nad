@@ -1,6 +1,6 @@
-#include "nad/alloc/arena.h"
+#include "tda/alloc/arena.h"
 
-#include "nad/core/util.h"
+#include "tda/core/util.h"
 
 #include "internal/ptr.h"
 
@@ -20,7 +20,7 @@ static void *arena_calloc(void *ctx, size_t num, size_t size);
 static void arena_dealloc(void *ctx, void *ptr, size_t size);
 
 typedef struct {
-    nad_Al *parent_al;
+    tda_Al *parent_al;
     void *data;
     size_t cap;
     size_t offset;
@@ -33,29 +33,29 @@ typedef struct {
 
 /* ========== lifetime ========== */
 
-nad_Al *nad_al_arena_new(nad_Al *parent, size_t cap) {
+tda_Al *tda_al_arena_new(tda_Al *parent, size_t cap) {
     assert(parent);
     assert(cap > 0);
 
-    void *data = nad_alloc(parent, cap);
+    void *data = tda_alloc(parent, cap);
     if (!data) {
         return nullptr;
     }
 
-    ArenaCtx *arena_ctx = nad_alloc(parent, sizeof(ArenaCtx));
+    ArenaCtx *arena_ctx = tda_alloc(parent, sizeof(ArenaCtx));
     if (!arena_ctx) {
-        nad_dealloc(parent, data, cap);
+        tda_dealloc(parent, data, cap);
         return nullptr;
     }
 
-    nad_Al *obj = nad_alloc(parent, sizeof(nad_Al));
+    tda_Al *obj = tda_alloc(parent, sizeof(tda_Al));
     if (!obj) {
-        nad_dealloc(parent, arena_ctx, sizeof(ArenaCtx));
-        nad_dealloc(parent, data, cap);
+        tda_dealloc(parent, arena_ctx, sizeof(ArenaCtx));
+        tda_dealloc(parent, data, cap);
         return nullptr;
     }
 
-    assert(nad_ptr_is_aligned(data, NAD_DEFAULT_ALIGNMENT));
+    assert(tda_ptr_is_aligned(data, TDA_DEFAULT_ALIGNMENT));
 
     arena_ctx->parent_al = parent;
     arena_ctx->data = data;
@@ -71,7 +71,7 @@ nad_Al *nad_al_arena_new(nad_Al *parent, size_t cap) {
     return obj;
 }
 
-void nad_al_arena_drop(nad_Al *self) {
+void tda_al_arena_drop(tda_Al *self) {
     if (!self) {
         return;
     }
@@ -79,17 +79,17 @@ void nad_al_arena_drop(nad_Al *self) {
     ASSERT_ARENA(self);
 
     ArenaCtx *arena_ctx = self->ctx;
-    nad_Al *parent_al = arena_ctx->parent_al;
+    tda_Al *parent_al = arena_ctx->parent_al;
     assert(parent_al);
 
-    nad_dealloc(parent_al, arena_ctx->data, arena_ctx->cap);
-    nad_dealloc(parent_al, arena_ctx, sizeof(ArenaCtx));
-    nad_dealloc(parent_al, self, sizeof(nad_Al));
+    tda_dealloc(parent_al, arena_ctx->data, arena_ctx->cap);
+    tda_dealloc(parent_al, arena_ctx, sizeof(ArenaCtx));
+    tda_dealloc(parent_al, self, sizeof(tda_Al));
 }
 
 /* ========== mods ========== */
 
-void nad_al_arena_reset(nad_Al *self) {
+void tda_al_arena_reset(tda_Al *self) {
     ASSERT_ARENA(self);
 
     ArenaCtx *arena_ctx = self->ctx;
@@ -98,12 +98,12 @@ void nad_al_arena_reset(nad_Al *self) {
 
 /* ========== stats ========== */
 
-nad_AlArenaStats nad_al_arena_stats(const nad_Al *self) {
+tda_AlArenaStats tda_al_arena_stats(const tda_Al *self) {
     ASSERT_ARENA(self);
 
     const ArenaCtx *arena_ctx = self->ctx;
 
-    return (nad_AlArenaStats){
+    return (tda_AlArenaStats){
         .cap = arena_ctx->cap,
         .used = arena_ctx->offset,
         .available = arena_ctx->cap - arena_ctx->offset,
@@ -121,10 +121,10 @@ static void *arena_alloc(void *ctx, size_t size) {
         return nullptr;
     }
 
-    if (size > SIZE_MAX - (NAD_DEFAULT_ALIGNMENT - 1)) {
+    if (size > SIZE_MAX - (TDA_DEFAULT_ALIGNMENT - 1)) {
         return nullptr;
     }
-    const size_t aligned_size = nad_align_up(size, NAD_DEFAULT_ALIGNMENT);
+    const size_t aligned_size = tda_align_up(size, TDA_DEFAULT_ALIGNMENT);
     size_t end;
     if (ckd_add(&end, arena_ctx->offset, aligned_size) || end > arena_ctx->cap) {
         return nullptr;
@@ -155,7 +155,7 @@ static void *arena_calloc(void *ctx, size_t num, size_t size) {
 static void arena_dealloc(void *ctx, void *ptr, size_t size) {
     // arena doesn't free individual allocations
 
-    NAD_UNUSED(ctx);
-    NAD_UNUSED(ptr);
-    NAD_UNUSED(size);
+    TDA_UNUSED(ctx);
+    TDA_UNUSED(ptr);
+    TDA_UNUSED(size);
 }

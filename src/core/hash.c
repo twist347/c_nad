@@ -1,4 +1,4 @@
-#include "nad/core/hash.h"
+#include "tda/core/hash.h"
 
 #include <assert.h>
 #include <math.h>
@@ -16,7 +16,7 @@ static constexpr uint64_t FMIX64_C2 = UINT64_C(0xc4ceb9fe1a85ec53);
 
 static constexpr uint64_t HASH_GOLDEN_64 = UINT64_C(0x9e3779b97f4a7c15);
 
-// the mixer's seed is deliberately not the constant nad_hash_combine folds in: with both
+// the mixer's seed is deliberately not the constant tda_hash_combine folds in: with both
 // being the golden ratio the two cancelled, and combine(0, 0) landed back on 0
 static constexpr uint64_t HASH_SEED_64 = UINT64_C(0xa0761d6478bd642f);
 
@@ -25,13 +25,13 @@ static constexpr uint32_t NAN_CANON_32 = UINT32_C(0x7fc00000);
 static constexpr uint64_t NAN_CANON_64 = UINT64_C(0x7ff8000000000000);
 
 [[nodiscard]]
-static nad_Hash hash_mix_u64(uint64_t x);
+static tda_Hash hash_mix_u64(uint64_t x);
 
 // every integer type is the same operation: read it, widen it, mix it. Widening a signed
 // type sign-extends, which is a bijection into uint64_t, so equal values stay equal and
 // different ones stay different — all the mixer needs.
 #define DEFINE_HASH_INT(name, T)                          \
-    nad_Hash nad_hash_##name(const void *val) {           \
+    tda_Hash tda_hash_##name(const void *val) {           \
         assert(val);                                      \
         return hash_mix_u64((uint64_t) *(const T *) val); \
     }
@@ -60,7 +60,7 @@ DEFINE_HASH_INT(ptrdiff, ptrdiff_t)
 
 /* ========== floating point ========== */
 
-nad_Hash nad_hash_f32(const void *val) {
+tda_Hash tda_hash_f32(const void *val) {
     assert(val);
 
     float f = *(const float *) val;
@@ -80,7 +80,7 @@ nad_Hash nad_hash_f32(const void *val) {
     return hash_mix_u64(bits);
 }
 
-nad_Hash nad_hash_f64(const void *val) {
+tda_Hash tda_hash_f64(const void *val) {
     assert(val);
 
     double f = *(const double *) val;
@@ -111,7 +111,7 @@ DEFINE_HASH_INT(char, unsigned char)
 // FNV-1a, then the shared mixer: the one form here that cannot be a single mix, since the
 // operand is a sequence. Bytes are read as unsigned char, so char's signedness stays out
 // of the result.
-nad_Hash nad_hash_bytes(const void *data, size_t len) {
+tda_Hash tda_hash_bytes(const void *data, size_t len) {
     assert(data || len == 0);
 
     const unsigned char *bytes = data;
@@ -127,31 +127,31 @@ nad_Hash nad_hash_bytes(const void *data, size_t len) {
 
 /* ========== str ========== */
 
-nad_Hash nad_hash_cstr(const void *val) {
+tda_Hash tda_hash_cstr(const void *val) {
     assert(val);
 
     const char *str = *(const char *const *) val;
 
-    // null is a value of its own, not the empty string — nad_eq_cstr keeps them apart,
+    // null is a value of its own, not the empty string — tda_eq_cstr keeps them apart,
     // so their hashes must be free to differ too
     if (!str) {
         return hash_mix_u64(0);
     }
 
-    return nad_hash_bytes(str, strlen(str));
+    return tda_hash_bytes(str, strlen(str));
 }
 
 /* ========== combine ========== */
 
-nad_Hash nad_hash_combine(nad_Hash a, nad_Hash b) {
-    nad_Hash v = a;
+tda_Hash tda_hash_combine(tda_Hash a, tda_Hash b) {
+    tda_Hash v = a;
     v ^= b + HASH_GOLDEN_64 + (v << 6) + (v >> 2);
     return hash_mix_u64(v);
 }
 
 /* ========== internals ========== */
 
-static nad_Hash hash_mix_u64(uint64_t x) {
+static tda_Hash hash_mix_u64(uint64_t x) {
     x ^= HASH_SEED_64; // fmix64 maps 0 to 0, and 0 is the most common key there is
     x ^= x >> 33;
     x *= FMIX64_C1;

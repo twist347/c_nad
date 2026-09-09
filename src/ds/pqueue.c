@@ -1,8 +1,8 @@
-#include "nad/ds/pqueue.h"
+#include "tda/ds/pqueue.h"
 
-#include "nad/algo/heap.h"
-#include "nad/core/util.h"
-#include "nad/ds/vec.h"
+#include "tda/algo/heap.h"
+#include "tda/core/util.h"
+#include "tda/ds/vec.h"
 
 #include <assert.h>
 
@@ -17,115 +17,115 @@
 // every mutation leaves algo/heap's invariant standing over that buffer. Reusing the vec
 // is what keeps the growth policy, the allocator handling and the copy semantics in one
 // place instead of two.
-struct nad_PQueue {
-    nad_Vec *vec;
-    nad_Cmp cmp;
+struct tda_PQueue {
+    tda_Vec *vec;
+    tda_Cmp cmp;
 };
 
 /// takes ownership of 'vec' either way: on failure it is dropped, not handed back
 [[nodiscard]]
-static nad_Status wrap(nad_Vec *vec, nad_Cmp cmp, nad_PQueue **out);
+static tda_Status wrap(tda_Vec *vec, tda_Cmp cmp, tda_PQueue **out);
 
 /* ========== lifetime ========== */
 
-nad_Status nad_pqueue_new(size_t elem_size, nad_Cmp cmp, nad_Al *al, nad_PQueue **out) {
+tda_Status tda_pqueue_new(size_t elem_size, tda_Cmp cmp, tda_Al *al, tda_PQueue **out) {
     assert(elem_size > 0);
     assert(cmp);
     assert(al);
     assert(out);
 
-    nad_Vec *vec;
-    const nad_Status st = nad_vec_new(elem_size, al, &vec);
-    if (NAD_STATUS_IS_ERR(st)) {
+    tda_Vec *vec;
+    const tda_Status st = tda_vec_new(elem_size, al, &vec);
+    if (TDA_STATUS_IS_ERR(st)) {
         return st;
     }
 
     return wrap(vec, cmp, out);
 }
 
-nad_Status nad_pqueue_new_cap(size_t cap, size_t elem_size, nad_Cmp cmp, nad_Al *al, nad_PQueue **out) {
+tda_Status tda_pqueue_new_cap(size_t cap, size_t elem_size, tda_Cmp cmp, tda_Al *al, tda_PQueue **out) {
     assert(elem_size > 0);
     assert(cmp);
     assert(al);
     assert(out);
 
-    nad_Vec *vec;
-    const nad_Status st = nad_vec_new_cap(cap, elem_size, al, &vec);
-    if (NAD_STATUS_IS_ERR(st)) {
+    tda_Vec *vec;
+    const tda_Status st = tda_vec_new_cap(cap, elem_size, al, &vec);
+    if (TDA_STATUS_IS_ERR(st)) {
         return st;
     }
 
     return wrap(vec, cmp, out);
 }
 
-nad_Status nad_pqueue_from_data(
+tda_Status tda_pqueue_from_data(
     const void *data, size_t len, size_t elem_size,
-    nad_Cmp cmp,
-    nad_Al *al,
-    nad_PQueue **out
+    tda_Cmp cmp,
+    tda_Al *al,
+    tda_PQueue **out
 ) {
     assert(elem_size > 0);
     assert(cmp);
     assert(al);
     assert(out);
 
-    nad_Vec *vec;
-    const nad_Status st = nad_vec_from_data(data, len, elem_size, al, &vec);
-    if (NAD_STATUS_IS_ERR(st)) {
+    tda_Vec *vec;
+    const tda_Status st = tda_vec_from_data(data, len, elem_size, al, &vec);
+    if (TDA_STATUS_IS_ERR(st)) {
         return st;
     }
 
-    nad_span_make_heap(nad_vec_to_span_mut(vec), cmp);
+    tda_span_make_heap(tda_vec_to_span_mut(vec), cmp);
 
     return wrap(vec, cmp, out);
 }
 
-nad_Status nad_pqueue_from_span(nad_Span s, nad_Cmp cmp, nad_Al *al, nad_PQueue **out) {
-    NAD_SPAN_ASSERT(s);
+tda_Status tda_pqueue_from_span(tda_Span s, tda_Cmp cmp, tda_Al *al, tda_PQueue **out) {
+    TDA_SPAN_ASSERT(s);
     assert(cmp);
     assert(al);
     assert(out);
 
-    return nad_pqueue_from_data(s.data, s.len, s.elem_size, cmp, al, out);
+    return tda_pqueue_from_data(s.data, s.len, s.elem_size, cmp, al, out);
 }
 
-void nad_pqueue_drop(nad_PQueue *self) {
+void tda_pqueue_drop(tda_PQueue *self) {
     if (!self) {
         return;
     }
 
     ASSERT_PQUEUE(self);
 
-    nad_Al *al_copy = nad_vec_al(self->vec);
-    nad_vec_drop(self->vec);
-    nad_dealloc(al_copy, self, sizeof(nad_PQueue));
+    tda_Al *al_copy = tda_vec_al(self->vec);
+    tda_vec_drop(self->vec);
+    tda_dealloc(al_copy, self, sizeof(tda_PQueue));
 }
 
-nad_Vec *nad_pqueue_into_vec(nad_PQueue *self) {
+tda_Vec *tda_pqueue_into_vec(tda_PQueue *self) {
     ASSERT_PQUEUE(self);
 
-    nad_Vec *vec = self->vec;
-    nad_dealloc(nad_vec_al(vec), self, sizeof(nad_PQueue));
+    tda_Vec *vec = self->vec;
+    tda_dealloc(tda_vec_al(vec), self, sizeof(tda_PQueue));
 
     return vec;
 }
 
 /* ========== copy ========== */
 
-nad_Status nad_pqueue_copy(const nad_PQueue *self, nad_PQueue **out) {
+tda_Status tda_pqueue_copy(const tda_PQueue *self, tda_PQueue **out) {
     ASSERT_PQUEUE(self);
 
-    return nad_pqueue_copy_with(self, nad_vec_al(self->vec), out);
+    return tda_pqueue_copy_with(self, tda_vec_al(self->vec), out);
 }
 
-nad_Status nad_pqueue_copy_with(const nad_PQueue *self, nad_Al *al, nad_PQueue **out) {
+tda_Status tda_pqueue_copy_with(const tda_PQueue *self, tda_Al *al, tda_PQueue **out) {
     ASSERT_PQUEUE(self);
     assert(al);
     assert(out);
 
-    nad_Vec *vec;
-    const nad_Status st = nad_vec_copy_with(self->vec, al, &vec);
-    if (NAD_STATUS_IS_ERR(st)) {
+    tda_Vec *vec;
+    const tda_Status st = tda_vec_copy_with(self->vec, al, &vec);
+    if (TDA_STATUS_IS_ERR(st)) {
         return st;
     }
 
@@ -133,17 +133,17 @@ nad_Status nad_pqueue_copy_with(const nad_PQueue *self, nad_Al *al, nad_PQueue *
     return wrap(vec, self->cmp, out);
 }
 
-nad_Status nad_pqueue_copy_assign(const nad_PQueue *self, nad_PQueue *other) {
+tda_Status tda_pqueue_copy_assign(const tda_PQueue *self, tda_PQueue *other) {
     ASSERT_PQUEUE(self);
     ASSERT_PQUEUE(other);
-    assert(nad_vec_elem_size(self->vec) == nad_vec_elem_size(other->vec));
+    assert(tda_vec_elem_size(self->vec) == tda_vec_elem_size(other->vec));
 
     if (self == other) {
-        return NAD_STATUS_OK;
+        return TDA_STATUS_OK;
     }
 
-    const nad_Status st = nad_vec_copy_assign(self->vec, other->vec);
-    if (NAD_STATUS_IS_ERR(st)) {
+    const tda_Status st = tda_vec_copy_assign(self->vec, other->vec);
+    if (TDA_STATUS_IS_ERR(st)) {
         return st;
     }
 
@@ -153,20 +153,20 @@ nad_Status nad_pqueue_copy_assign(const nad_PQueue *self, nad_PQueue *other) {
 
     ASSERT_PQUEUE(other);
 
-    return NAD_STATUS_OK;
+    return TDA_STATUS_OK;
 }
 
-nad_Status nad_pqueue_move_assign(nad_PQueue *self, nad_PQueue *other) {
+tda_Status tda_pqueue_move_assign(tda_PQueue *self, tda_PQueue *other) {
     ASSERT_PQUEUE(self);
     ASSERT_PQUEUE(other);
-    assert(nad_vec_elem_size(self->vec) == nad_vec_elem_size(other->vec));
+    assert(tda_vec_elem_size(self->vec) == tda_vec_elem_size(other->vec));
 
     if (self == other) {
-        return NAD_STATUS_OK;
+        return TDA_STATUS_OK;
     }
 
-    const nad_Status st = nad_vec_move_assign(self->vec, other->vec);
-    if (NAD_STATUS_IS_ERR(st)) {
+    const tda_Status st = tda_vec_move_assign(self->vec, other->vec);
+    if (TDA_STATUS_IS_ERR(st)) {
         return st;
     }
 
@@ -176,36 +176,36 @@ nad_Status nad_pqueue_move_assign(nad_PQueue *self, nad_PQueue *other) {
 
     ASSERT_PQUEUE(other);
 
-    return NAD_STATUS_OK;
+    return TDA_STATUS_OK;
 }
 
 /* ========== info ========== */
 
-size_t nad_pqueue_len(const nad_PQueue *self) {
+size_t tda_pqueue_len(const tda_PQueue *self) {
     ASSERT_PQUEUE(self);
 
-    return nad_vec_len(self->vec);
+    return tda_vec_len(self->vec);
 }
 
-size_t nad_pqueue_cap(const nad_PQueue *self) {
+size_t tda_pqueue_cap(const tda_PQueue *self) {
     ASSERT_PQUEUE(self);
 
-    return nad_vec_cap(self->vec);
+    return tda_vec_cap(self->vec);
 }
 
-size_t nad_pqueue_elem_size(const nad_PQueue *self) {
+size_t tda_pqueue_elem_size(const tda_PQueue *self) {
     ASSERT_PQUEUE(self);
 
-    return nad_vec_elem_size(self->vec);
+    return tda_vec_elem_size(self->vec);
 }
 
-nad_Al *nad_pqueue_al(const nad_PQueue *self) {
+tda_Al *tda_pqueue_al(const tda_PQueue *self) {
     ASSERT_PQUEUE(self);
 
-    return nad_vec_al(self->vec);
+    return tda_vec_al(self->vec);
 }
 
-nad_Cmp nad_pqueue_cmp(const nad_PQueue *self) {
+tda_Cmp tda_pqueue_cmp(const tda_PQueue *self) {
     ASSERT_PQUEUE(self);
 
     return self->cmp;
@@ -213,104 +213,104 @@ nad_Cmp nad_pqueue_cmp(const nad_PQueue *self) {
 
 /* ========== access ========== */
 
-const void *nad_pqueue_top(const nad_PQueue *self) {
+const void *tda_pqueue_top(const tda_PQueue *self) {
     ASSERT_PQUEUE(self);
-    assert(nad_vec_len(self->vec) > 0);
+    assert(tda_vec_len(self->vec) > 0);
 
-    return nad_vec_front(self->vec);
+    return tda_vec_front(self->vec);
 }
 
 /* ========== mods ========== */
 
-nad_Status nad_pqueue_push(nad_PQueue *self, const void *val) {
+tda_Status tda_pqueue_push(tda_PQueue *self, const void *val) {
     ASSERT_PQUEUE(self);
     assert(val);
 
-    const nad_Status st = nad_vec_push(self->vec, val);
-    if (NAD_STATUS_IS_ERR(st)) {
+    const tda_Status st = tda_vec_push(self->vec, val);
+    if (TDA_STATUS_IS_ERR(st)) {
         return st;
     }
 
     // the new elem sits last, which is exactly where push_heap expects it
-    nad_span_push_heap(nad_vec_to_span_mut(self->vec), self->cmp);
+    tda_span_push_heap(tda_vec_to_span_mut(self->vec), self->cmp);
 
-    return NAD_STATUS_OK;
+    return TDA_STATUS_OK;
 }
 
-void nad_pqueue_pop(nad_PQueue *self) {
+void tda_pqueue_pop(tda_PQueue *self) {
     ASSERT_PQUEUE(self);
-    assert(nad_vec_len(self->vec) > 0);
+    assert(tda_vec_len(self->vec) > 0);
 
     // pop_heap parks the greatest elem last and leaves a heap in front of it; dropping
     // the tail is then the vec's business
-    nad_span_pop_heap(nad_vec_to_span_mut(self->vec), self->cmp);
-    nad_vec_pop(self->vec);
+    tda_span_pop_heap(tda_vec_to_span_mut(self->vec), self->cmp);
+    tda_vec_pop(self->vec);
 }
 
-void nad_pqueue_clear(nad_PQueue *self) {
+void tda_pqueue_clear(tda_PQueue *self) {
     ASSERT_PQUEUE(self);
 
-    nad_vec_clear(self->vec);
+    tda_vec_clear(self->vec);
 }
 
-nad_Status nad_pqueue_reserve(nad_PQueue *self, size_t new_cap) {
+tda_Status tda_pqueue_reserve(tda_PQueue *self, size_t new_cap) {
     ASSERT_PQUEUE(self);
 
-    return nad_vec_reserve(self->vec, new_cap);
+    return tda_vec_reserve(self->vec, new_cap);
 }
 
-nad_Status nad_pqueue_shrink_to_fit(nad_PQueue *self) {
+tda_Status tda_pqueue_shrink_to_fit(tda_PQueue *self) {
     ASSERT_PQUEUE(self);
 
-    return nad_vec_shrink_to_fit(self->vec);
+    return tda_vec_shrink_to_fit(self->vec);
 }
 
-void nad_pqueue_swap(nad_PQueue *self, nad_PQueue *other) {
+void tda_pqueue_swap(tda_PQueue *self, tda_PQueue *other) {
     ASSERT_PQUEUE(self);
     ASSERT_PQUEUE(other);
-    assert(nad_vec_elem_size(self->vec) == nad_vec_elem_size(other->vec));
+    assert(tda_vec_elem_size(self->vec) == tda_vec_elem_size(other->vec));
 
     if (self == other) {
         return;
     }
 
-    nad_vec_swap(self->vec, other->vec);
-    NAD_SWAP(self->cmp, other->cmp);
+    tda_vec_swap(self->vec, other->vec);
+    TDA_SWAP(self->cmp, other->cmp);
 }
 
 /* ========== to span ========== */
 
-nad_Span nad_pqueue_to_span(const nad_PQueue *self) {
+tda_Span tda_pqueue_to_span(const tda_PQueue *self) {
     ASSERT_PQUEUE(self);
 
-    return nad_vec_to_span(self->vec);
+    return tda_vec_to_span(self->vec);
 }
 
 /* ========== print ========== */
 
-void nad_pqueue_fprint(const nad_PQueue *self, FILE *stream, nad_FPrint fprint) {
+void tda_pqueue_fprint(const tda_PQueue *self, FILE *stream, tda_FPrint fprint) {
     ASSERT_PQUEUE(self);
 
-    nad_vec_fprint(self->vec, stream, fprint);
+    tda_vec_fprint(self->vec, stream, fprint);
 }
 
-void nad_pqueue_print(const nad_PQueue *self, nad_FPrint fprint) {
+void tda_pqueue_print(const tda_PQueue *self, tda_FPrint fprint) {
     ASSERT_PQUEUE(self);
 
-    nad_vec_print(self->vec, fprint);
+    tda_vec_print(self->vec, fprint);
 }
 
 /* ========== internals ========== */
 
-static nad_Status wrap(nad_Vec *vec, nad_Cmp cmp, nad_PQueue **out) {
+static tda_Status wrap(tda_Vec *vec, tda_Cmp cmp, tda_PQueue **out) {
     assert(vec);
     assert(cmp);
     assert(out);
 
-    nad_PQueue *obj = nad_alloc(nad_vec_al(vec), sizeof(nad_PQueue));
+    tda_PQueue *obj = tda_alloc(tda_vec_al(vec), sizeof(tda_PQueue));
     if (!obj) {
-        nad_vec_drop(vec);
-        return NAD_STATUS_ERR_NO_MEM;
+        tda_vec_drop(vec);
+        return TDA_STATUS_ERR_NO_MEM;
     }
 
     obj->vec = vec;
@@ -318,5 +318,5 @@ static nad_Status wrap(nad_Vec *vec, nad_Cmp cmp, nad_PQueue **out) {
 
     *out = obj;
 
-    return NAD_STATUS_OK;
+    return TDA_STATUS_OK;
 }

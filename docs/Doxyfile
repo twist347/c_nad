@@ -1,7 +1,7 @@
 # doxygen docs/Doxyfile   (from the repo root) -> build-docs/html/index.html
 
-PROJECT_NAME           = nadc
-PROJECT_BRIEF          = "naive algorithms and data structures in C23"
+PROJECT_NAME           = tda
+PROJECT_BRIEF          = "taut data structures and algorithms in C23"
 OUTPUT_DIRECTORY       = build-docs
 
 INPUT                  = include README.md docs/conventions.md docs/modules.dox
@@ -20,10 +20,10 @@ BRIEF_MEMBER_DESC      = NO
 # @bigo{n} -> a "Complexity: O(n)" paragraph. ^^ is a newline
 ALIASES                = "bigo{1}=@par Complexity^^O(\1)"
 
-# drop NAD_API from the signatures shown; all three lines are needed for that
+# drop TDA_API from the signatures shown; all three lines are needed for that
 MACRO_EXPANSION        = YES
 EXPAND_ONLY_PREDEF     = YES
-PREDEFINED             = NAD_API=
+PREDEFINED             = TDA_API=
 
 QUIET                  = YES
 WARN_NO_PARAMDOC       = YES

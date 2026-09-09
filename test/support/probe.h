@@ -1,6 +1,6 @@
 #pragma once
 
-#include "nad/alloc/alloc.h"
+#include "tda/alloc/alloc.h"
 
 #include <assert.h>
 #include <stdint.h>
@@ -20,13 +20,13 @@ typedef struct {
     size_t last_alloc_size;
     size_t last_dealloc_size;
     size_t fail_after; // requests served before the probe starts refusing
-} nad_TestProbe;
+} tda_TestProbe;
 
 /* ========== info ========== */
 
 /// every request that may hand out memory, in one number
 [[nodiscard]]
-static inline size_t nad_test_probe_requests(const nad_TestProbe *self) {
+static inline size_t tda_test_probe_requests(const tda_TestProbe *self) {
     assert(self);
 
     return self->alloc_calls + self->calloc_calls + self->realloc_calls;
@@ -34,33 +34,33 @@ static inline size_t nad_test_probe_requests(const nad_TestProbe *self) {
 
 /* ========== mods ========== */
 
-static inline void nad_test_probe_reset(nad_TestProbe *self) {
+static inline void tda_test_probe_reset(tda_TestProbe *self) {
     assert(self);
 
-    *self = (nad_TestProbe){.fail_after = SIZE_MAX};
+    *self = (tda_TestProbe){.fail_after = SIZE_MAX};
 }
 
 /// lets the next 'n' requests through and refuses the one after them
-static inline void nad_test_probe_fail_after_next(nad_TestProbe *self, size_t n) {
+static inline void tda_test_probe_fail_after_next(tda_TestProbe *self, size_t n) {
     assert(self);
 
-    self->fail_after = nad_test_probe_requests(self) + n;
+    self->fail_after = tda_test_probe_requests(self) + n;
 }
 
 /* ========== hooks ========== */
 
 [[nodiscard]]
-static inline bool nad_test_probe_refuses_(nad_TestProbe *self) {
-    return nad_test_probe_requests(self) > self->fail_after;
+static inline bool tda_test_probe_refuses_(tda_TestProbe *self) {
+    return tda_test_probe_requests(self) > self->fail_after;
 }
 
 [[nodiscard]]
-static inline void *nad_test_probe_alloc_(void *ctx, size_t size) {
-    nad_TestProbe *self = ctx;
+static inline void *tda_test_probe_alloc_(void *ctx, size_t size) {
+    tda_TestProbe *self = ctx;
     ++self->alloc_calls;
     self->last_alloc_size = size;
 
-    if (nad_test_probe_refuses_(self)) {
+    if (tda_test_probe_refuses_(self)) {
         return nullptr;
     }
 
@@ -72,12 +72,12 @@ static inline void *nad_test_probe_alloc_(void *ctx, size_t size) {
 }
 
 [[nodiscard]]
-static inline void *nad_test_probe_calloc_(void *ctx, size_t num, size_t size) {
-    nad_TestProbe *self = ctx;
+static inline void *tda_test_probe_calloc_(void *ctx, size_t num, size_t size) {
+    tda_TestProbe *self = ctx;
     ++self->calloc_calls;
     self->last_alloc_size = num * size;
 
-    if (nad_test_probe_refuses_(self)) {
+    if (tda_test_probe_refuses_(self)) {
         return nullptr;
     }
 
@@ -89,14 +89,14 @@ static inline void *nad_test_probe_calloc_(void *ctx, size_t num, size_t size) {
 }
 
 [[nodiscard]]
-static inline void *nad_test_probe_realloc_(void *ctx, void *ptr, size_t old_size, size_t new_size) {
-    nad_TestProbe *self = ctx;
+static inline void *tda_test_probe_realloc_(void *ctx, void *ptr, size_t old_size, size_t new_size) {
+    tda_TestProbe *self = ctx;
     ++self->realloc_calls;
     (void) old_size;
 
     // the wrapper never passes new_size == 0 down here
-    if (nad_test_probe_refuses_(self)) {
-        return nullptr; // ptr stays valid, as nad_realloc promises
+    if (tda_test_probe_refuses_(self)) {
+        return nullptr; // ptr stays valid, as tda_realloc promises
     }
 
     void *new_ptr = realloc(ptr, new_size);
@@ -106,8 +106,8 @@ static inline void *nad_test_probe_realloc_(void *ctx, void *ptr, size_t old_siz
     return new_ptr;
 }
 
-static inline void nad_test_probe_dealloc_(void *ctx, void *ptr, size_t size) {
-    nad_TestProbe *self = ctx;
+static inline void tda_test_probe_dealloc_(void *ctx, void *ptr, size_t size) {
+    tda_TestProbe *self = ctx;
     assert(ptr); // the wrapper filters nullptr out
 
     ++self->dealloc_calls;
@@ -119,30 +119,30 @@ static inline void nad_test_probe_dealloc_(void *ctx, void *ptr, size_t size) {
 
 /* ========== allocators ========== */
 
-/// no calloc, no realloc — nad_calloc/nad_realloc must synthesize them
+/// no calloc, no realloc — tda_calloc/tda_realloc must synthesize them
 [[nodiscard]]
-static inline nad_Al nad_test_probe_bare(nad_TestProbe *self) {
+static inline tda_Al tda_test_probe_bare(tda_TestProbe *self) {
     assert(self);
 
-    return (nad_Al){
+    return (tda_Al){
         .ctx = self,
-        .alloc = nad_test_probe_alloc_,
+        .alloc = tda_test_probe_alloc_,
         .calloc = nullptr,
         .realloc = nullptr,
-        .dealloc = nad_test_probe_dealloc_,
+        .dealloc = tda_test_probe_dealloc_,
     };
 }
 
 /// all four hooks — the wrappers must prefer these over their fallbacks
 [[nodiscard]]
-static inline nad_Al nad_test_probe_full(nad_TestProbe *self) {
+static inline tda_Al tda_test_probe_full(tda_TestProbe *self) {
     assert(self);
 
-    return (nad_Al){
+    return (tda_Al){
         .ctx = self,
-        .alloc = nad_test_probe_alloc_,
-        .calloc = nad_test_probe_calloc_,
-        .realloc = nad_test_probe_realloc_,
-        .dealloc = nad_test_probe_dealloc_,
+        .alloc = tda_test_probe_alloc_,
+        .calloc = tda_test_probe_calloc_,
+        .realloc = tda_test_probe_realloc_,
+        .dealloc = tda_test_probe_dealloc_,
     };
 }

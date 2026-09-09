@@ -1,6 +1,6 @@
 #pragma once
 
-#include "nad/core/util.h"
+#include "tda/core/util.h"
 
 #include <assert.h>
 #include <stddef.h>
@@ -9,7 +9,7 @@
 /* ========== byte-level pointer arithmetic ========== */
 
 [[nodiscard]]
-static inline const unsigned char *nad_byte_offset(const void *base, size_t stride, size_t n) {
+static inline const unsigned char *tda_byte_offset(const void *base, size_t stride, size_t n) {
     assert(base || n == 0);
     assert(stride > 0);
 
@@ -17,7 +17,7 @@ static inline const unsigned char *nad_byte_offset(const void *base, size_t stri
 }
 
 [[nodiscard]]
-static inline unsigned char *nad_byte_offset_mut(void *base, size_t stride, size_t n) {
+static inline unsigned char *tda_byte_offset_mut(void *base, size_t stride, size_t n) {
     assert(base || n == 0);
     assert(stride > 0);
 
@@ -25,7 +25,7 @@ static inline unsigned char *nad_byte_offset_mut(void *base, size_t stride, size
 }
 
 [[nodiscard]]
-static inline ptrdiff_t nad_byte_diff(const void *a, const void *b) {
+static inline ptrdiff_t tda_byte_diff(const void *a, const void *b) {
     assert(a);
     assert(b);
 
@@ -33,12 +33,12 @@ static inline ptrdiff_t nad_byte_diff(const void *a, const void *b) {
 }
 
 [[nodiscard]]
-static inline size_t nad_ptr_distance(const void *a, const void *b, size_t stride) {
+static inline size_t tda_ptr_distance(const void *a, const void *b, size_t stride) {
     assert(a);
     assert(b);
     assert(stride > 0);
 
-    const ptrdiff_t diff = nad_byte_diff(a, b);
+    const ptrdiff_t diff = tda_byte_diff(a, b);
     assert(diff >= 0);
     assert((size_t) diff % stride == 0);
 
@@ -49,10 +49,10 @@ static inline size_t nad_ptr_distance(const void *a, const void *b, size_t strid
 
 /// what every allocator here hands out when nothing wider is asked for: the alignment
 /// malloc itself promises, and the floor under alloc/aligned's parameter
-static constexpr size_t NAD_DEFAULT_ALIGNMENT = alignof(max_align_t);
+static constexpr size_t TDA_DEFAULT_ALIGNMENT = alignof(max_align_t);
 
 [[nodiscard]]
-static inline size_t nad_align_up(size_t val, size_t alignment) {
+static inline size_t tda_align_up(size_t val, size_t alignment) {
     assert(alignment > 0);
     assert((alignment & (alignment - 1)) == 0);
     assert(val <= SIZE_MAX - (alignment - 1));
@@ -61,7 +61,7 @@ static inline size_t nad_align_up(size_t val, size_t alignment) {
 }
 
 [[nodiscard]]
-static inline size_t nad_align_down(size_t val, size_t alignment) {
+static inline size_t tda_align_down(size_t val, size_t alignment) {
     assert(alignment > 0);
     assert((alignment & (alignment - 1)) == 0);
 
@@ -72,7 +72,7 @@ static inline size_t nad_align_down(size_t val, size_t alignment) {
 /// in uintptr_t: spelled over size_t it would be a narrower type wherever the two differ,
 /// and the address would be cut down instead of rounded up
 [[nodiscard]]
-static inline void *nad_ptr_align_up(void *ptr, size_t alignment) {
+static inline void *tda_ptr_align_up(void *ptr, size_t alignment) {
     assert(ptr);
     assert(alignment > 0);
     assert((alignment & (alignment - 1)) == 0);
@@ -84,7 +84,7 @@ static inline void *nad_ptr_align_up(void *ptr, size_t alignment) {
 }
 
 [[nodiscard]]
-static inline bool nad_ptr_is_aligned(const void *ptr, size_t alignment) {
+static inline bool tda_ptr_is_aligned(const void *ptr, size_t alignment) {
     assert(ptr);
     assert(alignment > 0);
     assert((alignment & (alignment - 1)) == 0);
@@ -92,13 +92,13 @@ static inline bool nad_ptr_is_aligned(const void *ptr, size_t alignment) {
     return ((uintptr_t) ptr & (alignment - 1)) == 0;
 }
 
-static inline void nad_bytes_swap(void *a, void *b, size_t n) {
+static inline void tda_bytes_swap(void *a, void *b, size_t n) {
     assert(a);
     assert(b);
 
     unsigned char *pa = a;
     unsigned char *pb = b;
     for (size_t i = 0; i < n; ++i) {
-        NAD_SWAP(pa[i], pb[i]);
+        TDA_SWAP(pa[i], pb[i]);
     }
 }

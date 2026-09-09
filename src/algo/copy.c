@@ -1,11 +1,11 @@
-#include "nad/algo/copy.h"
+#include "tda/algo/copy.h"
 
 #include <assert.h>
 #include <string.h>
 
-void nad_span_copy(nad_SpanMut dst, nad_Span src) {
-    NAD_SPAN_ASSERT(dst);
-    NAD_SPAN_ASSERT(src);
+void tda_span_copy(tda_SpanMut dst, tda_Span src) {
+    TDA_SPAN_ASSERT(dst);
+    TDA_SPAN_ASSERT(src);
     assert(dst.elem_size == src.elem_size);
     assert(dst.len == src.len);
 
@@ -16,9 +16,9 @@ void nad_span_copy(nad_SpanMut dst, nad_Span src) {
     memcpy(dst.data, src.data, dst.len * dst.elem_size);
 }
 
-size_t nad_span_copy_if(nad_SpanMut dst, nad_Span src, nad_Pred pred, void *ctx) {
-    NAD_SPAN_ASSERT(dst);
-    NAD_SPAN_ASSERT(src);
+size_t tda_span_copy_if(tda_SpanMut dst, tda_Span src, tda_Pred pred, void *ctx) {
+    TDA_SPAN_ASSERT(dst);
+    TDA_SPAN_ASSERT(src);
     assert(dst.elem_size == src.elem_size);
     assert(dst.len >= src.len);
     assert(pred);
@@ -26,9 +26,9 @@ size_t nad_span_copy_if(nad_SpanMut dst, nad_Span src, nad_Pred pred, void *ctx)
     size_t write = 0;
 
     for (size_t read = 0; read < src.len; ++read) {
-        const void *cur = nad_span_get(src, read);
+        const void *cur = tda_span_get(src, read);
         if (pred(cur, ctx)) {
-            memcpy(nad_span_get_mut(dst, write), cur, dst.elem_size);
+            memcpy(tda_span_get_mut(dst, write), cur, dst.elem_size);
             ++write;
         }
     }
@@ -36,9 +36,9 @@ size_t nad_span_copy_if(nad_SpanMut dst, nad_Span src, nad_Pred pred, void *ctx)
     return write;
 }
 
-void nad_span_copy_overlapping(nad_SpanMut dst, nad_Span src) {
-    NAD_SPAN_ASSERT(dst);
-    NAD_SPAN_ASSERT(src);
+void tda_span_copy_overlapping(tda_SpanMut dst, tda_Span src) {
+    TDA_SPAN_ASSERT(dst);
+    TDA_SPAN_ASSERT(src);
     assert(dst.elem_size == src.elem_size);
     assert(dst.len == src.len);
 

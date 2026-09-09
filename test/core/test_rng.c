@@ -1,4 +1,4 @@
-#include "nad/core/rng.h"
+#include "tda/core/rng.h"
 
 #include <unity.h>
 
@@ -39,40 +39,40 @@ static void test_rng_matches_the_reference_stream() {
         UINT64_C(0xcb231c3874846a73),
     };
 
-    nad_Rng rng = nad_rng_from_seed(0);
+    tda_Rng rng = tda_rng_from_seed(0);
     for (size_t i = 0; i < sizeof seed_0 / sizeof *seed_0; ++i) {
-        TEST_ASSERT_EQUAL_UINT64(seed_0[i], nad_rng_u64(&rng));
+        TEST_ASSERT_EQUAL_UINT64(seed_0[i], tda_rng_u64(&rng));
     }
 
-    rng = nad_rng_from_seed(42);
+    rng = tda_rng_from_seed(42);
     for (size_t i = 0; i < sizeof seed_42 / sizeof *seed_42; ++i) {
-        TEST_ASSERT_EQUAL_UINT64(seed_42[i], nad_rng_u64(&rng));
+        TEST_ASSERT_EQUAL_UINT64(seed_42[i], tda_rng_u64(&rng));
     }
 }
 
 // what the whole module is for: a failure that only happens on the 4000th draw can be
 // replayed
 static void test_rng_replays_the_same_seed() {
-    nad_Rng a = nad_rng_from_seed(12345);
-    nad_Rng b = nad_rng_from_seed(12345);
+    tda_Rng a = tda_rng_from_seed(12345);
+    tda_Rng b = tda_rng_from_seed(12345);
 
     for (size_t i = 0; i < 1000; ++i) {
-        TEST_ASSERT_EQUAL_UINT64(nad_rng_u64(&a), nad_rng_u64(&b));
+        TEST_ASSERT_EQUAL_UINT64(tda_rng_u64(&a), tda_rng_u64(&b));
     }
 }
 
 // seed 0 is the one a hand-rolled xorshift would sit on forever; SplitMix64 is what makes
 // it as good a seed as any
 static void test_rng_takes_zero_as_a_seed() {
-    nad_Rng zero = nad_rng_from_seed(0);
-    nad_Rng one = nad_rng_from_seed(1);
+    tda_Rng zero = tda_rng_from_seed(0);
+    tda_Rng one = tda_rng_from_seed(1);
 
     size_t agreements = 0;
     for (size_t i = 0; i < 100; ++i) {
-        const uint64_t val = nad_rng_u64(&zero);
+        const uint64_t val = tda_rng_u64(&zero);
         TEST_ASSERT_NOT_EQUAL_UINT64(0, val);
 
-        if (val == nad_rng_u64(&one)) {
+        if (val == tda_rng_u64(&one)) {
             ++agreements;
         }
     }
@@ -82,35 +82,35 @@ static void test_rng_takes_zero_as_a_seed() {
 
 // the struct is transparent, so a copy is a fork of the stream — both halves replay
 static void test_rng_copies_as_a_value() {
-    nad_Rng rng = nad_rng_from_seed(7);
+    tda_Rng rng = tda_rng_from_seed(7);
     for (size_t i = 0; i < 10; ++i) {
-        (void) nad_rng_u64(&rng);
+        (void) tda_rng_u64(&rng);
     }
 
-    nad_Rng fork = rng;
+    tda_Rng fork = rng;
     for (size_t i = 0; i < 100; ++i) {
-        TEST_ASSERT_EQUAL_UINT64(nad_rng_u64(&rng), nad_rng_u64(&fork));
+        TEST_ASSERT_EQUAL_UINT64(tda_rng_u64(&rng), tda_rng_u64(&fork));
     }
 }
 
 // u32 is the top half of a whole draw, so it must both replay and advance the generator
 // exactly as u64 does — and it must not be the low half, which is the weaker one here
 static void test_rng_u32_is_the_top_half_of_a_draw() {
-    nad_Rng a = nad_rng_from_seed(12345);
-    nad_Rng b = nad_rng_from_seed(12345);
+    tda_Rng a = tda_rng_from_seed(12345);
+    tda_Rng b = tda_rng_from_seed(12345);
 
     for (size_t i = 0; i < 100; ++i) {
-        TEST_ASSERT_EQUAL_UINT32((uint32_t) (nad_rng_u64(&a) >> 32), nad_rng_u32(&b));
+        TEST_ASSERT_EQUAL_UINT32((uint32_t) (tda_rng_u64(&a) >> 32), tda_rng_u32(&b));
     }
 }
 
 // a draw over the whole width has to reach both ends of it
 static void test_rng_u32_takes_the_full_width() {
-    nad_Rng rng = nad_rng_from_seed(1);
+    tda_Rng rng = tda_rng_from_seed(1);
 
     uint32_t seen_bits = 0;
     for (size_t i = 0; i < 200; ++i) {
-        seen_bits |= nad_rng_u32(&rng);
+        seen_bits |= tda_rng_u32(&rng);
     }
 
     TEST_ASSERT_EQUAL_HEX32(UINT32_MAX, seen_bits);
@@ -119,35 +119,35 @@ static void test_rng_u32_takes_the_full_width() {
 /* ========== bounded ints ========== */
 
 static void test_rng_u64_max_stays_in_range() {
-    nad_Rng rng = nad_rng_from_seed(1);
+    tda_Rng rng = tda_rng_from_seed(1);
 
     static constexpr uint64_t maxes[] = {0, 1, 2, 6, 7, 8, 999, UINT64_C(1) << 40};
 
     for (size_t m = 0; m < sizeof maxes / sizeof *maxes; ++m) {
         for (size_t i = 0; i < 2000; ++i) {
-            TEST_ASSERT_TRUE(nad_rng_u64_max(&rng, maxes[m]) <= maxes[m]);
+            TEST_ASSERT_TRUE(tda_rng_u64_max(&rng, maxes[m]) <= maxes[m]);
         }
     }
 }
 
 // the whole width is the one bound with nothing to reject and no range to compute
 static void test_rng_u64_max_takes_the_full_width() {
-    nad_Rng bounded = nad_rng_from_seed(99);
-    nad_Rng raw = nad_rng_from_seed(99);
+    tda_Rng bounded = tda_rng_from_seed(99);
+    tda_Rng raw = tda_rng_from_seed(99);
 
     for (size_t i = 0; i < 100; ++i) {
-        TEST_ASSERT_EQUAL_UINT64(nad_rng_u64(&raw), nad_rng_u64_max(&bounded, UINT64_MAX));
+        TEST_ASSERT_EQUAL_UINT64(tda_rng_u64(&raw), tda_rng_u64_max(&bounded, UINT64_MAX));
     }
 }
 
 static void test_rng_u32_max_stays_in_range() {
-    nad_Rng rng = nad_rng_from_seed(2);
+    tda_Rng rng = tda_rng_from_seed(2);
 
     static constexpr uint32_t maxes[] = {0, 1, 5, 255, 256, UINT32_MAX};
 
     for (size_t m = 0; m < sizeof maxes / sizeof *maxes; ++m) {
         for (size_t i = 0; i < 2000; ++i) {
-            TEST_ASSERT_TRUE(nad_rng_u32_max(&rng, maxes[m]) <= maxes[m]);
+            TEST_ASSERT_TRUE(tda_rng_u32_max(&rng, maxes[m]) <= maxes[m]);
         }
     }
 }
@@ -161,11 +161,11 @@ static void test_rng_u32_max_stays_in_range() {
 // rejection earns its keep at bounds near the top of the range, where the same skew is
 // the difference between uniform and twice as likely.
 static void test_rng_u64_max_is_flat_over_a_bound_that_does_not_divide_the_width() {
-    nad_Rng rng = nad_rng_from_seed(4);
+    tda_Rng rng = tda_rng_from_seed(4);
 
     size_t buckets[3] = {0};
     for (size_t i = 0; i < TRIALS; ++i) {
-        ++buckets[nad_rng_u64_max(&rng, 2)];
+        ++buckets[tda_rng_u64_max(&rng, 2)];
     }
 
     const double expected = (double) TRIALS / 3.0;
@@ -182,11 +182,11 @@ static void test_rng_u64_max_is_flat_over_a_bound_that_does_not_divide_the_width
 static void test_rng_u64_max_rejects_where_the_range_does_not_fit() {
     static constexpr uint64_t max = (UINT64_MAX / 3) * 2;
 
-    nad_Rng rng = nad_rng_from_seed(17);
+    tda_Rng rng = tda_rng_from_seed(17);
     size_t even = 0;
 
     for (size_t i = 0; i < TRIALS; ++i) {
-        even += (nad_rng_u64_max(&rng, max) & 1) == 0 ? 1 : 0;
+        even += (tda_rng_u64_max(&rng, max) & 1) == 0 ? 1 : 0;
     }
 
     const double expected = (double) TRIALS / 2.0;
@@ -194,15 +194,15 @@ static void test_rng_u64_max_rejects_where_the_range_does_not_fit() {
 }
 
 static void test_rng_idx_covers_every_position() {
-    nad_Rng rng = nad_rng_from_seed(5);
+    tda_Rng rng = tda_rng_from_seed(5);
 
     for (size_t i = 0; i < 100; ++i) {
-        TEST_ASSERT_EQUAL_size_t(0, nad_rng_idx(&rng, 1));
+        TEST_ASSERT_EQUAL_size_t(0, tda_rng_idx(&rng, 1));
     }
 
     size_t buckets[4] = {0};
     for (size_t i = 0; i < TRIALS; ++i) {
-        const size_t idx = nad_rng_idx(&rng, 4);
+        const size_t idx = tda_rng_idx(&rng, 4);
         TEST_ASSERT_TRUE(idx < 4);
         ++buckets[idx];
     }
@@ -214,16 +214,16 @@ static void test_rng_idx_covers_every_position() {
 }
 
 static void test_rng_i32_range_holds_its_ends() {
-    nad_Rng rng = nad_rng_from_seed(6);
+    tda_Rng rng = tda_rng_from_seed(6);
 
     for (size_t i = 0; i < 100; ++i) {
-        TEST_ASSERT_EQUAL_INT32(-7, nad_rng_i32_range(&rng, -7, -7));
+        TEST_ASSERT_EQUAL_INT32(-7, tda_rng_i32_range(&rng, -7, -7));
     }
 
     bool saw_lo = false;
     bool saw_hi = false;
     for (size_t i = 0; i < 1000; ++i) {
-        const int32_t val = nad_rng_i32_range(&rng, -2, 2);
+        const int32_t val = tda_rng_i32_range(&rng, -2, 2);
         TEST_ASSERT_TRUE(val >= -2 && val <= 2);
 
         saw_lo = saw_lo || val == -2;
@@ -238,13 +238,13 @@ static void test_rng_i32_range_holds_its_ends() {
 // the width of the full range overflows an int32_t and only fits unsigned, which is why
 // the implementation subtracts there
 static void test_rng_i32_range_survives_the_whole_width() {
-    nad_Rng rng = nad_rng_from_seed(8);
+    tda_Rng rng = tda_rng_from_seed(8);
 
     bool saw_negative = false;
     bool saw_positive = false;
 
     for (size_t i = 0; i < 1000; ++i) {
-        const int32_t val = nad_rng_i32_range(&rng, INT32_MIN, INT32_MAX);
+        const int32_t val = tda_rng_i32_range(&rng, INT32_MIN, INT32_MAX);
         saw_negative = saw_negative || val < 0;
         saw_positive = saw_positive || val > 0;
     }
@@ -254,17 +254,17 @@ static void test_rng_i32_range_survives_the_whole_width() {
 }
 
 static void test_rng_i64_range_survives_the_whole_width() {
-    nad_Rng rng = nad_rng_from_seed(9);
+    tda_Rng rng = tda_rng_from_seed(9);
 
     for (size_t i = 0; i < 100; ++i) {
-        TEST_ASSERT_EQUAL_INT64(42, nad_rng_i64_range(&rng, 42, 42));
+        TEST_ASSERT_EQUAL_INT64(42, tda_rng_i64_range(&rng, 42, 42));
     }
 
     bool saw_negative = false;
     bool saw_positive = false;
 
     for (size_t i = 0; i < 1000; ++i) {
-        const int64_t val = nad_rng_i64_range(&rng, INT64_MIN, INT64_MAX);
+        const int64_t val = tda_rng_i64_range(&rng, INT64_MIN, INT64_MAX);
         saw_negative = saw_negative || val < 0;
         saw_positive = saw_positive || val > 0;
     }
@@ -276,13 +276,13 @@ static void test_rng_i64_range_survives_the_whole_width() {
 /* ========== floats ========== */
 
 static void test_rng_f64_stays_below_one() {
-    nad_Rng rng = nad_rng_from_seed(10);
+    tda_Rng rng = tda_rng_from_seed(10);
 
     double lowest = 1.0;
     double highest = 0.0;
 
     for (size_t i = 0; i < TRIALS; ++i) {
-        const double val = nad_rng_f64(&rng);
+        const double val = tda_rng_f64(&rng);
         TEST_ASSERT_TRUE(val >= 0.0 && val < 1.0);
 
         lowest = val < lowest ? val : lowest;
@@ -295,20 +295,20 @@ static void test_rng_f64_stays_below_one() {
 }
 
 static void test_rng_f32_stays_below_one() {
-    nad_Rng rng = nad_rng_from_seed(11);
+    tda_Rng rng = tda_rng_from_seed(11);
 
     for (size_t i = 0; i < TRIALS; ++i) {
-        const float val = nad_rng_f32(&rng);
+        const float val = tda_rng_f32(&rng);
         TEST_ASSERT_TRUE(val >= 0.0f && val < 1.0f);
     }
 }
 
 static void test_rng_f64_spreads_evenly() {
-    nad_Rng rng = nad_rng_from_seed(12);
+    tda_Rng rng = tda_rng_from_seed(12);
 
     size_t buckets[10] = {0};
     for (size_t i = 0; i < TRIALS; ++i) {
-        ++buckets[(size_t) (nad_rng_f64(&rng) * 10.0)];
+        ++buckets[(size_t) (tda_rng_f64(&rng) * 10.0)];
     }
 
     const double expected = (double) TRIALS / 10.0;
@@ -318,49 +318,49 @@ static void test_rng_f64_spreads_evenly() {
 }
 
 static void test_rng_f64_range_stays_half_open() {
-    nad_Rng rng = nad_rng_from_seed(13);
+    tda_Rng rng = tda_rng_from_seed(13);
 
     for (size_t i = 0; i < TRIALS; ++i) {
-        const double val = nad_rng_f64_range(&rng, -2.5, 7.5);
+        const double val = tda_rng_f64_range(&rng, -2.5, 7.5);
         TEST_ASSERT_TRUE(val >= -2.5 && val < 7.5);
     }
 
     // a width no int could hold, and one narrow enough that the scaling rounds
     for (size_t i = 0; i < 1000; ++i) {
-        const double wide = nad_rng_f64_range(&rng, -1e300, 1e300);
+        const double wide = tda_rng_f64_range(&rng, -1e300, 1e300);
         TEST_ASSERT_TRUE(wide >= -1e300 && wide < 1e300);
 
-        const double narrow = nad_rng_f64_range(&rng, 1.0, nextafter(1.0, 2.0));
+        const double narrow = tda_rng_f64_range(&rng, 1.0, nextafter(1.0, 2.0));
         TEST_ASSERT_TRUE(narrow >= 1.0 && narrow < nextafter(1.0, 2.0));
     }
 }
 
 // the empty range names one value and no other, so that is what it gives back
 static void test_rng_f64_range_collapses_when_the_ends_meet() {
-    nad_Rng rng = nad_rng_from_seed(14);
+    tda_Rng rng = tda_rng_from_seed(14);
 
     for (size_t i = 0; i < 100; ++i) {
-        TEST_ASSERT_EQUAL_DOUBLE(3.5, nad_rng_f64_range(&rng, 3.5, 3.5));
+        TEST_ASSERT_EQUAL_DOUBLE(3.5, tda_rng_f64_range(&rng, 3.5, 3.5));
     }
 }
 
 static void test_rng_f32_range_stays_half_open() {
-    nad_Rng rng = nad_rng_from_seed(15);
+    tda_Rng rng = tda_rng_from_seed(15);
 
     for (size_t i = 0; i < TRIALS; ++i) {
-        const float val = nad_rng_f32_range(&rng, -1.0f, 1.0f);
+        const float val = tda_rng_f32_range(&rng, -1.0f, 1.0f);
         TEST_ASSERT_TRUE(val >= -1.0f && val < 1.0f);
     }
 
     for (size_t i = 0; i < 100; ++i) {
-        TEST_ASSERT_EQUAL_FLOAT(0.25f, nad_rng_f32_range(&rng, 0.25f, 0.25f));
+        TEST_ASSERT_EQUAL_FLOAT(0.25f, tda_rng_f32_range(&rng, 0.25f, 0.25f));
     }
 }
 
 /* ========== bool ========== */
 
 static void test_rng_bool_is_a_fair_coin() {
-    nad_Rng rng = nad_rng_from_seed(16);
+    tda_Rng rng = tda_rng_from_seed(16);
 
     size_t heads = 0;
     size_t longest_run = 0;
@@ -368,7 +368,7 @@ static void test_rng_bool_is_a_fair_coin() {
     bool previous = false;
 
     for (size_t i = 0; i < TRIALS; ++i) {
-        const bool val = nad_rng_bool(&rng);
+        const bool val = tda_rng_bool(&rng);
         heads += val ? 1 : 0;
 
         run = (i > 0 && val == previous) ? run + 1 : 1;

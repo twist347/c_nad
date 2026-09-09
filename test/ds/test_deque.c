@@ -1,10 +1,10 @@
-#include "nad/ds/deque.h"
-#include "nad/algo/sort.h"
-#include "nad/alloc/arena.h"
-#include "nad/alloc/default.h"
-#include "nad/core/cmp.h"
-#include "nad/core/print.h"
-#include "nad/core/util.h"
+#include "tda/ds/deque.h"
+#include "tda/algo/sort.h"
+#include "tda/alloc/arena.h"
+#include "tda/alloc/default.h"
+#include "tda/core/cmp.h"
+#include "tda/core/print.h"
+#include "tda/core/util.h"
 
 #include "support/arena.h"
 #include "support/pair.h"
@@ -28,31 +28,31 @@ void tearDown() {
 // Both point into the same block, so the comparison is meaningful — and it lets a
 // test state that it really is exercising a split ring instead of assuming it
 [[nodiscard]]
-static bool wraps(const nad_Deque *d) {
-    return (const unsigned char *) nad_deque_front(d) > (const unsigned char *) nad_deque_back(d);
+static bool wraps(const tda_Deque *d) {
+    return (const unsigned char *) tda_deque_front(d) > (const unsigned char *) tda_deque_back(d);
 }
 
-static void assert_elems(const nad_Deque *d, const int32_t *want, size_t n) {
-    TEST_ASSERT_EQUAL_size_t(n, nad_deque_len(d));
+static void assert_elems(const tda_Deque *d, const int32_t *want, size_t n) {
+    TEST_ASSERT_EQUAL_size_t(n, tda_deque_len(d));
 
     for (size_t i = 0; i < n; ++i) {
-        TEST_ASSERT_EQUAL_INT32(want[i], *NAD_DEQUE_GET_AS(int32_t, d, i));
+        TEST_ASSERT_EQUAL_INT32(want[i], *TDA_DEQUE_GET_AS(int32_t, d, i));
     }
 }
 
-static void push_back_int(nad_Deque *d, int32_t val) {
-    NAD_TEST_OK(nad_deque_push_back(d, &val));
+static void push_back_int(tda_Deque *d, int32_t val) {
+    TDA_TEST_OK(tda_deque_push_back(d, &val));
 }
 
-static void push_front_int(nad_Deque *d, int32_t val) {
-    NAD_TEST_OK(nad_deque_push_front(d, &val));
+static void push_front_int(tda_Deque *d, int32_t val) {
+    TDA_TEST_OK(tda_deque_push_front(d, &val));
 }
 
 // int32_t deque holding 0, 1, ... len-1, filled from the back
 [[nodiscard]]
-static nad_Deque *make_deque(size_t len) {
-    nad_Deque *d = nullptr;
-    NAD_TEST_OK(NAD_DEQUE_NEW(int32_t, nad_al_default(), &d));
+static tda_Deque *make_deque(size_t len) {
+    tda_Deque *d = nullptr;
+    TDA_TEST_OK(TDA_DEQUE_NEW(int32_t, tda_al_default(), &d));
 
     for (size_t i = 0; i < len; ++i) {
         push_back_int(d, (int32_t) i);
@@ -63,22 +63,22 @@ static nad_Deque *make_deque(size_t len) {
 // {10, 20, 30, 40} in a ring of exactly four slots that is guaranteed to be split:
 // two elems are pushed off the front and the same number wrapped around onto the back
 [[nodiscard]]
-static nad_Deque *make_wrapped(void) {
-    nad_Deque *d = nullptr;
-    NAD_TEST_OK(NAD_DEQUE_NEW_CAP(int32_t, 4, nad_al_default(), &d));
+static tda_Deque *make_wrapped(void) {
+    tda_Deque *d = nullptr;
+    TDA_TEST_OK(TDA_DEQUE_NEW_CAP(int32_t, 4, tda_al_default(), &d));
 
     push_back_int(d, 1);
     push_back_int(d, 2);
     push_back_int(d, 10);
     push_back_int(d, 20);
 
-    nad_deque_pop_front(d);
-    nad_deque_pop_front(d);
+    tda_deque_pop_front(d);
+    tda_deque_pop_front(d);
 
     push_back_int(d, 30);
     push_back_int(d, 40);
 
-    TEST_ASSERT_EQUAL_size_t(4, nad_deque_cap(d));
+    TEST_ASSERT_EQUAL_size_t(4, tda_deque_cap(d));
     TEST_ASSERT_TRUE(wraps(d));
 
     return d;
@@ -87,67 +87,67 @@ static nad_Deque *make_wrapped(void) {
 /* ========== lifetime ========== */
 
 static void test_new_starts_empty_and_unallocated() {
-    nad_Deque *d = nullptr;
-    NAD_TEST_OK(NAD_DEQUE_NEW(int32_t, nad_al_default(), &d));
+    tda_Deque *d = nullptr;
+    TDA_TEST_OK(TDA_DEQUE_NEW(int32_t, tda_al_default(), &d));
 
-    TEST_ASSERT_EQUAL_size_t(0, nad_deque_len(d));
-    TEST_ASSERT_EQUAL_size_t(0, nad_deque_cap(d));
-    TEST_ASSERT_EQUAL_size_t(0, nad_deque_bytes(d));
-    TEST_ASSERT_EQUAL_size_t(sizeof(int32_t), nad_deque_elem_size(d));
-    TEST_ASSERT_EQUAL_PTR(nad_al_default(), nad_deque_al(d));
+    TEST_ASSERT_EQUAL_size_t(0, tda_deque_len(d));
+    TEST_ASSERT_EQUAL_size_t(0, tda_deque_cap(d));
+    TEST_ASSERT_EQUAL_size_t(0, tda_deque_bytes(d));
+    TEST_ASSERT_EQUAL_size_t(sizeof(int32_t), tda_deque_elem_size(d));
+    TEST_ASSERT_EQUAL_PTR(tda_al_default(), tda_deque_al(d));
 
-    nad_deque_drop(d);
+    tda_deque_drop(d);
 }
 
 static void test_new_len_zeroes_its_elems() {
-    nad_Deque *d = nullptr;
-    NAD_TEST_OK(NAD_DEQUE_NEW_LEN(int32_t, 3, nad_al_default(), &d));
+    tda_Deque *d = nullptr;
+    TDA_TEST_OK(TDA_DEQUE_NEW_LEN(int32_t, 3, tda_al_default(), &d));
 
     assert_elems(d, (int32_t[]){0, 0, 0}, 3);
-    TEST_ASSERT_EQUAL_size_t(3 * sizeof(int32_t), nad_deque_bytes(d));
+    TEST_ASSERT_EQUAL_size_t(3 * sizeof(int32_t), tda_deque_bytes(d));
 
-    nad_deque_drop(d);
+    tda_deque_drop(d);
 }
 
 static void test_new_cap_reserves_without_length() {
-    nad_Deque *d = nullptr;
-    NAD_TEST_OK(NAD_DEQUE_NEW_CAP(int32_t, 8, nad_al_default(), &d));
+    tda_Deque *d = nullptr;
+    TDA_TEST_OK(TDA_DEQUE_NEW_CAP(int32_t, 8, tda_al_default(), &d));
 
-    TEST_ASSERT_EQUAL_size_t(0, nad_deque_len(d));
-    TEST_ASSERT_EQUAL_size_t(8, nad_deque_cap(d));
+    TEST_ASSERT_EQUAL_size_t(0, tda_deque_len(d));
+    TEST_ASSERT_EQUAL_size_t(8, tda_deque_cap(d));
 
-    nad_deque_drop(d);
+    tda_deque_drop(d);
 }
 
 static void test_of_keeps_the_order() {
-    nad_Deque *d = nullptr;
-    NAD_TEST_OK(NAD_DEQUE_OF(int32_t, nad_al_default(), &d, 5, 6, 7));
+    tda_Deque *d = nullptr;
+    TDA_TEST_OK(TDA_DEQUE_OF(int32_t, tda_al_default(), &d, 5, 6, 7));
 
     assert_elems(d, (int32_t[]){5, 6, 7}, 3);
     TEST_ASSERT_FALSE(wraps(d));
 
-    nad_deque_drop(d);
+    tda_deque_drop(d);
 }
 
 static void test_from_span_copies_the_elems() {
     constexpr int32_t src[4] = {9, 8, 7, 6};
 
-    nad_Deque *d = nullptr;
-    NAD_TEST_OK(nad_deque_from_span(NAD_SPAN_FROM_DATA(int32_t, src, 4), nad_al_default(), &d));
+    tda_Deque *d = nullptr;
+    TDA_TEST_OK(tda_deque_from_span(TDA_SPAN_FROM_DATA(int32_t, src, 4), tda_al_default(), &d));
 
     assert_elems(d, (int32_t[]){9, 8, 7, 6}, 4);
 
-    nad_deque_drop(d);
+    tda_deque_drop(d);
 }
 
 static void test_drop_of_null_is_a_no_op() {
-    nad_deque_drop(nullptr);
+    tda_deque_drop(nullptr);
 }
 
 /* ========== ends ========== */
 
 static void test_push_back_appends() {
-    nad_Deque *d = make_deque(0);
+    tda_Deque *d = make_deque(0);
 
     push_back_int(d, 1);
     push_back_int(d, 2);
@@ -155,12 +155,12 @@ static void test_push_back_appends() {
 
     assert_elems(d, (int32_t[]){1, 2, 3}, 3);
 
-    nad_deque_drop(d);
+    tda_deque_drop(d);
 }
 
 // the same calls from the other end come out reversed — that is the whole difference
 static void test_push_front_prepends() {
-    nad_Deque *d = make_deque(0);
+    tda_Deque *d = make_deque(0);
 
     push_front_int(d, 1);
     push_front_int(d, 2);
@@ -168,11 +168,11 @@ static void test_push_front_prepends() {
 
     assert_elems(d, (int32_t[]){3, 2, 1}, 3);
 
-    nad_deque_drop(d);
+    tda_deque_drop(d);
 }
 
 static void test_pushes_from_both_ends_meet_in_the_middle() {
-    nad_Deque *d = make_deque(0);
+    tda_Deque *d = make_deque(0);
 
     push_back_int(d, 0);
     push_front_int(d, -1);
@@ -182,94 +182,94 @@ static void test_pushes_from_both_ends_meet_in_the_middle() {
 
     assert_elems(d, (int32_t[]){-2, -1, 0, 1, 2}, 5);
 
-    nad_deque_drop(d);
+    tda_deque_drop(d);
 }
 
 static void test_pop_front_and_pop_back_take_from_their_own_ends() {
-    nad_Deque *d = make_deque(5);
+    tda_Deque *d = make_deque(5);
 
-    nad_deque_pop_front(d);
-    nad_deque_pop_back(d);
+    tda_deque_pop_front(d);
+    tda_deque_pop_back(d);
 
     assert_elems(d, (int32_t[]){1, 2, 3}, 3);
 
-    nad_deque_drop(d);
+    tda_deque_drop(d);
 }
 
 static void test_first_and_last_follow_the_ends() {
-    nad_Deque *d = make_deque(3);
+    tda_Deque *d = make_deque(3);
 
-    TEST_ASSERT_EQUAL_INT32(0, *NAD_DEQUE_FRONT_AS(int32_t, d));
-    TEST_ASSERT_EQUAL_INT32(2, *NAD_DEQUE_BACK_AS(int32_t, d));
+    TEST_ASSERT_EQUAL_INT32(0, *TDA_DEQUE_FRONT_AS(int32_t, d));
+    TEST_ASSERT_EQUAL_INT32(2, *TDA_DEQUE_BACK_AS(int32_t, d));
 
     push_front_int(d, 9);
     push_back_int(d, 8);
 
-    TEST_ASSERT_EQUAL_INT32(9, *NAD_DEQUE_FRONT_AS(int32_t, d));
-    TEST_ASSERT_EQUAL_INT32(8, *NAD_DEQUE_BACK_AS(int32_t, d));
+    TEST_ASSERT_EQUAL_INT32(9, *TDA_DEQUE_FRONT_AS(int32_t, d));
+    TEST_ASSERT_EQUAL_INT32(8, *TDA_DEQUE_BACK_AS(int32_t, d));
 
     // a single elem is both ends at once
-    nad_Deque *one = make_deque(1);
-    TEST_ASSERT_EQUAL_PTR(nad_deque_front(one), nad_deque_back(one));
+    tda_Deque *one = make_deque(1);
+    TEST_ASSERT_EQUAL_PTR(tda_deque_front(one), tda_deque_back(one));
 
-    nad_deque_drop(one);
-    nad_deque_drop(d);
+    tda_deque_drop(one);
+    tda_deque_drop(d);
 }
 
 /* ========== the ring ========== */
 
 static void test_the_ring_wraps_and_get_stays_relative_to_the_front() {
-    nad_Deque *d = make_wrapped();
+    tda_Deque *d = make_wrapped();
 
     assert_elems(d, (int32_t[]){10, 20, 30, 40}, 4);
-    TEST_ASSERT_EQUAL_INT32(10, *NAD_DEQUE_FRONT_AS(int32_t, d));
-    TEST_ASSERT_EQUAL_INT32(40, *NAD_DEQUE_BACK_AS(int32_t, d));
+    TEST_ASSERT_EQUAL_INT32(10, *TDA_DEQUE_FRONT_AS(int32_t, d));
+    TEST_ASSERT_EQUAL_INT32(40, *TDA_DEQUE_BACK_AS(int32_t, d));
 
-    nad_deque_drop(d);
+    tda_deque_drop(d);
 }
 
 // the classic ring bug: growing a split ring must unroll it, not copy the block
 static void test_growth_while_wrapped_keeps_the_order() {
-    nad_Deque *d = make_wrapped();
+    tda_Deque *d = make_wrapped();
 
     push_back_int(d, 50);
 
-    TEST_ASSERT_TRUE(nad_deque_cap(d) > 4);
+    TEST_ASSERT_TRUE(tda_deque_cap(d) > 4);
     TEST_ASSERT_FALSE(wraps(d));
     assert_elems(d, (int32_t[]){10, 20, 30, 40, 50}, 5);
 
-    nad_deque_drop(d);
+    tda_deque_drop(d);
 }
 
 // the same growth from the other end: the new front must not land inside the old run
 static void test_growth_while_wrapped_from_the_front_keeps_the_order() {
-    nad_Deque *d = make_wrapped();
+    tda_Deque *d = make_wrapped();
 
     push_front_int(d, 5);
 
-    TEST_ASSERT_TRUE(nad_deque_cap(d) > 4);
+    TEST_ASSERT_TRUE(tda_deque_cap(d) > 4);
     assert_elems(d, (int32_t[]){5, 10, 20, 30, 40}, 5);
 
-    nad_deque_drop(d);
+    tda_deque_drop(d);
 }
 
 static void test_push_front_on_an_empty_deque_allocates() {
-    nad_Deque *d = make_deque(0);
+    tda_Deque *d = make_deque(0);
 
     push_front_int(d, 42);
 
-    TEST_ASSERT_EQUAL_size_t(1, nad_deque_len(d));
-    TEST_ASSERT_TRUE(nad_deque_cap(d) >= 1);
-    TEST_ASSERT_EQUAL_INT32(42, *NAD_DEQUE_FRONT_AS(int32_t, d));
+    TEST_ASSERT_EQUAL_size_t(1, tda_deque_len(d));
+    TEST_ASSERT_TRUE(tda_deque_cap(d) >= 1);
+    TEST_ASSERT_EQUAL_INT32(42, *TDA_DEQUE_FRONT_AS(int32_t, d));
 
-    nad_deque_drop(d);
+    tda_deque_drop(d);
 }
 
 // a long alternation drives the head all the way round the buffer several times;
 // a plain array kept in step is the oracle
 static void test_draining_and_refilling_walks_the_ring_round() {
-    nad_Deque *d = nullptr;
-    NAD_TEST_OK(NAD_DEQUE_NEW_CAP(int32_t, 4, nad_al_default(), &d));
+    tda_Deque *d = nullptr;
+    TDA_TEST_OK(TDA_DEQUE_NEW_CAP(int32_t, 4, tda_al_default(), &d));
 
     int32_t want[4] = {0, 0, 0, 0};
     size_t len = 0;
@@ -280,7 +280,7 @@ static void test_draining_and_refilling_walks_the_ring_round() {
             want[len++] = step;
         }
 
-        nad_deque_pop_front(d);
+        tda_deque_pop_front(d);
         for (size_t i = 1; i < len; ++i) {
             want[i - 1] = want[i];
         }
@@ -293,90 +293,90 @@ static void test_draining_and_refilling_walks_the_ring_round() {
     }
 
     // the capacity never had to grow: the ring reused the slots it already had
-    TEST_ASSERT_EQUAL_size_t(4, nad_deque_cap(d));
+    TEST_ASSERT_EQUAL_size_t(4, tda_deque_cap(d));
 
-    nad_deque_drop(d);
+    tda_deque_drop(d);
 }
 
 static void test_get_mut_and_set_write_through_to_the_ring() {
-    nad_Deque *d = make_wrapped();
+    tda_Deque *d = make_wrapped();
 
-    *NAD_DEQUE_GET_MUT_AS(int32_t, d, 0) = -1;
-    NAD_DEQUE_SET(int32_t, d, 3, -4);
-    *(int32_t *) nad_deque_front_mut(d) -= 100;
-    *(int32_t *) nad_deque_back_mut(d) -= 100;
+    *TDA_DEQUE_GET_MUT_AS(int32_t, d, 0) = -1;
+    TDA_DEQUE_SET(int32_t, d, 3, -4);
+    *(int32_t *) tda_deque_front_mut(d) -= 100;
+    *(int32_t *) tda_deque_back_mut(d) -= 100;
 
     assert_elems(d, (int32_t[]){-101, 20, 30, -104}, 4);
 
-    nad_deque_drop(d);
+    tda_deque_drop(d);
 }
 
 /* ========== copy ========== */
 
 static void test_copy_is_independent_of_a_wrapped_source() {
-    nad_Deque *d = make_wrapped();
+    tda_Deque *d = make_wrapped();
 
-    nad_Deque *copy = nullptr;
-    NAD_TEST_OK(nad_deque_copy(d, &copy));
+    tda_Deque *copy = nullptr;
+    TDA_TEST_OK(tda_deque_copy(d, &copy));
 
     // the copy is sized to the content, so it comes out in one run
     TEST_ASSERT_FALSE(wraps(copy));
     assert_elems(copy, (int32_t[]){10, 20, 30, 40}, 4);
 
-    NAD_DEQUE_SET(int32_t, copy, 0, 999);
-    TEST_ASSERT_EQUAL_INT32(10, *NAD_DEQUE_GET_AS(int32_t, d, 0));
+    TDA_DEQUE_SET(int32_t, copy, 0, 999);
+    TEST_ASSERT_EQUAL_INT32(10, *TDA_DEQUE_GET_AS(int32_t, d, 0));
 
-    nad_deque_drop(copy);
-    nad_deque_drop(d);
+    tda_deque_drop(copy);
+    tda_deque_drop(d);
 }
 
 static void test_copy_with_builds_on_the_given_allocator() {
-    nad_Al *arena = nad_al_arena_new(nad_al_default(), 1024);
+    tda_Al *arena = tda_al_arena_new(tda_al_default(), 1024);
     TEST_ASSERT_NOT_NULL(arena);
 
-    nad_Deque *src = make_wrapped();
+    tda_Deque *src = make_wrapped();
 
-    nad_Deque *dst = nullptr;
-    NAD_TEST_OK(nad_deque_copy_with(src, arena, &dst));
+    tda_Deque *dst = nullptr;
+    TDA_TEST_OK(tda_deque_copy_with(src, arena, &dst));
 
-    TEST_ASSERT_EQUAL_PTR(arena, nad_deque_al(dst));
-    TEST_ASSERT_EQUAL_PTR(nad_al_default(), nad_deque_al(src));
-    TEST_ASSERT_TRUE(nad_deque_eq(src, dst));
+    TEST_ASSERT_EQUAL_PTR(arena, tda_deque_al(dst));
+    TEST_ASSERT_EQUAL_PTR(tda_al_default(), tda_deque_al(src));
+    TEST_ASSERT_TRUE(tda_deque_eq(src, dst));
 
     // the source is gone and the copy still holds the elems: they were taken, not viewed
-    nad_deque_drop(src);
+    tda_deque_drop(src);
     assert_elems(dst, (int32_t[]){10, 20, 30, 40}, 4);
 
-    nad_deque_drop(dst);
-    nad_al_arena_drop(arena);
+    tda_deque_drop(dst);
+    tda_al_arena_drop(arena);
 }
 
 // the blocks are asked of the allocator the copy is going to, not of the source's
 static void test_copy_with_reports_an_exhausted_target_arena() {
-    nad_Al *arena = nad_al_arena_new(nad_al_default(), 1024);
+    tda_Al *arena = tda_al_arena_new(tda_al_default(), 1024);
     TEST_ASSERT_NOT_NULL(arena);
-    nad_test_arena_leave(arena, 0);
+    tda_test_arena_leave(arena, 0);
 
-    nad_Deque *src = make_deque(4);
+    tda_Deque *src = make_deque(4);
 
-    nad_Deque *dst = nullptr;
-    NAD_TEST_STATUS(NAD_STATUS_ERR_NO_MEM, nad_deque_copy_with(src, arena, &dst));
+    tda_Deque *dst = nullptr;
+    TDA_TEST_STATUS(TDA_STATUS_ERR_NO_MEM, tda_deque_copy_with(src, arena, &dst));
     TEST_ASSERT_NULL(dst);
-    TEST_ASSERT_EQUAL_size_t(4, nad_deque_len(src));
+    TEST_ASSERT_EQUAL_size_t(4, tda_deque_len(src));
 
-    nad_deque_drop(src);
-    nad_al_arena_drop(arena);
+    tda_deque_drop(src);
+    tda_al_arena_drop(arena);
 }
 
 static void test_for_each_walks_a_split_ring_in_order() {
     // the contents wrap, so a walk that went by the block instead of by the index would
     // hand back the two runs the wrong way round
-    nad_Deque *d = make_wrapped();
+    tda_Deque *d = make_wrapped();
     TEST_ASSERT_TRUE(wraps(d));
 
     int32_t seen[4];
     size_t n = 0;
-    NAD_DEQUE_FOR_EACH_AS(int32_t, elem, d) {
+    TDA_DEQUE_FOR_EACH_AS(int32_t, elem, d) {
         TEST_ASSERT_TRUE(n < 4);
         seen[n++] = *elem;
     }
@@ -384,538 +384,538 @@ static void test_for_each_walks_a_split_ring_in_order() {
     TEST_ASSERT_EQUAL_size_t(4, n);
     TEST_ASSERT_EQUAL_INT32_ARRAY(((int32_t[]){10, 20, 30, 40}), seen, 4);
 
-    nad_deque_drop(d);
+    tda_deque_drop(d);
 }
 
 static void test_for_each_over_an_empty_deque_runs_no_body() {
-    nad_Deque *d = make_deque(0);
+    tda_Deque *d = make_deque(0);
 
     size_t n = 0;
-    NAD_DEQUE_FOR_EACH_AS(int32_t, elem, d) {
-        NAD_UNUSED(elem);
+    TDA_DEQUE_FOR_EACH_AS(int32_t, elem, d) {
+        TDA_UNUSED(elem);
         ++n;
     }
 
     TEST_ASSERT_EQUAL_size_t(0, n);
 
-    nad_deque_drop(d);
+    tda_deque_drop(d);
 }
 
 static void test_for_each_mut_writes_through_every_slot() {
-    nad_Deque *d = make_wrapped();
+    tda_Deque *d = make_wrapped();
 
-    NAD_DEQUE_FOR_EACH_MUT_AS(int32_t, elem, d) {
+    TDA_DEQUE_FOR_EACH_MUT_AS(int32_t, elem, d) {
         *elem += 1;
     }
 
     assert_elems(d, (int32_t[]){11, 21, 31, 41}, 4);
 
-    nad_deque_drop(d);
+    tda_deque_drop(d);
 }
 
 static void test_move_assign_hands_over_the_contents_on_one_allocator() {
-    nad_TestProbe probe;
-    nad_test_probe_reset(&probe);
-    nad_Al al = nad_test_probe_full(&probe);
+    tda_TestProbe probe;
+    tda_test_probe_reset(&probe);
+    tda_Al al = tda_test_probe_full(&probe);
 
-    nad_Deque *src = nullptr;
-    NAD_TEST_OK(NAD_DEQUE_OF(int32_t, &al, &src, 1, 2, 3));
+    tda_Deque *src = nullptr;
+    TDA_TEST_OK(TDA_DEQUE_OF(int32_t, &al, &src, 1, 2, 3));
 
-    nad_Deque *dst = nullptr;
-    NAD_TEST_OK(NAD_DEQUE_OF(int32_t, &al, &dst, 9));
+    tda_Deque *dst = nullptr;
+    TDA_TEST_OK(TDA_DEQUE_OF(int32_t, &al, &dst, 9));
 
-    const size_t requests = nad_test_probe_requests(&probe);
-    NAD_TEST_OK(nad_deque_move_assign(src, dst));
+    const size_t requests = tda_test_probe_requests(&probe);
+    TDA_TEST_OK(tda_deque_move_assign(src, dst));
 
     // nothing was asked of the allocator: the ring changed hands as it stood
-    TEST_ASSERT_EQUAL_size_t(requests, nad_test_probe_requests(&probe));
+    TEST_ASSERT_EQUAL_size_t(requests, tda_test_probe_requests(&probe));
 
     assert_elems(dst, (int32_t[]){1, 2, 3}, 3);
-    TEST_ASSERT_EQUAL_size_t(0, nad_deque_len(src));
+    TEST_ASSERT_EQUAL_size_t(0, tda_deque_len(src));
 
-    nad_deque_drop(src);
-    nad_deque_drop(dst);
+    tda_deque_drop(src);
+    tda_deque_drop(dst);
     TEST_ASSERT_EQUAL_size_t(0, probe.live);
 }
 
 static void test_move_assign_across_allocators_empties_the_source() {
-    nad_Al *arena = nad_al_arena_new(nad_al_default(), 1024);
+    tda_Al *arena = tda_al_arena_new(tda_al_default(), 1024);
     TEST_ASSERT_NOT_NULL(arena);
 
     // a split ring must arrive in deque order, exactly as in copy
-    nad_Deque *src = make_wrapped();
+    tda_Deque *src = make_wrapped();
 
-    nad_Deque *dst = nullptr;
-    NAD_TEST_OK(NAD_DEQUE_OF(int32_t, arena, &dst, 9));
+    tda_Deque *dst = nullptr;
+    TDA_TEST_OK(TDA_DEQUE_OF(int32_t, arena, &dst, 9));
 
-    NAD_TEST_OK(nad_deque_move_assign(src, dst));
+    TDA_TEST_OK(tda_deque_move_assign(src, dst));
 
     assert_elems(dst, (int32_t[]){10, 20, 30, 40}, 4);
-    TEST_ASSERT_EQUAL_PTR(arena, nad_deque_al(dst));
+    TEST_ASSERT_EQUAL_PTR(arena, tda_deque_al(dst));
 
-    TEST_ASSERT_EQUAL_size_t(0, nad_deque_len(src));
-    TEST_ASSERT_EQUAL_PTR(nad_al_default(), nad_deque_al(src));
+    TEST_ASSERT_EQUAL_size_t(0, tda_deque_len(src));
+    TEST_ASSERT_EQUAL_PTR(tda_al_default(), tda_deque_al(src));
 
-    nad_deque_drop(src);
-    nad_deque_drop(dst);
-    nad_al_arena_drop(arena);
+    tda_deque_drop(src);
+    tda_deque_drop(dst);
+    tda_al_arena_drop(arena);
 }
 
 static void test_move_assign_across_allocators_reports_an_exhausted_arena() {
-    nad_Al *arena = nad_al_arena_new(nad_al_default(), 1024);
+    tda_Al *arena = tda_al_arena_new(tda_al_default(), 1024);
     TEST_ASSERT_NOT_NULL(arena);
 
-    nad_Deque *dst = nullptr;
-    NAD_TEST_OK(NAD_DEQUE_OF(int32_t, arena, &dst, 9));
-    nad_test_arena_leave(arena, 0);
+    tda_Deque *dst = nullptr;
+    TDA_TEST_OK(TDA_DEQUE_OF(int32_t, arena, &dst, 9));
+    tda_test_arena_leave(arena, 0);
 
-    nad_Deque *src = make_deque(4);
+    tda_Deque *src = make_deque(4);
 
-    NAD_TEST_STATUS(NAD_STATUS_ERR_NO_MEM, nad_deque_move_assign(src, dst));
+    TDA_TEST_STATUS(TDA_STATUS_ERR_NO_MEM, tda_deque_move_assign(src, dst));
 
     assert_elems(src, (int32_t[]){0, 1, 2, 3}, 4);
     assert_elems(dst, (int32_t[]){9}, 1);
 
-    nad_deque_drop(src);
-    nad_deque_drop(dst);
-    nad_al_arena_drop(arena);
+    tda_deque_drop(src);
+    tda_deque_drop(dst);
+    tda_al_arena_drop(arena);
 }
 
 static void test_move_assign_of_itself_changes_nothing() {
-    nad_Deque *d = make_deque(3);
+    tda_Deque *d = make_deque(3);
 
-    NAD_TEST_OK(nad_deque_move_assign(d, d));
+    TDA_TEST_OK(tda_deque_move_assign(d, d));
 
     assert_elems(d, (int32_t[]){0, 1, 2}, 3);
 
-    nad_deque_drop(d);
+    tda_deque_drop(d);
 }
 
 static void test_copy_assign_overwrites_a_longer_target() {
-    nad_Deque *src = make_deque(2);
-    nad_Deque *dst = make_deque(6);
+    tda_Deque *src = make_deque(2);
+    tda_Deque *dst = make_deque(6);
 
-    NAD_TEST_OK(nad_deque_copy_assign(src, dst));
+    TDA_TEST_OK(tda_deque_copy_assign(src, dst));
 
     assert_elems(dst, (int32_t[]){0, 1}, 2);
 
-    nad_deque_drop(dst);
-    nad_deque_drop(src);
+    tda_deque_drop(dst);
+    tda_deque_drop(src);
 }
 
 static void test_copy_assign_grows_a_shorter_target() {
-    nad_Deque *src = make_wrapped();
-    nad_Deque *dst = make_deque(1);
+    tda_Deque *src = make_wrapped();
+    tda_Deque *dst = make_deque(1);
 
-    NAD_TEST_OK(nad_deque_copy_assign(src, dst));
+    TDA_TEST_OK(tda_deque_copy_assign(src, dst));
 
     assert_elems(dst, (int32_t[]){10, 20, 30, 40}, 4);
 
-    nad_deque_drop(dst);
-    nad_deque_drop(src);
+    tda_deque_drop(dst);
+    tda_deque_drop(src);
 }
 
 static void test_copy_assign_of_itself_changes_nothing() {
-    nad_Deque *d = make_wrapped();
+    tda_Deque *d = make_wrapped();
 
-    NAD_TEST_OK(nad_deque_copy_assign(d, d));
+    TDA_TEST_OK(tda_deque_copy_assign(d, d));
 
     assert_elems(d, (int32_t[]){10, 20, 30, 40}, 4);
 
-    nad_deque_drop(d);
+    tda_deque_drop(d);
 }
 
 // the point of the bridge: the split ring arrives in the span as one run, in order
 static void test_copy_to_span_unwraps_the_contents() {
-    nad_Deque *d = make_wrapped();
+    tda_Deque *d = make_wrapped();
 
     int32_t buf[4] = {0, 0, 0, 0};
-    nad_deque_copy_to_span(d, NAD_SPAN_FROM_DATA_MUT(int32_t, buf, 4));
+    tda_deque_copy_to_span(d, TDA_SPAN_FROM_DATA_MUT(int32_t, buf, 4));
 
     TEST_ASSERT_EQUAL_INT32_ARRAY(((int32_t[]){10, 20, 30, 40}), buf, 4);
 
-    nad_deque_drop(d);
+    tda_deque_drop(d);
 }
 
 static void test_copy_from_span_writes_back_in_ring_order() {
-    nad_Deque *d = make_wrapped();
+    tda_Deque *d = make_wrapped();
 
     constexpr int32_t src[4] = {1, 2, 3, 4};
-    nad_deque_copy_from_span(d, NAD_SPAN_FROM_DATA(int32_t, src, 4));
+    tda_deque_copy_from_span(d, TDA_SPAN_FROM_DATA(int32_t, src, 4));
 
     // the ring is where it was; only the elems changed
     TEST_ASSERT_TRUE(wraps(d));
     assert_elems(d, (int32_t[]){1, 2, 3, 4}, 4);
 
-    nad_deque_drop(d);
+    tda_deque_drop(d);
 }
 
 static void test_the_span_pair_round_trips_an_untouched_deque() {
-    nad_Deque *d = make_wrapped();
+    tda_Deque *d = make_wrapped();
 
     int32_t buf[4];
-    const nad_SpanMut s = NAD_SPAN_FROM_DATA_MUT(int32_t, buf, 4);
+    const tda_SpanMut s = TDA_SPAN_FROM_DATA_MUT(int32_t, buf, 4);
 
-    nad_deque_copy_to_span(d, s);
-    nad_deque_copy_from_span(d, nad_span_mut_to_span(s));
+    tda_deque_copy_to_span(d, s);
+    tda_deque_copy_from_span(d, tda_span_mut_to_span(s));
 
     assert_elems(d, (int32_t[]){10, 20, 30, 40}, 4);
 
-    nad_deque_drop(d);
+    tda_deque_drop(d);
 }
 
 // what the pair exists for: hand the contents to algo and take the answer back
 static void test_the_span_pair_carries_the_deque_through_algo() {
-    nad_Deque *d = nullptr;
-    NAD_TEST_OK(NAD_DEQUE_NEW_CAP(int32_t, 4, nad_al_default(), &d));
+    tda_Deque *d = nullptr;
+    TDA_TEST_OK(TDA_DEQUE_NEW_CAP(int32_t, 4, tda_al_default(), &d));
 
     push_back_int(d, 1);
     push_back_int(d, 2);
-    nad_deque_pop_front(d);
+    tda_deque_pop_front(d);
     push_back_int(d, 5);
     push_back_int(d, 3);
     push_back_int(d, 4);
     TEST_ASSERT_TRUE(wraps(d));
 
     int32_t buf[4];
-    const nad_SpanMut s = NAD_SPAN_FROM_DATA_MUT(int32_t, buf, nad_deque_len(d));
+    const tda_SpanMut s = TDA_SPAN_FROM_DATA_MUT(int32_t, buf, tda_deque_len(d));
 
-    nad_deque_copy_to_span(d, s);
-    nad_span_sort(s, nad_cmp_i32);
-    nad_deque_copy_from_span(d, nad_span_mut_to_span(s));
+    tda_deque_copy_to_span(d, s);
+    tda_span_sort(s, tda_cmp_i32);
+    tda_deque_copy_from_span(d, tda_span_mut_to_span(s));
 
     assert_elems(d, (int32_t[]){2, 3, 4, 5}, 4);
 
-    nad_deque_drop(d);
+    tda_deque_drop(d);
 }
 
 /* ========== insert / remove ========== */
 
 static void test_insert_at_the_front_matches_push_front() {
-    nad_Deque *d = make_deque(3);
+    tda_Deque *d = make_deque(3);
 
-    NAD_TEST_OK(NAD_DEQUE_INSERT(int32_t, d, 0, 9));
+    TDA_TEST_OK(TDA_DEQUE_INSERT(int32_t, d, 0, 9));
 
     assert_elems(d, (int32_t[]){9, 0, 1, 2}, 4);
 
-    nad_deque_drop(d);
+    tda_deque_drop(d);
 }
 
 static void test_insert_at_len_matches_push_back() {
-    nad_Deque *d = make_deque(3);
+    tda_Deque *d = make_deque(3);
 
-    NAD_TEST_OK(NAD_DEQUE_INSERT(int32_t, d, 3, 9));
+    TDA_TEST_OK(TDA_DEQUE_INSERT(int32_t, d, 3, 9));
 
     assert_elems(d, (int32_t[]){0, 1, 2, 9}, 4);
 
-    nad_deque_drop(d);
+    tda_deque_drop(d);
 }
 
 static void test_insert_into_an_empty_deque() {
-    nad_Deque *d = make_deque(0);
+    tda_Deque *d = make_deque(0);
 
-    NAD_TEST_OK(NAD_DEQUE_INSERT(int32_t, d, 0, 7));
+    TDA_TEST_OK(TDA_DEQUE_INSERT(int32_t, d, 0, 7));
 
     assert_elems(d, (int32_t[]){7}, 1);
 
-    nad_deque_drop(d);
+    tda_deque_drop(d);
 }
 
 // the two branches shift opposite sides, so both halves need their own case
 static void test_insert_in_the_middle_shifts_either_side() {
-    nad_Deque *front_half = make_deque(6);
-    NAD_TEST_OK(NAD_DEQUE_INSERT(int32_t, front_half, 2, 99));
+    tda_Deque *front_half = make_deque(6);
+    TDA_TEST_OK(TDA_DEQUE_INSERT(int32_t, front_half, 2, 99));
     assert_elems(front_half, (int32_t[]){0, 1, 99, 2, 3, 4, 5}, 7);
 
-    nad_Deque *back_half = make_deque(6);
-    NAD_TEST_OK(NAD_DEQUE_INSERT(int32_t, back_half, 4, 99));
+    tda_Deque *back_half = make_deque(6);
+    TDA_TEST_OK(TDA_DEQUE_INSERT(int32_t, back_half, 4, 99));
     assert_elems(back_half, (int32_t[]){0, 1, 2, 3, 99, 4, 5}, 7);
 
-    nad_deque_drop(back_half);
-    nad_deque_drop(front_half);
+    tda_deque_drop(back_half);
+    tda_deque_drop(front_half);
 }
 
 // a shift across the seam cannot be one memmove, so the wrapped case is its own test
 static void test_insert_into_a_wrapped_ring() {
-    nad_Deque *d = make_wrapped();
-    nad_deque_pop_back(d); // room for one, still split
+    tda_Deque *d = make_wrapped();
+    tda_deque_pop_back(d); // room for one, still split
 
     TEST_ASSERT_TRUE(wraps(d));
-    NAD_TEST_OK(NAD_DEQUE_INSERT(int32_t, d, 1, 15));
+    TDA_TEST_OK(TDA_DEQUE_INSERT(int32_t, d, 1, 15));
 
     assert_elems(d, (int32_t[]){10, 15, 20, 30}, 4);
-    TEST_ASSERT_EQUAL_size_t(4, nad_deque_cap(d));
+    TEST_ASSERT_EQUAL_size_t(4, tda_deque_cap(d));
 
-    nad_deque_drop(d);
+    tda_deque_drop(d);
 }
 
 static void test_insert_moves_whole_elems() {
-    nad_Deque *d = nullptr;
-    NAD_TEST_OK(NAD_DEQUE_OF(Pair, nad_al_default(), &d, {1, 10}, {2, 20}, {3, 30}));
+    tda_Deque *d = nullptr;
+    TDA_TEST_OK(TDA_DEQUE_OF(Pair, tda_al_default(), &d, {1, 10}, {2, 20}, {3, 30}));
 
     constexpr Pair val = {9, 90};
-    NAD_TEST_OK(nad_deque_insert(d, 1, &val));
+    TDA_TEST_OK(tda_deque_insert(d, 1, &val));
 
     constexpr Pair want[4] = {{1, 10}, {9, 90}, {2, 20}, {3, 30}};
     for (size_t i = 0; i < 4; ++i) {
-        const Pair *got = NAD_DEQUE_GET_AS(Pair, d, i);
+        const Pair *got = TDA_DEQUE_GET_AS(Pair, d, i);
         TEST_ASSERT_EQUAL_INT64(want[i].a, got->a);
         TEST_ASSERT_EQUAL_INT64(want[i].b, got->b);
     }
 
-    nad_deque_drop(d);
+    tda_deque_drop(d);
 }
 
 static void test_remove_at_the_ends_matches_the_pops() {
-    nad_Deque *front = make_deque(4);
-    nad_deque_remove(front, 0);
+    tda_Deque *front = make_deque(4);
+    tda_deque_remove(front, 0);
     assert_elems(front, (int32_t[]){1, 2, 3}, 3);
 
-    nad_Deque *back = make_deque(4);
-    nad_deque_remove(back, 3);
+    tda_Deque *back = make_deque(4);
+    tda_deque_remove(back, 3);
     assert_elems(back, (int32_t[]){0, 1, 2}, 3);
 
-    nad_deque_drop(back);
-    nad_deque_drop(front);
+    tda_deque_drop(back);
+    tda_deque_drop(front);
 }
 
 static void test_remove_in_the_middle_closes_the_gap_from_either_side() {
-    nad_Deque *front_half = make_deque(6);
-    nad_deque_remove(front_half, 1);
+    tda_Deque *front_half = make_deque(6);
+    tda_deque_remove(front_half, 1);
     assert_elems(front_half, (int32_t[]){0, 2, 3, 4, 5}, 5);
 
-    nad_Deque *back_half = make_deque(6);
-    nad_deque_remove(back_half, 4);
+    tda_Deque *back_half = make_deque(6);
+    tda_deque_remove(back_half, 4);
     assert_elems(back_half, (int32_t[]){0, 1, 2, 3, 5}, 5);
 
-    nad_deque_drop(back_half);
-    nad_deque_drop(front_half);
+    tda_deque_drop(back_half);
+    tda_deque_drop(front_half);
 }
 
 static void test_remove_from_a_wrapped_ring() {
-    nad_Deque *d = make_wrapped();
+    tda_Deque *d = make_wrapped();
 
-    nad_deque_remove(d, 2);
+    tda_deque_remove(d, 2);
 
     assert_elems(d, (int32_t[]){10, 20, 40}, 3);
 
-    nad_deque_drop(d);
+    tda_deque_drop(d);
 }
 
 static void test_insert_then_remove_restores_the_deque() {
-    nad_Deque *d = make_wrapped();
+    tda_Deque *d = make_wrapped();
 
     for (size_t idx = 0; idx <= 4; ++idx) {
-        NAD_TEST_OK(NAD_DEQUE_INSERT(int32_t, d, idx, 77));
-        TEST_ASSERT_EQUAL_INT32(77, *NAD_DEQUE_GET_AS(int32_t, d, idx));
+        TDA_TEST_OK(TDA_DEQUE_INSERT(int32_t, d, idx, 77));
+        TEST_ASSERT_EQUAL_INT32(77, *TDA_DEQUE_GET_AS(int32_t, d, idx));
 
-        nad_deque_remove(d, idx);
+        tda_deque_remove(d, idx);
         assert_elems(d, (int32_t[]){10, 20, 30, 40}, 4);
     }
 
-    nad_deque_drop(d);
+    tda_deque_drop(d);
 }
 
 // the header promises the SHORTER side moves, and which one moved is visible without
 // looking inside: the elems on the untouched side keep their addresses. Reserved up
 // front so no growth relocates everything and hides the answer
 static void test_insert_shifts_the_shorter_side() {
-    nad_Deque *front_half = make_deque(8);
-    NAD_TEST_OK(nad_deque_reserve(front_half, 16));
-    const void *back_elem = nad_deque_back(front_half);
+    tda_Deque *front_half = make_deque(8);
+    TDA_TEST_OK(tda_deque_reserve(front_half, 16));
+    const void *back_elem = tda_deque_back(front_half);
 
-    NAD_TEST_OK(NAD_DEQUE_INSERT(int32_t, front_half, 2, 99));
-    TEST_ASSERT_EQUAL_PTR(back_elem, nad_deque_back(front_half));
+    TDA_TEST_OK(TDA_DEQUE_INSERT(int32_t, front_half, 2, 99));
+    TEST_ASSERT_EQUAL_PTR(back_elem, tda_deque_back(front_half));
 
-    nad_Deque *back_half = make_deque(8);
-    NAD_TEST_OK(nad_deque_reserve(back_half, 16));
-    const void *front_elem = nad_deque_front(back_half);
+    tda_Deque *back_half = make_deque(8);
+    TDA_TEST_OK(tda_deque_reserve(back_half, 16));
+    const void *front_elem = tda_deque_front(back_half);
 
-    NAD_TEST_OK(NAD_DEQUE_INSERT(int32_t, back_half, 6, 99));
-    TEST_ASSERT_EQUAL_PTR(front_elem, nad_deque_front(back_half));
+    TDA_TEST_OK(TDA_DEQUE_INSERT(int32_t, back_half, 6, 99));
+    TEST_ASSERT_EQUAL_PTR(front_elem, tda_deque_front(back_half));
 
-    nad_deque_drop(back_half);
-    nad_deque_drop(front_half);
+    tda_deque_drop(back_half);
+    tda_deque_drop(front_half);
 }
 
 static void test_remove_shifts_the_shorter_side() {
-    nad_Deque *front_half = make_deque(8);
-    const void *back_elem = nad_deque_back(front_half);
+    tda_Deque *front_half = make_deque(8);
+    const void *back_elem = tda_deque_back(front_half);
 
-    nad_deque_remove(front_half, 1);
-    TEST_ASSERT_EQUAL_PTR(back_elem, nad_deque_back(front_half));
+    tda_deque_remove(front_half, 1);
+    TEST_ASSERT_EQUAL_PTR(back_elem, tda_deque_back(front_half));
 
-    nad_Deque *back_half = make_deque(8);
-    const void *front_elem = nad_deque_front(back_half);
+    tda_Deque *back_half = make_deque(8);
+    const void *front_elem = tda_deque_front(back_half);
 
-    nad_deque_remove(back_half, 6);
-    TEST_ASSERT_EQUAL_PTR(front_elem, nad_deque_front(back_half));
+    tda_deque_remove(back_half, 6);
+    TEST_ASSERT_EQUAL_PTR(front_elem, tda_deque_front(back_half));
 
-    nad_deque_drop(back_half);
-    nad_deque_drop(front_half);
+    tda_deque_drop(back_half);
+    tda_deque_drop(front_half);
 }
 
 /* ========== mods ========== */
 
 static void test_clear_empties_but_keeps_the_capacity() {
-    nad_Deque *d = make_wrapped();
-    const size_t cap = nad_deque_cap(d);
+    tda_Deque *d = make_wrapped();
+    const size_t cap = tda_deque_cap(d);
 
-    nad_deque_clear(d);
+    tda_deque_clear(d);
 
-    TEST_ASSERT_EQUAL_size_t(0, nad_deque_len(d));
-    TEST_ASSERT_EQUAL_size_t(cap, nad_deque_cap(d));
+    TEST_ASSERT_EQUAL_size_t(0, tda_deque_len(d));
+    TEST_ASSERT_EQUAL_size_t(cap, tda_deque_cap(d));
 
     // and it is usable again from either end
     push_back_int(d, 1);
     push_front_int(d, 0);
     assert_elems(d, (int32_t[]){0, 1}, 2);
 
-    nad_deque_drop(d);
+    tda_deque_drop(d);
 }
 
 static void test_reserve_grows_and_never_shrinks() {
-    nad_Deque *d = make_deque(2);
+    tda_Deque *d = make_deque(2);
 
-    NAD_TEST_OK(nad_deque_reserve(d, 16));
-    TEST_ASSERT_EQUAL_size_t(16, nad_deque_cap(d));
+    TDA_TEST_OK(tda_deque_reserve(d, 16));
+    TEST_ASSERT_EQUAL_size_t(16, tda_deque_cap(d));
 
-    NAD_TEST_OK(nad_deque_reserve(d, 4));
-    TEST_ASSERT_EQUAL_size_t(16, nad_deque_cap(d));
+    TDA_TEST_OK(tda_deque_reserve(d, 4));
+    TEST_ASSERT_EQUAL_size_t(16, tda_deque_cap(d));
 
     assert_elems(d, (int32_t[]){0, 1}, 2);
 
-    nad_deque_drop(d);
+    tda_deque_drop(d);
 }
 
 // reserve moves the contents into a fresh block, so the seam disappears
 static void test_reserve_unwraps_the_ring() {
-    nad_Deque *d = make_wrapped();
+    tda_Deque *d = make_wrapped();
 
-    NAD_TEST_OK(nad_deque_reserve(d, 32));
+    TDA_TEST_OK(tda_deque_reserve(d, 32));
 
     TEST_ASSERT_FALSE(wraps(d));
     assert_elems(d, (int32_t[]){10, 20, 30, 40}, 4);
 
-    nad_deque_drop(d);
+    tda_deque_drop(d);
 }
 
 static void test_shrink_to_fit_trims_to_len() {
-    nad_Deque *d = make_wrapped();
-    nad_deque_pop_back(d);
+    tda_Deque *d = make_wrapped();
+    tda_deque_pop_back(d);
 
-    NAD_TEST_OK(nad_deque_shrink_to_fit(d));
+    TDA_TEST_OK(tda_deque_shrink_to_fit(d));
 
-    TEST_ASSERT_EQUAL_size_t(3, nad_deque_cap(d));
+    TEST_ASSERT_EQUAL_size_t(3, tda_deque_cap(d));
     TEST_ASSERT_FALSE(wraps(d));
     assert_elems(d, (int32_t[]){10, 20, 30}, 3);
 
-    nad_deque_drop(d);
+    tda_deque_drop(d);
 }
 
 static void test_shrink_to_fit_of_an_empty_deque_frees_the_block() {
-    nad_TestProbe probe;
-    nad_test_probe_reset(&probe);
-    nad_Al al = nad_test_probe_full(&probe);
+    tda_TestProbe probe;
+    tda_test_probe_reset(&probe);
+    tda_Al al = tda_test_probe_full(&probe);
 
-    nad_Deque *d = nullptr;
-    NAD_TEST_OK(NAD_DEQUE_NEW_CAP(int32_t, 8, &al, &d));
+    tda_Deque *d = nullptr;
+    TDA_TEST_OK(TDA_DEQUE_NEW_CAP(int32_t, 8, &al, &d));
 
-    NAD_TEST_OK(nad_deque_shrink_to_fit(d));
+    TDA_TEST_OK(tda_deque_shrink_to_fit(d));
 
-    TEST_ASSERT_EQUAL_size_t(0, nad_deque_cap(d));
+    TEST_ASSERT_EQUAL_size_t(0, tda_deque_cap(d));
     TEST_ASSERT_EQUAL_size_t(1, probe.live); // the deque itself, not its buffer
 
-    nad_deque_drop(d);
+    tda_deque_drop(d);
     TEST_ASSERT_EQUAL_size_t(0, probe.live);
 }
 
 static void test_resize_grows_at_the_back_with_zeros() {
-    nad_Deque *d = make_wrapped();
+    tda_Deque *d = make_wrapped();
 
-    NAD_TEST_OK(nad_deque_resize(d, 6));
+    TDA_TEST_OK(tda_deque_resize(d, 6));
 
     assert_elems(d, (int32_t[]){10, 20, 30, 40, 0, 0}, 6);
 
-    nad_deque_drop(d);
+    tda_deque_drop(d);
 }
 
 // the new tail may straddle the seam, so growing inside the existing capacity is
 // a different path from growing past it
 static void test_resize_grows_inside_a_wrapped_capacity() {
-    nad_Deque *d = make_wrapped();
-    nad_deque_pop_back(d);
-    nad_deque_pop_back(d);
+    tda_Deque *d = make_wrapped();
+    tda_deque_pop_back(d);
+    tda_deque_pop_back(d);
 
-    NAD_TEST_OK(nad_deque_resize(d, 4));
+    TDA_TEST_OK(tda_deque_resize(d, 4));
 
-    TEST_ASSERT_EQUAL_size_t(4, nad_deque_cap(d));
+    TEST_ASSERT_EQUAL_size_t(4, tda_deque_cap(d));
     assert_elems(d, (int32_t[]){10, 20, 0, 0}, 4);
 
-    nad_deque_drop(d);
+    tda_deque_drop(d);
 }
 
 static void test_resize_shrinks_from_the_back() {
-    nad_Deque *d = make_wrapped();
+    tda_Deque *d = make_wrapped();
 
-    NAD_TEST_OK(nad_deque_resize(d, 2));
+    TDA_TEST_OK(tda_deque_resize(d, 2));
 
     assert_elems(d, (int32_t[]){10, 20}, 2);
 
-    nad_deque_drop(d);
+    tda_deque_drop(d);
 }
 
 static void test_swap_on_one_allocator_hands_over_the_buffers() {
-    nad_Deque *a = make_deque(2);
-    nad_Deque *b = make_wrapped();
+    tda_Deque *a = make_deque(2);
+    tda_Deque *b = make_wrapped();
 
-    const size_t a_cap = nad_deque_cap(a);
-    const size_t b_cap = nad_deque_cap(b);
+    const size_t a_cap = tda_deque_cap(a);
+    const size_t b_cap = tda_deque_cap(b);
 
-    nad_deque_swap(a, b);
+    tda_deque_swap(a, b);
 
     assert_elems(a, (int32_t[]){10, 20, 30, 40}, 4);
     assert_elems(b, (int32_t[]){0, 1}, 2);
-    TEST_ASSERT_EQUAL_size_t(b_cap, nad_deque_cap(a));
-    TEST_ASSERT_EQUAL_size_t(a_cap, nad_deque_cap(b));
+    TEST_ASSERT_EQUAL_size_t(b_cap, tda_deque_cap(a));
+    TEST_ASSERT_EQUAL_size_t(a_cap, tda_deque_cap(b));
 
-    nad_deque_drop(b);
-    nad_deque_drop(a);
+    tda_deque_drop(b);
+    tda_deque_drop(a);
 }
 
 static void test_swap_of_itself_changes_nothing() {
-    nad_Deque *d = make_wrapped();
+    tda_Deque *d = make_wrapped();
 
-    nad_deque_swap(d, d);
+    tda_deque_swap(d, d);
 
     assert_elems(d, (int32_t[]){10, 20, 30, 40}, 4);
 
-    nad_deque_drop(d);
+    tda_deque_drop(d);
 }
 
 static void test_swap_elems_across_the_seam() {
-    nad_Deque *d = make_wrapped();
+    tda_Deque *d = make_wrapped();
 
-    nad_deque_swap_elems(d, 0, 3);
+    tda_deque_swap_elems(d, 0, 3);
     assert_elems(d, (int32_t[]){40, 20, 30, 10}, 4);
 
     // swapping an elem with itself is a no-op, not a self-overwrite
-    nad_deque_swap_elems(d, 2, 2);
+    tda_deque_swap_elems(d, 2, 2);
     assert_elems(d, (int32_t[]){40, 20, 30, 10}, 4);
 
-    nad_deque_drop(d);
+    tda_deque_drop(d);
 }
 
 /* ========== failure ========== */
 
 static void test_new_reports_a_refused_allocator() {
-    nad_TestProbe probe;
-    nad_test_probe_reset(&probe);
-    nad_Al al = nad_test_probe_full(&probe);
-    nad_test_probe_fail_after_next(&probe, 0);
+    tda_TestProbe probe;
+    tda_test_probe_reset(&probe);
+    tda_Al al = tda_test_probe_full(&probe);
+    tda_test_probe_fail_after_next(&probe, 0);
 
-    nad_Deque *d = nullptr;
-    NAD_TEST_STATUS(NAD_STATUS_ERR_NO_MEM, NAD_DEQUE_NEW(int32_t, &al, &d));
+    tda_Deque *d = nullptr;
+    TDA_TEST_STATUS(TDA_STATUS_ERR_NO_MEM, TDA_DEQUE_NEW(int32_t, &al, &d));
 
     TEST_ASSERT_NULL(d);
     TEST_ASSERT_EQUAL_size_t(0, probe.live);
@@ -923,149 +923,149 @@ static void test_new_reports_a_refused_allocator() {
 
 // the struct is handed out and the buffer refused: nothing may leak
 static void test_new_cap_reports_a_refused_buffer() {
-    nad_TestProbe probe;
-    nad_test_probe_reset(&probe);
-    nad_Al al = nad_test_probe_full(&probe);
-    nad_test_probe_fail_after_next(&probe, 1);
+    tda_TestProbe probe;
+    tda_test_probe_reset(&probe);
+    tda_Al al = tda_test_probe_full(&probe);
+    tda_test_probe_fail_after_next(&probe, 1);
 
-    nad_Deque *d = nullptr;
-    NAD_TEST_STATUS(NAD_STATUS_ERR_NO_MEM, NAD_DEQUE_NEW_CAP(int32_t, 4, &al, &d));
+    tda_Deque *d = nullptr;
+    TDA_TEST_STATUS(TDA_STATUS_ERR_NO_MEM, TDA_DEQUE_NEW_CAP(int32_t, 4, &al, &d));
 
     TEST_ASSERT_EQUAL_size_t(0, probe.live);
 }
 
 static void test_the_pushes_report_a_refused_growth() {
-    nad_TestProbe probe;
-    nad_test_probe_reset(&probe);
-    nad_Al al = nad_test_probe_full(&probe);
+    tda_TestProbe probe;
+    tda_test_probe_reset(&probe);
+    tda_Al al = tda_test_probe_full(&probe);
 
-    nad_Deque *back = nullptr;
-    NAD_TEST_OK(NAD_DEQUE_NEW_CAP(int32_t, 1, &al, &back));
-    NAD_TEST_OK(NAD_DEQUE_PUSH_BACK(int32_t, back, 1));
+    tda_Deque *back = nullptr;
+    TDA_TEST_OK(TDA_DEQUE_NEW_CAP(int32_t, 1, &al, &back));
+    TDA_TEST_OK(TDA_DEQUE_PUSH_BACK(int32_t, back, 1));
 
-    nad_test_probe_fail_after_next(&probe, 0);
-    NAD_TEST_STATUS(NAD_STATUS_ERR_NO_MEM, NAD_DEQUE_PUSH_BACK(int32_t, back, 2));
-    NAD_TEST_STATUS(NAD_STATUS_ERR_NO_MEM, NAD_DEQUE_PUSH_FRONT(int32_t, back, 0));
+    tda_test_probe_fail_after_next(&probe, 0);
+    TDA_TEST_STATUS(TDA_STATUS_ERR_NO_MEM, TDA_DEQUE_PUSH_BACK(int32_t, back, 2));
+    TDA_TEST_STATUS(TDA_STATUS_ERR_NO_MEM, TDA_DEQUE_PUSH_FRONT(int32_t, back, 0));
 
     // the refusal left the deque exactly as it was
     assert_elems(back, (int32_t[]){1}, 1);
-    TEST_ASSERT_EQUAL_size_t(1, nad_deque_cap(back));
+    TEST_ASSERT_EQUAL_size_t(1, tda_deque_cap(back));
 
-    nad_deque_drop(back);
+    tda_deque_drop(back);
     TEST_ASSERT_EQUAL_size_t(0, probe.live);
 }
 
 static void test_insert_reports_a_refused_growth() {
-    nad_TestProbe probe;
-    nad_test_probe_reset(&probe);
-    nad_Al al = nad_test_probe_full(&probe);
+    tda_TestProbe probe;
+    tda_test_probe_reset(&probe);
+    tda_Al al = tda_test_probe_full(&probe);
 
-    nad_Deque *d = nullptr;
-    NAD_TEST_OK(NAD_DEQUE_NEW_CAP(int32_t, 2, &al, &d));
-    NAD_TEST_OK(NAD_DEQUE_PUSH_BACK(int32_t, d, 1));
-    NAD_TEST_OK(NAD_DEQUE_PUSH_BACK(int32_t, d, 2));
+    tda_Deque *d = nullptr;
+    TDA_TEST_OK(TDA_DEQUE_NEW_CAP(int32_t, 2, &al, &d));
+    TDA_TEST_OK(TDA_DEQUE_PUSH_BACK(int32_t, d, 1));
+    TDA_TEST_OK(TDA_DEQUE_PUSH_BACK(int32_t, d, 2));
 
-    nad_test_probe_fail_after_next(&probe, 0);
-    NAD_TEST_STATUS(NAD_STATUS_ERR_NO_MEM, NAD_DEQUE_INSERT(int32_t, d, 1, 99));
+    tda_test_probe_fail_after_next(&probe, 0);
+    TDA_TEST_STATUS(TDA_STATUS_ERR_NO_MEM, TDA_DEQUE_INSERT(int32_t, d, 1, 99));
 
     assert_elems(d, (int32_t[]){1, 2}, 2);
 
-    nad_deque_drop(d);
+    tda_deque_drop(d);
     TEST_ASSERT_EQUAL_size_t(0, probe.live);
 }
 
 static void test_reserve_reports_a_refused_allocator() {
-    nad_TestProbe probe;
-    nad_test_probe_reset(&probe);
-    nad_Al al = nad_test_probe_full(&probe);
+    tda_TestProbe probe;
+    tda_test_probe_reset(&probe);
+    tda_Al al = tda_test_probe_full(&probe);
 
-    nad_Deque *d = nullptr;
-    NAD_TEST_OK(NAD_DEQUE_NEW(int32_t, &al, &d));
+    tda_Deque *d = nullptr;
+    TDA_TEST_OK(TDA_DEQUE_NEW(int32_t, &al, &d));
 
-    nad_test_probe_fail_after_next(&probe, 0);
-    NAD_TEST_STATUS(NAD_STATUS_ERR_NO_MEM, nad_deque_reserve(d, 8));
+    tda_test_probe_fail_after_next(&probe, 0);
+    TDA_TEST_STATUS(TDA_STATUS_ERR_NO_MEM, tda_deque_reserve(d, 8));
 
-    TEST_ASSERT_EQUAL_size_t(0, nad_deque_cap(d));
+    TEST_ASSERT_EQUAL_size_t(0, tda_deque_cap(d));
 
-    nad_deque_drop(d);
+    tda_deque_drop(d);
     TEST_ASSERT_EQUAL_size_t(0, probe.live);
 }
 
 // while the capacity holds, neither end asks the allocator for anything
 static void test_the_ends_do_not_allocate_while_the_capacity_holds() {
-    nad_TestProbe probe;
-    nad_test_probe_reset(&probe);
-    nad_Al al = nad_test_probe_full(&probe);
+    tda_TestProbe probe;
+    tda_test_probe_reset(&probe);
+    tda_Al al = tda_test_probe_full(&probe);
 
-    nad_Deque *d = nullptr;
-    NAD_TEST_OK(NAD_DEQUE_NEW_CAP(int32_t, 4, &al, &d));
+    tda_Deque *d = nullptr;
+    TDA_TEST_OK(TDA_DEQUE_NEW_CAP(int32_t, 4, &al, &d));
 
-    const size_t before = nad_test_probe_requests(&probe);
+    const size_t before = tda_test_probe_requests(&probe);
 
     for (int32_t i = 0; i < 100; ++i) {
-        NAD_TEST_OK(NAD_DEQUE_PUSH_BACK(int32_t, d, i));
-        NAD_TEST_OK(NAD_DEQUE_PUSH_FRONT(int32_t, d, i));
-        nad_deque_pop_front(d);
-        nad_deque_pop_back(d);
+        TDA_TEST_OK(TDA_DEQUE_PUSH_BACK(int32_t, d, i));
+        TDA_TEST_OK(TDA_DEQUE_PUSH_FRONT(int32_t, d, i));
+        tda_deque_pop_front(d);
+        tda_deque_pop_back(d);
     }
 
-    TEST_ASSERT_EQUAL_size_t(before, nad_test_probe_requests(&probe));
-    TEST_ASSERT_EQUAL_size_t(4, nad_deque_cap(d));
+    TEST_ASSERT_EQUAL_size_t(before, tda_test_probe_requests(&probe));
+    TEST_ASSERT_EQUAL_size_t(4, tda_deque_cap(d));
 
-    nad_deque_drop(d);
+    tda_deque_drop(d);
     TEST_ASSERT_EQUAL_size_t(0, probe.live);
 }
 
 /* ========== compare ========== */
 
 static void test_eq_matches_the_same_elems() {
-    nad_Deque *a = make_deque(4);
-    nad_Deque *b = make_deque(4);
+    tda_Deque *a = make_deque(4);
+    tda_Deque *b = make_deque(4);
 
-    TEST_ASSERT_TRUE(nad_deque_eq(a, a));
-    TEST_ASSERT_TRUE(nad_deque_eq(a, b));
-    TEST_ASSERT_TRUE(nad_deque_eq(b, a));
-    TEST_ASSERT_TRUE(nad_deque_eq_by(a, b, nad_eq_i32));
+    TEST_ASSERT_TRUE(tda_deque_eq(a, a));
+    TEST_ASSERT_TRUE(tda_deque_eq(a, b));
+    TEST_ASSERT_TRUE(tda_deque_eq(b, a));
+    TEST_ASSERT_TRUE(tda_deque_eq_by(a, b, tda_eq_i32));
 
-    nad_deque_drop(a);
-    nad_deque_drop(b);
+    tda_deque_drop(a);
+    tda_deque_drop(b);
 }
 
 static void test_eq_parts_one_differing_elem() {
-    nad_Deque *a = make_deque(4);
-    nad_Deque *b = make_deque(4);
-    NAD_DEQUE_SET(int32_t, b, 3, 99);
+    tda_Deque *a = make_deque(4);
+    tda_Deque *b = make_deque(4);
+    TDA_DEQUE_SET(int32_t, b, 3, 99);
 
-    TEST_ASSERT_FALSE(nad_deque_eq(a, b));
-    TEST_ASSERT_FALSE(nad_deque_eq_by(a, b, nad_eq_i32));
+    TEST_ASSERT_FALSE(tda_deque_eq(a, b));
+    TEST_ASSERT_FALSE(tda_deque_eq_by(a, b, tda_eq_i32));
 
-    nad_deque_drop(a);
-    nad_deque_drop(b);
+    tda_deque_drop(a);
+    tda_deque_drop(b);
 }
 
 static void test_eq_parts_different_lengths() {
-    nad_Deque *a = make_deque(4);
-    nad_Deque *shorter = make_deque(3);
+    tda_Deque *a = make_deque(4);
+    tda_Deque *shorter = make_deque(3);
 
-    TEST_ASSERT_FALSE(nad_deque_eq(a, shorter));
-    TEST_ASSERT_FALSE(nad_deque_eq(shorter, a));
+    TEST_ASSERT_FALSE(tda_deque_eq(a, shorter));
+    TEST_ASSERT_FALSE(tda_deque_eq(shorter, a));
 
-    nad_deque_drop(a);
-    nad_deque_drop(shorter);
+    tda_deque_drop(a);
+    tda_deque_drop(shorter);
 }
 
 static void test_eq_of_two_empties() {
-    nad_Deque *a = make_deque(0);
-    nad_Deque *b = make_deque(0);
-    nad_Deque *one = make_deque(1);
+    tda_Deque *a = make_deque(0);
+    tda_Deque *b = make_deque(0);
+    tda_Deque *one = make_deque(1);
 
-    TEST_ASSERT_TRUE(nad_deque_eq(a, b));
-    TEST_ASSERT_TRUE(nad_deque_eq_by(a, b, nad_eq_i32));
-    TEST_ASSERT_FALSE(nad_deque_eq(a, one));
+    TEST_ASSERT_TRUE(tda_deque_eq(a, b));
+    TEST_ASSERT_TRUE(tda_deque_eq_by(a, b, tda_eq_i32));
+    TEST_ASSERT_FALSE(tda_deque_eq(a, one));
 
-    nad_deque_drop(a);
-    nad_deque_drop(one);
-    nad_deque_drop(b);
+    tda_deque_drop(a);
+    tda_deque_drop(one);
+    tda_deque_drop(b);
 }
 
 // two rings holding the same elems start at different slots, so what is compared is the
@@ -1073,61 +1073,61 @@ static void test_eq_of_two_empties() {
 static void test_eq_ignores_where_the_ring_starts() {
     constexpr int32_t want[4] = {10, 20, 30, 40};
 
-    nad_Deque *straight = nullptr;
-    NAD_TEST_OK(NAD_DEQUE_FROM_DATA(int32_t, want, 4, nad_al_default(), &straight));
-    nad_Deque *wrapped = make_wrapped();
+    tda_Deque *straight = nullptr;
+    TDA_TEST_OK(TDA_DEQUE_FROM_DATA(int32_t, want, 4, tda_al_default(), &straight));
+    tda_Deque *wrapped = make_wrapped();
 
     TEST_ASSERT_TRUE(wraps(wrapped));
     TEST_ASSERT_FALSE(wraps(straight));
-    TEST_ASSERT_TRUE(nad_deque_eq(straight, wrapped));
-    TEST_ASSERT_TRUE(nad_deque_eq(wrapped, straight));
-    TEST_ASSERT_TRUE(nad_deque_eq_by(wrapped, straight, nad_eq_i32));
+    TEST_ASSERT_TRUE(tda_deque_eq(straight, wrapped));
+    TEST_ASSERT_TRUE(tda_deque_eq(wrapped, straight));
+    TEST_ASSERT_TRUE(tda_deque_eq_by(wrapped, straight, tda_eq_i32));
 
-    nad_deque_drop(straight);
-    nad_deque_drop(wrapped);
+    tda_deque_drop(straight);
+    tda_deque_drop(wrapped);
 }
 
 // the same elems rotated by one: equal as multisets, unequal as deques
 static void test_eq_is_order_sensitive() {
-    nad_Deque *a = make_deque(4);
-    nad_Deque *b = make_deque(4);
+    tda_Deque *a = make_deque(4);
+    tda_Deque *b = make_deque(4);
 
-    const int32_t front = *NAD_DEQUE_FRONT_AS(int32_t, b);
-    nad_deque_pop_front(b);
+    const int32_t front = *TDA_DEQUE_FRONT_AS(int32_t, b);
+    tda_deque_pop_front(b);
     push_back_int(b, front);
 
-    TEST_ASSERT_EQUAL_size_t(nad_deque_len(a), nad_deque_len(b));
-    TEST_ASSERT_FALSE(nad_deque_eq(a, b));
+    TEST_ASSERT_EQUAL_size_t(tda_deque_len(a), tda_deque_len(b));
+    TEST_ASSERT_FALSE(tda_deque_eq(a, b));
 
-    nad_deque_drop(a);
-    nad_deque_drop(b);
+    tda_deque_drop(a);
+    tda_deque_drop(b);
 }
 
 static void test_eq_by_asks_the_equality() {
     constexpr Pair lhs[2] = {{1, 10}, {2, 20}};
     constexpr Pair rhs[2] = {{1, 70}, {2, 80}};
 
-    nad_Deque *a = nullptr;
-    nad_Deque *b = nullptr;
-    NAD_TEST_OK(NAD_DEQUE_FROM_DATA(Pair, lhs, 2, nad_al_default(), &a));
-    NAD_TEST_OK(NAD_DEQUE_FROM_DATA(Pair, rhs, 2, nad_al_default(), &b));
+    tda_Deque *a = nullptr;
+    tda_Deque *b = nullptr;
+    TDA_TEST_OK(TDA_DEQUE_FROM_DATA(Pair, lhs, 2, tda_al_default(), &a));
+    TDA_TEST_OK(TDA_DEQUE_FROM_DATA(Pair, rhs, 2, tda_al_default(), &b));
 
-    TEST_ASSERT_FALSE(nad_deque_eq(a, b));
-    TEST_ASSERT_TRUE(nad_deque_eq_by(a, b, nad_test_pair_eq_a));
+    TEST_ASSERT_FALSE(tda_deque_eq(a, b));
+    TEST_ASSERT_TRUE(tda_deque_eq_by(a, b, tda_test_pair_eq_a));
 
-    nad_deque_drop(a);
-    nad_deque_drop(b);
+    tda_deque_drop(a);
+    tda_deque_drop(b);
 }
 
 /* ========== print ========== */
 
 // a printer writes to a stream, so a case has to read one back. tmpfile is the portable
 // way, the same one test/core/test_print.c takes
-static void assert_prints(const char *expected, const nad_Deque *d) {
+static void assert_prints(const char *expected, const tda_Deque *d) {
     FILE *stream = tmpfile();
     TEST_ASSERT_NOT_NULL(stream);
 
-    nad_deque_fprint(d, stream, nad_fprint_i32);
+    tda_deque_fprint(d, stream, tda_fprint_i32);
     rewind(stream);
 
     char buf[128];
@@ -1139,39 +1139,39 @@ static void assert_prints(const char *expected, const nad_Deque *d) {
 }
 
 static void test_fprint_writes_the_elems() {
-    nad_Deque *d = nullptr;
-    NAD_TEST_OK(NAD_DEQUE_OF(int32_t, nad_al_default(), &d, 5, 3, 1));
+    tda_Deque *d = nullptr;
+    TDA_TEST_OK(TDA_DEQUE_OF(int32_t, tda_al_default(), &d, 5, 3, 1));
 
     assert_prints("[5, 3, 1]\n", d);
 
-    nad_deque_drop(d);
+    tda_deque_drop(d);
 }
 
 static void test_fprint_of_a_single_elem_has_no_separator() {
-    nad_Deque *d = nullptr;
-    NAD_TEST_OK(NAD_DEQUE_OF(int32_t, nad_al_default(), &d, 7));
+    tda_Deque *d = nullptr;
+    TDA_TEST_OK(TDA_DEQUE_OF(int32_t, tda_al_default(), &d, 7));
 
     assert_prints("[7]\n", d);
 
-    nad_deque_drop(d);
+    tda_deque_drop(d);
 }
 
 static void test_fprint_of_an_empty_deque() {
-    nad_Deque *d = make_deque(0);
+    tda_Deque *d = make_deque(0);
 
     assert_prints("[]\n", d);
 
-    nad_deque_drop(d);
+    tda_deque_drop(d);
 }
 
 // the stdout twin takes no stream, and C has no portable way to capture one and give it
 // back — so a case can only say that it runs and reaches the same printer
 static void test_print_writes_to_stdout() {
-    nad_Deque *d = make_deque(3);
+    tda_Deque *d = make_deque(3);
 
-    nad_deque_print(d, nad_fprint_i32);
+    tda_deque_print(d, tda_fprint_i32);
 
-    nad_deque_drop(d);
+    tda_deque_drop(d);
 }
 
 int main() {

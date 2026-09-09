@@ -27,7 +27,7 @@ jobs:
           cmake -S . -B build
           -DCMAKE_C_COMPILER=${{ matrix.cc }}
           -DCMAKE_BUILD_TYPE=${{ matrix.type }}
-          -DNAD_BUILD_SHARED=${{ matrix.shared }}
+          -DTDA_BUILD_SHARED=${{ matrix.shared }}
           -DCMAKE_C_FLAGS="-Werror ${{ matrix.flags }}"
 
       - run: cmake --build build -j
@@ -38,7 +38,7 @@ jobs:
     name: consumer
     runs-on: ubuntu-26.04
 
-    # nadc is consumed as a source dependency and nothing else, so the one path that has
+    # tda is consumed as a source dependency and nothing else, so the one path that has
     # to keep working is add_subdirectory — the same one FetchContent takes once it has
     # fetched. The build above it is always top-level, so only this leg sees the defaults
     # that hold for a subproject.

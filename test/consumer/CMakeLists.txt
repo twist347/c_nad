@@ -3,10 +3,10 @@
 
 cmake_minimum_required(VERSION 3.22)
 
-project(nadc_consumer LANGUAGES C)
+project(tda_consumer LANGUAGES C)
 
-add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../.. nadc)
+add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../.. tda)
 
 add_executable(consumer_app main.c)
 
-target_link_libraries(consumer_app PRIVATE nadc::nadc)
+target_link_libraries(consumer_app PRIVATE tda::tda)

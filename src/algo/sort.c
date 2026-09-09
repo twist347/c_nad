@@ -1,8 +1,8 @@
-#include "nad/algo/sort.h"
+#include "tda/algo/sort.h"
 
-#include "nad/algo/copy.h"
-#include "nad/algo/merge.h"
-#include "nad/core/util.h"
+#include "tda/algo/copy.h"
+#include "tda/algo/merge.h"
+#include "tda/core/util.h"
 
 #include <assert.h>
 
@@ -13,11 +13,11 @@
 static constexpr size_t INSERTION_THRESHOLD = 16;
 
 [[nodiscard]]
-static size_t median3(nad_Span s, size_t a, size_t b, size_t c, nad_Cmp cmp);
+static size_t median3(tda_Span s, size_t a, size_t b, size_t c, tda_Cmp cmp);
 
 /// median of three medians, sampled across the whole range
 [[nodiscard]]
-static size_t ninther(nad_Span s, size_t left, size_t right, nad_Cmp cmp);
+static size_t ninther(tda_Span s, size_t left, size_t right, tda_Cmp cmp);
 
 // the block of elems equal to the pivot after a three-way split, as the
 // inclusive range [lt, gt]: everything below lt is smaller, above gt larger
@@ -29,32 +29,32 @@ typedef struct {
 /// splits [left, right] into < pivot | == pivot | > pivot and returns the
 /// bounds of the middle run
 [[nodiscard]]
-static Split partition3(nad_SpanMut s, size_t left, size_t right, size_t pivot_idx, nad_Cmp cmp);
+static Split partition3(tda_SpanMut s, size_t left, size_t right, size_t pivot_idx, tda_Cmp cmp);
 
 /// sorts the inclusive range [left, right]
-static void quicksort(nad_SpanMut s, size_t left, size_t right, nad_Cmp cmp);
+static void quicksort(tda_SpanMut s, size_t left, size_t right, tda_Cmp cmp);
 
 /* ========== sort ========== */
 
-void nad_span_insertion_sort(nad_SpanMut s, nad_Cmp cmp) {
-    NAD_SPAN_ASSERT(s);
+void tda_span_insertion_sort(tda_SpanMut s, tda_Cmp cmp) {
+    TDA_SPAN_ASSERT(s);
     assert(cmp);
 
-    const nad_Span cs = nad_span_mut_to_span(s);
+    const tda_Span cs = tda_span_mut_to_span(s);
     for (size_t i = 1; i < s.len; ++i) {
         for (size_t j = i; j > 0; --j) {
-            const void *prev = nad_span_get(cs, j - 1);
-            const void *cur = nad_span_get(cs, j);
+            const void *prev = tda_span_get(cs, j - 1);
+            const void *cur = tda_span_get(cs, j);
             if (cmp(prev, cur) <= 0) {
                 break;
             }
-            nad_span_swap_elems(s, j - 1, j);
+            tda_span_swap_elems(s, j - 1, j);
         }
     }
 }
 
-void nad_span_sort(nad_SpanMut s, nad_Cmp cmp) {
-    NAD_SPAN_ASSERT(s);
+void tda_span_sort(tda_SpanMut s, tda_Cmp cmp) {
+    TDA_SPAN_ASSERT(s);
     assert(cmp);
 
     if (s.len < 2) {
@@ -64,24 +64,24 @@ void nad_span_sort(nad_SpanMut s, nad_Cmp cmp) {
     quicksort(s, 0, s.len - 1, cmp);
 }
 
-nad_Status nad_span_sort_stable(nad_SpanMut s, nad_Cmp cmp, nad_Al *al) {
-    NAD_SPAN_ASSERT(s);
+tda_Status tda_span_sort_stable(tda_SpanMut s, tda_Cmp cmp, tda_Al *al) {
+    TDA_SPAN_ASSERT(s);
     assert(cmp);
     assert(al);
 
     if (s.len < 2) {
-        return NAD_STATUS_OK;
+        return TDA_STATUS_OK;
     }
 
     const size_t bytes = s.len * s.elem_size;
 
-    void *buf = nad_alloc(al, bytes);
+    void *buf = tda_alloc(al, bytes);
     if (!buf) {
-        return NAD_STATUS_ERR_NO_MEM;
+        return TDA_STATUS_ERR_NO_MEM;
     }
 
-    nad_SpanMut src = s;
-    nad_SpanMut dst = nad_span_from_data_mut(buf, s.len, s.elem_size);
+    tda_SpanMut src = s;
+    tda_SpanMut dst = tda_span_from_data_mut(buf, s.len, s.elem_size);
 
     // bottom-up merge sort: merge runs of width 1, 2, 4, ...
     for (size_t width = 1; width < s.len; width *= 2) {
@@ -89,29 +89,29 @@ nad_Status nad_span_sort_stable(nad_SpanMut s, nad_Cmp cmp, nad_Al *al) {
             const size_t mid = i + width < s.len ? i + width : s.len;
             const size_t end = i + 2 * width < s.len ? i + 2 * width : s.len;
 
-            const nad_Span run = nad_span_mut_to_span(src);
-            nad_span_merge(
-                nad_span_sub_mut(dst, i, end - i),
-                nad_span_sub(run, i, mid - i),
-                nad_span_sub(run, mid, end - mid),
+            const tda_Span run = tda_span_mut_to_span(src);
+            tda_span_merge(
+                tda_span_sub_mut(dst, i, end - i),
+                tda_span_sub(run, i, mid - i),
+                tda_span_sub(run, mid, end - mid),
                 cmp
             );
         }
-        NAD_SWAP(src, dst);
+        TDA_SWAP(src, dst);
     }
 
     // if result ended up in buf, copy back to original
     if (src.data != s.data) {
-        nad_span_copy(s, nad_span_mut_to_span(src));
+        tda_span_copy(s, tda_span_mut_to_span(src));
     }
 
-    nad_dealloc(al, buf, bytes);
+    tda_dealloc(al, buf, bytes);
 
-    return NAD_STATUS_OK;
+    return TDA_STATUS_OK;
 }
 
-void nad_span_partial_sort(nad_SpanMut s, size_t count, nad_Cmp cmp) {
-    NAD_SPAN_ASSERT(s);
+void tda_span_partial_sort(tda_SpanMut s, size_t count, tda_Cmp cmp) {
+    TDA_SPAN_ASSERT(s);
     assert(cmp);
     assert(count <= s.len);
 
@@ -120,19 +120,19 @@ void nad_span_partial_sort(nad_SpanMut s, size_t count, nad_Cmp cmp) {
     }
 
     if (count >= s.len) {
-        nad_span_sort(s, cmp);
+        tda_span_sort(s, cmp);
         return;
     }
 
     // place element that would be at position count in sorted order
-    nad_span_nth_elem(s, count, cmp);
+    tda_span_nth_elem(s, count, cmp);
 
     // now the first count elems are the count smallest (order unspecified) -> sort them
-    nad_span_sort(nad_span_sub_mut(s, 0, count), cmp);
+    tda_span_sort(tda_span_sub_mut(s, 0, count), cmp);
 }
 
-void nad_span_nth_elem(nad_SpanMut s, size_t nth, nad_Cmp cmp) {
-    NAD_SPAN_ASSERT(s);
+void tda_span_nth_elem(tda_SpanMut s, size_t nth, tda_Cmp cmp) {
+    TDA_SPAN_ASSERT(s);
     assert(cmp);
     assert(nth < s.len);
 
@@ -145,7 +145,7 @@ void nad_span_nth_elem(nad_SpanMut s, size_t nth, nad_Cmp cmp) {
     // left <= nth <= right holds every round, which is what keeps lt - 1 and gt + 1
     // inside the range below
     while (left < right) {
-        const size_t pivot_idx = ninther(nad_span_mut_to_span(s), left, right, cmp);
+        const size_t pivot_idx = ninther(tda_span_mut_to_span(s), left, right, cmp);
 
         const Split p = partition3(s, left, right, pivot_idx, cmp);
         const size_t lt = p.lt;
@@ -163,20 +163,20 @@ void nad_span_nth_elem(nad_SpanMut s, size_t nth, nad_Cmp cmp) {
 
 /* ========== info ========== */
 
-bool nad_span_is_sorted(nad_Span s, nad_Cmp cmp) {
-    NAD_SPAN_ASSERT(s);
+bool tda_span_is_sorted(tda_Span s, tda_Cmp cmp) {
+    TDA_SPAN_ASSERT(s);
     assert(cmp);
 
-    return nad_span_is_sorted_until(s, cmp) == s.len;
+    return tda_span_is_sorted_until(s, cmp) == s.len;
 }
 
-size_t nad_span_is_sorted_until(nad_Span s, nad_Cmp cmp) {
-    NAD_SPAN_ASSERT(s);
+size_t tda_span_is_sorted_until(tda_Span s, tda_Cmp cmp) {
+    TDA_SPAN_ASSERT(s);
     assert(cmp);
 
     for (size_t i = 1; i < s.len; ++i) {
-        const void *prev = nad_span_get(s, i - 1);
-        const void *cur = nad_span_get(s, i);
+        const void *prev = tda_span_get(s, i - 1);
+        const void *cur = tda_span_get(s, i);
         if (cmp(prev, cur) > 0) {
             return i;
         }
@@ -186,10 +186,10 @@ size_t nad_span_is_sorted_until(nad_Span s, nad_Cmp cmp) {
 
 /* ========== internals ========== */
 
-static size_t median3(nad_Span s, size_t a, size_t b, size_t c, nad_Cmp cmp) {
-    const void *a_ptr = nad_span_get(s, a);
-    const void *b_ptr = nad_span_get(s, b);
-    const void *c_ptr = nad_span_get(s, c);
+static size_t median3(tda_Span s, size_t a, size_t b, size_t c, tda_Cmp cmp) {
+    const void *a_ptr = tda_span_get(s, a);
+    const void *b_ptr = tda_span_get(s, b);
+    const void *c_ptr = tda_span_get(s, c);
 
     const int ab = cmp(a_ptr, b_ptr);
     const int ac = cmp(a_ptr, c_ptr);
@@ -203,7 +203,7 @@ static size_t median3(nad_Span s, size_t a, size_t b, size_t c, nad_Cmp cmp) {
     return c;
 }
 
-static size_t ninther(nad_Span s, size_t left, size_t right, nad_Cmp cmp) {
+static size_t ninther(tda_Span s, size_t left, size_t right, tda_Cmp cmp) {
     const size_t len = right - left + 1;
     const size_t mid = left + len / 2;
 
@@ -219,12 +219,12 @@ static size_t ninther(nad_Span s, size_t left, size_t right, nad_Cmp cmp) {
     return median3(s, lo, md, hi, cmp);
 }
 
-static Split partition3(nad_SpanMut s, size_t left, size_t right, size_t pivot_idx, nad_Cmp cmp) {
+static Split partition3(tda_SpanMut s, size_t left, size_t right, size_t pivot_idx, tda_Cmp cmp) {
     assert(left <= pivot_idx && pivot_idx <= right);
 
-    nad_span_swap_elems(s, left, pivot_idx);
+    tda_span_swap_elems(s, left, pivot_idx);
 
-    const nad_Span v = nad_span_mut_to_span(s);
+    const tda_Span v = tda_span_mut_to_span(s);
 
     size_t lo = left;
     size_t i = left + 1;
@@ -235,14 +235,14 @@ static Split partition3(nad_SpanMut s, size_t left, size_t right, size_t pivot_i
     // s[lo] is a copy of the pivot value and can be read instead of buffering it —
     // which matters here, where the elem size is only known at runtime.
     while (i <= hi) {
-        const int c = cmp(nad_span_get(v, i), nad_span_get(v, lo));
+        const int c = cmp(tda_span_get(v, i), tda_span_get(v, lo));
 
         if (c < 0) {
-            nad_span_swap_elems(s, i, lo);
+            tda_span_swap_elems(s, i, lo);
             ++lo;
             ++i;
         } else if (c > 0) {
-            nad_span_swap_elems(s, i, hi);
+            tda_span_swap_elems(s, i, hi);
             --hi; // cannot wrap: the loop stops before hi reaches left
         } else {
             ++i;
@@ -252,17 +252,17 @@ static Split partition3(nad_SpanMut s, size_t left, size_t right, size_t pivot_i
     return (Split){.lt = lo, .gt = hi};
 }
 
-static void quicksort(nad_SpanMut s, size_t left, size_t right, nad_Cmp cmp) {
+static void quicksort(tda_SpanMut s, size_t left, size_t right, tda_Cmp cmp) {
     while (left < right) {
         if (right - left + 1 <= INSERTION_THRESHOLD) {
-            nad_span_insertion_sort(nad_span_sub_mut(s, left, right - left + 1), cmp);
+            tda_span_insertion_sort(tda_span_sub_mut(s, left, right - left + 1), cmp);
             return;
         }
 
         // sampled across the range, not just at its two ends and middle: partitioning
         // leaves the smallest elem of the left side sitting at that side's last
         // position, and median-of-3 would then keep picking a near-minimum pivot
-        const size_t pivot_idx = ninther(nad_span_mut_to_span(s), left, right, cmp);
+        const size_t pivot_idx = ninther(tda_span_mut_to_span(s), left, right, cmp);
 
         // three-way, so a run of equal keys is settled in one pass. A two-way split
         // peels those off one elem at a time, which is quadratic on repeated keys.

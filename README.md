@@ -1,15 +1,15 @@
-# nadc — naive algorithms and data structures in C23
+# tda — taut data structures and algorithms in C23
 
-[![CI](https://github.com/twist347/c_nad/actions/workflows/ci.yml/badge.svg)](https://github.com/twist347/c_nad/actions/workflows/ci.yml)
+[![CI](https://github.com/twist347/c_tda/actions/workflows/ci.yml/badge.svg)](https://github.com/twist347/c_tda/actions/workflows/ci.yml)
 
 Classic containers and algorithms, written plainly. No dependencies.
 
 Two rules shape the whole API:
 
 - **Memory is explicit and swappable.** Nothing allocates on its own — every container is
-  handed an `nad_Al *` and uses only that. Swapping in an arena, a pool or a logging
+  handed an `tda_Al *` and uses only that. Swapping in an arena, a pool or a logging
   allocator is a one-line change at the call site.
-- **Errors cannot be dropped.** A fallible operation returns `nad_Status` and writes its
+- **Errors cannot be dropped.** A fallible operation returns `tda_Status` and writes its
   result through a trailing `out`; `[[nodiscard]]` makes ignoring it a compile error.
   Broken preconditions are `assert`, not status — those are bugs, not runtime states.
 
@@ -20,18 +20,18 @@ reason it is what it is.
 ## What it does not do
 
 - **Elems are bytes.** A container copies `elem_size` bytes in and out, and drops them by
-  releasing the block — it never calls anything of yours. A `nad_Vec` of `strdup`ed
+  releasing the block — it never calls anything of yours. A `tda_Vec` of `strdup`ed
   `char *` leaks unless the caller frees them first.
 - **Nothing is thread-safe.** No container takes a lock; sharing one across threads is the
   caller's problem.
 
 ## Allocators, in three rules
 
-A container is built on one `nad_Al *` and never touches another:
+A container is built on one `tda_Al *` and never touches another:
 
-- **A copy is born on its source's allocator** — `nad_vec_copy_with` names another one.
+- **A copy is born on its source's allocator** — `tda_vec_copy_with` names another one.
 - **An assignment keeps the target's.** On one allocator a move hands the block over and
-  cannot fail; across two it costs `n` and may return `NAD_STATUS_ERR_NO_MEM`, leaving
+  cannot fail; across two it costs `n` and may return `TDA_STATUS_ERR_NO_MEM`, leaving
   both sides as they were.
 - **`swap` wants both sides on one allocator** — it is O(1) and returns nothing, so a
   mismatch is an `assert`, exactly as C++ leaves it undefined when
@@ -41,50 +41,50 @@ A container is built on one `nad_Al *` and never touches another:
 ## Example
 
 ```c
-nad_Al *arena = nad_al_arena_new(nad_al_default(), 1024);
+tda_Al *arena = tda_al_arena_new(tda_al_default(), 1024);
 if (!arena) {
     return 1;
 }
 
-nad_Vec *vec = nullptr;
-if (NAD_STATUS_IS_ERR(NAD_VEC_OF(int32_t, arena, &vec, 5, 3, 1, 4, 2))) {
+tda_Vec *vec = nullptr;
+if (TDA_STATUS_IS_ERR(TDA_VEC_OF(int32_t, arena, &vec, 5, 3, 1, 4, 2))) {
     return 1;
 }
 
-nad_span_sort(nad_vec_to_span_mut(vec), nad_cmp_i32);
+tda_span_sort(tda_vec_to_span_mut(vec), tda_cmp_i32);
 
 size_t idx;
-if (nad_span_binary_search(nad_vec_to_span(vec), &(int32_t){4}, nad_cmp_i32, &idx)) {
+if (tda_span_binary_search(tda_vec_to_span(vec), &(int32_t){4}, tda_cmp_i32, &idx)) {
     printf("4 is at %zu\n", idx); // 4 is at 3
 }
 
-nad_vec_drop(vec);
-nad_al_arena_drop(arena);
+tda_vec_drop(vec);
+tda_al_arena_drop(arena);
 ```
 
 ## Layout
 
-`nad/nad.h` includes every header below at once; naming the modules a file actually
+`tda/tda.h` includes every header below at once; naming the modules a file actually
 uses stays the better habit.
 
 **`core`** — the vocabulary the rest is written in.
 
 | | |
 |---|---|
-| `status.h` | `nad_Status`, what every fallible operation returns |
-| `span.h` | `nad_Span` / `nad_SpanMut`, a non-owning view over contiguous elems |
-| `cmp.h` | `nad_Cmp` and `nad_Eq`, plus ready-made ones for the built-in types |
-| `hash.h` | `nad_Hasher`, `nad_Hash`, hashers for the built-in types and `nad_hash_combine` |
-| `rng.h` | `nad_Rng` — a seeded generator, and uniform ints, floats and bools drawn from one |
-| `print.h` | `nad_FPrint`, the printer a container is handed to show itself, plus ready-made ones for the built-in types |
-| `util.h` | `NAD_SWAP`, `NAD_UNUSED`, `NAD_STRINGIFY` |
-| `export.h` | `NAD_API` and the visibility it carries |
+| `status.h` | `tda_Status`, what every fallible operation returns |
+| `span.h` | `tda_Span` / `tda_SpanMut`, a non-owning view over contiguous elems |
+| `cmp.h` | `tda_Cmp` and `tda_Eq`, plus ready-made ones for the built-in types |
+| `hash.h` | `tda_Hasher`, `tda_Hash`, hashers for the built-in types and `tda_hash_combine` |
+| `rng.h` | `tda_Rng` — a seeded generator, and uniform ints, floats and bools drawn from one |
+| `print.h` | `tda_FPrint`, the printer a container is handed to show itself, plus ready-made ones for the built-in types |
+| `util.h` | `TDA_SWAP`, `TDA_UNUSED`, `TDA_STRINGIFY` |
+| `export.h` | `TDA_API` and the visibility it carries |
 
 **`alloc`** — memory, explicit and swappable.
 
 | | |
 |---|---|
-| `alloc.h` | the `nad_Al` interface and the `nad_alloc` / `nad_calloc` / `nad_realloc` / `nad_dealloc` wrappers |
+| `alloc.h` | the `tda_Al` interface and the `tda_alloc` / `tda_calloc` / `tda_realloc` / `tda_dealloc` wrappers |
 | `default.h` | malloc and friends |
 | `arena.h` | bump allocation, freed all at once |
 | `pool.h` | fixed-size blocks off a free list |
@@ -95,7 +95,7 @@ uses stays the better habit.
 
 | | |
 |---|---|
-| `fn.h` | `nad_Pred`, `nad_Fold`, `nad_Gen`, `nad_UnOp`, `nad_BinOp` |
+| `fn.h` | `tda_Pred`, `tda_Fold`, `tda_Gen`, `tda_UnOp`, `tda_BinOp` |
 | `search.h` | find and its kin, count, the all_of/any_of/none_of trio, min_elem and max_elem, and the binary family over a sorted span |
 | `sort.h` | sort and sort_stable, insertion_sort, partial_sort, nth_elem and the is_sorted checks |
 | `heap.h` | make_heap, push_heap, pop_heap, sort_heap and the is_heap checks |
@@ -113,16 +113,16 @@ uses stays the better habit.
 
 | | |
 |---|---|
-| `arr.h` | `nad_Arr` — a length fixed at construction |
-| `bitset.h` | `nad_BitSet` — a set of indices, one bit each, over a fixed universe |
-| `vec.h` | `nad_Vec` — growable, one contiguous block |
-| `deque.h` | `nad_Deque` — a ring, both ends O(1) amortized |
-| `list.h` | `nad_List` — doubly linked; a position stays valid |
-| `hmap.h` | `nad_HMap` — separate chaining; an entry never moves |
-| `hset.h` | `nad_HSet` — the same table with nothing on the value side |
-| `stack.h` | `nad_Stack` — a vec through a narrower keyhole |
-| `queue.h` | `nad_Queue` — a deque through a narrower keyhole |
-| `pqueue.h` | `nad_PQueue` — a buffer kept under a heap discipline |
+| `arr.h` | `tda_Arr` — a length fixed at construction |
+| `bitset.h` | `tda_BitSet` — a set of indices, one bit each, over a fixed universe |
+| `vec.h` | `tda_Vec` — growable, one contiguous block |
+| `deque.h` | `tda_Deque` — a ring, both ends O(1) amortized |
+| `list.h` | `tda_List` — doubly linked; a position stays valid |
+| `hmap.h` | `tda_HMap` — separate chaining; an entry never moves |
+| `hset.h` | `tda_HSet` — the same table with nothing on the value side |
+| `stack.h` | `tda_Stack` — a vec through a narrower keyhole |
+| `queue.h` | `tda_Queue` — a deque through a narrower keyhole |
+| `pqueue.h` | `tda_PQueue` — a buffer kept under a heap discipline |
 
 ## Build
 
@@ -147,39 +147,39 @@ doxygen docs/Doxyfile   # -> build-docs/html/index.html
 
 ## Use it in a project
 
-nadc is consumed as a source dependency; there is no `install` step and none is planned.
-Either way the target to link is the alias `nadc::nadc`, which carries
+tda is consumed as a source dependency; there is no `install` step and none is planned.
+Either way the target to link is the alias `tda::tda`, which carries
 the include path and the C23 requirement with it.
 
 With `FetchContent`:
 
 ```cmake
 include(FetchContent)
-FetchContent_Declare(nadc
-    GIT_REPOSITORY https://github.com/twist347/c_nad.git
+FetchContent_Declare(tda
+    GIT_REPOSITORY https://github.com/twist347/c_tda.git
     GIT_TAG main
 )
-FetchContent_MakeAvailable(nadc)
+FetchContent_MakeAvailable(tda)
 
-target_link_libraries(app PRIVATE nadc::nadc)
+target_link_libraries(app PRIVATE tda::tda)
 ```
 
 As a submodule:
 
 ```sh
-git submodule add https://github.com/twist347/c_nad.git \
-    thirdparty/nadc
+git submodule add https://github.com/twist347/c_tda.git \
+    thirdparty/tda
 ```
 
 ```cmake
-add_subdirectory(thirdparty/nadc)
+add_subdirectory(thirdparty/tda)
 
-target_link_libraries(app PRIVATE nadc::nadc)
+target_link_libraries(app PRIVATE tda::tda)
 ```
 
 ## License
 
-MIT — see [LICENSE](https://github.com/twist347/c_nad/blob/main/LICENSE).
+MIT — see [LICENSE](https://github.com/twist347/c_tda/blob/main/LICENSE).
 
 `thirdparty/Unity-2.7.0` is Unity, the test framework, vendored as is. It is third-party
 code under its own MIT license; its copyright notice lives in

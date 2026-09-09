@@ -1,6 +1,6 @@
-#include "nad/ds/vec.h"
+#include "tda/ds/vec.h"
 
-#include "nad/algo/compare.h"
+#include "tda/algo/compare.h"
 
 #include "internal/ptr.h"
 
@@ -21,53 +21,53 @@
 static constexpr size_t VEC_GROWTH_BASE = 1;
 static constexpr size_t VEC_GROWTH_FACTOR = 2;
 
-struct nad_Vec {
+struct tda_Vec {
     void *data;
     size_t len;
     size_t cap;
     size_t elem_size;
-    nad_Al *al;
+    tda_Al *al;
 };
 
 [[nodiscard]]
-static nad_Status new_impl(bool zeroed, size_t len, size_t cap, size_t elem_size, nad_Al *al, nad_Vec **out);
+static tda_Status new_impl(bool zeroed, size_t len, size_t cap, size_t elem_size, tda_Al *al, tda_Vec **out);
 
-static void set_fields(nad_Vec *obj, void *data, size_t len, size_t cap, size_t elem_size, nad_Al *al);
+static void set_fields(tda_Vec *obj, void *data, size_t len, size_t cap, size_t elem_size, tda_Al *al);
 
 /// hands the block back and leaves an empty vec on the same allocator
-static void release_data(nad_Vec *self);
+static void release_data(tda_Vec *self);
 
 [[nodiscard]]
-static size_t next_cap(const nad_Vec *self);
+static size_t next_cap(const tda_Vec *self);
 
 [[nodiscard]]
-static nad_Status grow(nad_Vec *self);
+static tda_Status grow(tda_Vec *self);
 
 /// room for one more elem, growing the block when it is full
 [[nodiscard]]
-static nad_Status reserve_one(nad_Vec *self);
+static tda_Status reserve_one(tda_Vec *self);
 
 /// room for 'new_len' elems, asked for with the growth factor when that is the bigger of
 /// the two so a run of extends keeps the amortized cost a run of pushes has. Falls back
 /// to the exact length when the eager request is refused
 [[nodiscard]]
-static nad_Status reserve_for(nad_Vec *self, size_t new_len);
+static tda_Status reserve_for(tda_Vec *self, size_t new_len);
 
 [[nodiscard]]
-static size_t len_bytes(const nad_Vec *self);
+static size_t len_bytes(const tda_Vec *self);
 
 [[nodiscard]]
-static size_t cap_bytes(const nad_Vec *self);
+static size_t cap_bytes(const tda_Vec *self);
 
 [[nodiscard]]
-static const unsigned char *vec_offset(const nad_Vec *self, size_t idx);
+static const unsigned char *vec_offset(const tda_Vec *self, size_t idx);
 
 [[nodiscard]]
-static unsigned char *vec_offset_mut(nad_Vec *self, size_t idx);
+static unsigned char *vec_offset_mut(tda_Vec *self, size_t idx);
 
 /* ========== lifetime ========== */
 
-nad_Status nad_vec_new(size_t elem_size, nad_Al *al, nad_Vec **out) {
+tda_Status tda_vec_new(size_t elem_size, tda_Al *al, tda_Vec **out) {
     assert(elem_size > 0);
     assert(al);
     assert(out);
@@ -75,7 +75,7 @@ nad_Status nad_vec_new(size_t elem_size, nad_Al *al, nad_Vec **out) {
     return new_impl(false, 0, 0, elem_size, al, out);
 }
 
-nad_Status nad_vec_new_len(size_t len, size_t elem_size, nad_Al *al, nad_Vec **out) {
+tda_Status tda_vec_new_len(size_t len, size_t elem_size, tda_Al *al, tda_Vec **out) {
     assert(elem_size > 0);
     assert(al);
     assert(out);
@@ -83,7 +83,7 @@ nad_Status nad_vec_new_len(size_t len, size_t elem_size, nad_Al *al, nad_Vec **o
     return new_impl(true, len, len, elem_size, al, out);
 }
 
-nad_Status nad_vec_new_cap(size_t cap, size_t elem_size, nad_Al *al, nad_Vec **out) {
+tda_Status tda_vec_new_cap(size_t cap, size_t elem_size, tda_Al *al, tda_Vec **out) {
     assert(elem_size > 0);
     assert(al);
     assert(out);
@@ -91,15 +91,15 @@ nad_Status nad_vec_new_cap(size_t cap, size_t elem_size, nad_Al *al, nad_Vec **o
     return new_impl(false, 0, cap, elem_size, al, out);
 }
 
-nad_Status nad_vec_from_data(const void *data, size_t len, size_t elem_size, nad_Al *al, nad_Vec **out) {
+tda_Status tda_vec_from_data(const void *data, size_t len, size_t elem_size, tda_Al *al, tda_Vec **out) {
     assert(data || len == 0);
     assert(elem_size > 0);
     assert(al);
     assert(out);
 
-    nad_Vec *vec;
-    const nad_Status st = new_impl(false, len, len, elem_size, al, &vec);
-    if (NAD_STATUS_IS_ERR(st)) {
+    tda_Vec *vec;
+    const tda_Status st = new_impl(false, len, len, elem_size, al, &vec);
+    if (TDA_STATUS_IS_ERR(st)) {
         return st;
     }
 
@@ -109,55 +109,55 @@ nad_Status nad_vec_from_data(const void *data, size_t len, size_t elem_size, nad
 
     *out = vec;
 
-    return NAD_STATUS_OK;
+    return TDA_STATUS_OK;
 }
 
-nad_Status nad_vec_from_span(nad_Span s, nad_Al *al, nad_Vec **out) {
-    NAD_SPAN_ASSERT(s);
+tda_Status tda_vec_from_span(tda_Span s, tda_Al *al, tda_Vec **out) {
+    TDA_SPAN_ASSERT(s);
     assert(al);
     assert(out);
 
-    return nad_vec_from_data(s.data, s.len, s.elem_size, al, out);
+    return tda_vec_from_data(s.data, s.len, s.elem_size, al, out);
 }
 
-void nad_vec_drop(nad_Vec *self) {
+void tda_vec_drop(tda_Vec *self) {
     if (!self) {
         return;
     }
 
     ASSERT_VEC(self);
 
-    nad_Al *al_copy = self->al;
-    nad_dealloc(al_copy, self->data, cap_bytes(self));
-    nad_dealloc(al_copy, self, sizeof(nad_Vec));
+    tda_Al *al_copy = self->al;
+    tda_dealloc(al_copy, self->data, cap_bytes(self));
+    tda_dealloc(al_copy, self, sizeof(tda_Vec));
 }
 
 /* ========== copy ========== */
 
-nad_Status nad_vec_copy(const nad_Vec *self, nad_Vec **out) {
+tda_Status tda_vec_copy(const tda_Vec *self, tda_Vec **out) {
     ASSERT_VEC(self);
 
-    return nad_vec_copy_with(self, self->al, out);
+    return tda_vec_copy_with(self, self->al, out);
 }
 
-nad_Status nad_vec_copy_with(const nad_Vec *self, nad_Al *al, nad_Vec **out) {
+tda_Status tda_vec_copy_with(const tda_Vec *self, tda_Al *al, tda_Vec **out) {
     ASSERT_VEC(self);
     assert(al);
 
-    return nad_vec_from_span(nad_vec_to_span(self), al, out);
+    return tda_vec_from_span(tda_vec_to_span(self), al, out);
 }
 
-nad_Status nad_vec_copy_assign(const nad_Vec *self, nad_Vec *other) {
+tda_Status tda_vec_copy_assign(const tda_Vec *self, tda_Vec *other) {
     ASSERT_VEC(self);
     ASSERT_VEC(other);
     assert(self->elem_size == other->elem_size);
 
     if (self == other) {
-        return NAD_STATUS_OK;
+        return TDA_STATUS_OK;
     }
 
-    const nad_Status st = nad_vec_reserve(other, self->len);
-    if (NAD_STATUS_IS_ERR(st)) {
+    const tda_Status st = tda_vec_reserve(other, self->len);
+    if (TDA_STATUS_IS_ERR(st)) {
         return st;
     }
 
@@ -169,92 +169,92 @@ nad_Status nad_vec_copy_assign(const nad_Vec *self, nad_Vec *other) {
 
     ASSERT_VEC(other);
 
-    return NAD_STATUS_OK;
+    return TDA_STATUS_OK;
 }
 
-nad_Status nad_vec_move_assign(nad_Vec *self, nad_Vec *other) {
+tda_Status tda_vec_move_assign(tda_Vec *self, tda_Vec *other) {
     ASSERT_VEC(self);
     ASSERT_VEC(other);
     assert(self->elem_size == other->elem_size);
 
     if (self == other) {
-        return NAD_STATUS_OK;
+        return TDA_STATUS_OK;
     }
 
     // one allocator: the block is handed over, capacity and all. What 'other' held ends up in 'self' and is released
     // there, through the very allocator that made it
     if (self->al == other->al) {
-        NAD_SWAP(*self, *other);
+        TDA_SWAP(*self, *other);
         release_data(self);
 
         ASSERT_VEC(self);
         ASSERT_VEC(other);
 
-        return NAD_STATUS_OK;
+        return TDA_STATUS_OK;
     }
 
     // two allocators: the whole copy is built on the target's before anything of it is
     // touched, so a refusal leaves both as they were
-    nad_Vec *obj;
-    const nad_Status st = nad_vec_copy_with(self, other->al, &obj);
-    if (NAD_STATUS_IS_ERR(st)) {
+    tda_Vec *obj;
+    const tda_Status st = tda_vec_copy_with(self, other->al, &obj);
+    if (TDA_STATUS_IS_ERR(st)) {
         return st;
     }
 
-    NAD_SWAP(*other, *obj);
-    nad_vec_drop(obj);
+    TDA_SWAP(*other, *obj);
+    tda_vec_drop(obj);
     release_data(self);
 
     ASSERT_VEC(self);
     ASSERT_VEC(other);
 
-    return NAD_STATUS_OK;
+    return TDA_STATUS_OK;
 }
 
 /* ========== compare ========== */
 
-bool nad_vec_eq(const nad_Vec *a, const nad_Vec *b) {
+bool tda_vec_eq(const tda_Vec *a, const tda_Vec *b) {
     ASSERT_VEC(a);
     ASSERT_VEC(b);
 
-    return nad_span_eq(nad_vec_to_span(a), nad_vec_to_span(b));
+    return tda_span_eq(tda_vec_to_span(a), tda_vec_to_span(b));
 }
 
-bool nad_vec_eq_by(const nad_Vec *a, const nad_Vec *b, nad_Eq eq) {
+bool tda_vec_eq_by(const tda_Vec *a, const tda_Vec *b, tda_Eq eq) {
     ASSERT_VEC(a);
     ASSERT_VEC(b);
     assert(eq);
 
-    return nad_span_eq_by(nad_vec_to_span(a), nad_vec_to_span(b), eq);
+    return tda_span_eq_by(tda_vec_to_span(a), tda_vec_to_span(b), eq);
 }
 
 /* ========== info ========== */
 
-size_t nad_vec_len(const nad_Vec *self) {
+size_t tda_vec_len(const tda_Vec *self) {
     ASSERT_VEC(self);
 
     return self->len;
 }
 
-size_t nad_vec_cap(const nad_Vec *self) {
+size_t tda_vec_cap(const tda_Vec *self) {
     ASSERT_VEC(self);
 
     return self->cap;
 }
 
-size_t nad_vec_elem_size(const nad_Vec *self) {
+size_t tda_vec_elem_size(const tda_Vec *self) {
     ASSERT_VEC(self);
 
     return self->elem_size;
 }
 
-size_t nad_vec_bytes(const nad_Vec *self) {
+size_t tda_vec_bytes(const tda_Vec *self) {
     ASSERT_VEC(self);
 
     return len_bytes(self);
 }
 
-nad_Al *nad_vec_al(const nad_Vec *self) {
+tda_Al *tda_vec_al(const tda_Vec *self) {
     ASSERT_VEC(self);
 
     return self->al;
@@ -262,49 +262,49 @@ nad_Al *nad_vec_al(const nad_Vec *self) {
 
 /* ========== access ========== */
 
-const void *nad_vec_front(const nad_Vec *self) {
+const void *tda_vec_front(const tda_Vec *self) {
     ASSERT_VEC(self);
     assert(self->len > 0);
 
     return vec_offset(self, 0);
 }
 
-void *nad_vec_front_mut(nad_Vec *self) {
+void *tda_vec_front_mut(tda_Vec *self) {
     ASSERT_VEC(self);
     assert(self->len > 0);
 
     return vec_offset_mut(self, 0);
 }
 
-const void *nad_vec_back(const nad_Vec *self) {
+const void *tda_vec_back(const tda_Vec *self) {
     ASSERT_VEC(self);
     assert(self->len > 0);
 
     return vec_offset(self, self->len - 1);
 }
 
-void *nad_vec_back_mut(nad_Vec *self) {
+void *tda_vec_back_mut(tda_Vec *self) {
     ASSERT_VEC(self);
     assert(self->len > 0);
 
     return vec_offset_mut(self, self->len - 1);
 }
 
-const void *nad_vec_get(const nad_Vec *self, size_t idx) {
+const void *tda_vec_get(const tda_Vec *self, size_t idx) {
     ASSERT_VEC(self);
     assert(idx < self->len);
 
     return vec_offset(self, idx);
 }
 
-void *nad_vec_get_mut(nad_Vec *self, size_t idx) {
+void *tda_vec_get_mut(tda_Vec *self, size_t idx) {
     ASSERT_VEC(self);
     assert(idx < self->len);
 
     return vec_offset_mut(self, idx);
 }
 
-void nad_vec_set(nad_Vec *self, size_t idx, const void *val) {
+void tda_vec_set(tda_Vec *self, size_t idx, const void *val) {
     ASSERT_VEC(self);
     assert(val);
     assert(idx < self->len);
@@ -312,13 +312,13 @@ void nad_vec_set(nad_Vec *self, size_t idx, const void *val) {
     memcpy(vec_offset_mut(self, idx), val, self->elem_size);
 }
 
-const void *nad_vec_data(const nad_Vec *self) {
+const void *tda_vec_data(const tda_Vec *self) {
     ASSERT_VEC(self);
 
     return self->data;
 }
 
-void *nad_vec_data_mut(nad_Vec *self) {
+void *tda_vec_data_mut(tda_Vec *self) {
     ASSERT_VEC(self);
 
     return self->data;
@@ -326,35 +326,35 @@ void *nad_vec_data_mut(nad_Vec *self) {
 
 /* ========== mods ========== */
 
-nad_Status nad_vec_push(nad_Vec *self, const void *val) {
+tda_Status tda_vec_push(tda_Vec *self, const void *val) {
     ASSERT_VEC(self);
     assert(val);
 
-    const nad_Status st = reserve_one(self);
-    if (NAD_STATUS_IS_ERR(st)) {
+    const tda_Status st = reserve_one(self);
+    if (TDA_STATUS_IS_ERR(st)) {
         return st;
     }
 
     memcpy(vec_offset_mut(self, self->len), val, self->elem_size);
     ++self->len;
 
-    return NAD_STATUS_OK;
+    return TDA_STATUS_OK;
 }
 
-void nad_vec_pop(nad_Vec *self) {
+void tda_vec_pop(tda_Vec *self) {
     ASSERT_VEC(self);
     assert(self->len > 0);
 
     --self->len;
 }
 
-nad_Status nad_vec_insert(nad_Vec *self, size_t idx, const void *val) {
+tda_Status tda_vec_insert(tda_Vec *self, size_t idx, const void *val) {
     ASSERT_VEC(self);
     assert(val);
     assert(idx <= self->len);
 
-    const nad_Status st = reserve_one(self);
-    if (NAD_STATUS_IS_ERR(st)) {
+    const tda_Status st = reserve_one(self);
+    if (TDA_STATUS_IS_ERR(st)) {
         return st;
     }
 
@@ -366,10 +366,10 @@ nad_Status nad_vec_insert(nad_Vec *self, size_t idx, const void *val) {
     memcpy(vec_offset_mut(self, idx), val, self->elem_size);
     ++self->len;
 
-    return NAD_STATUS_OK;
+    return TDA_STATUS_OK;
 }
 
-void nad_vec_remove(nad_Vec *self, size_t idx) {
+void tda_vec_remove(tda_Vec *self, size_t idx) {
     ASSERT_VEC(self);
     assert(idx < self->len);
 
@@ -380,54 +380,54 @@ void nad_vec_remove(nad_Vec *self, size_t idx) {
     --self->len;
 }
 
-void nad_vec_clear(nad_Vec *self) {
+void tda_vec_clear(tda_Vec *self) {
     ASSERT_VEC(self);
 
     self->len = 0;
 }
 
-nad_Status nad_vec_reserve(nad_Vec *self, size_t new_cap) {
+tda_Status tda_vec_reserve(tda_Vec *self, size_t new_cap) {
     ASSERT_VEC(self);
 
     if (new_cap <= self->cap) {
-        return NAD_STATUS_OK;
+        return TDA_STATUS_OK;
     }
 
     size_t new_bytes;
     if (ckd_mul(&new_bytes, new_cap, self->elem_size)) {
-        return NAD_STATUS_ERR_NO_MEM;
+        return TDA_STATUS_ERR_NO_MEM;
     }
-    void *data = nad_realloc(self->al, self->data, cap_bytes(self), new_bytes);
+    void *data = tda_realloc(self->al, self->data, cap_bytes(self), new_bytes);
     if (!data) {
-        return NAD_STATUS_ERR_NO_MEM;
+        return TDA_STATUS_ERR_NO_MEM;
     }
 
     self->data = data;
     self->cap = new_cap;
 
-    return NAD_STATUS_OK;
+    return TDA_STATUS_OK;
 }
 
-nad_Status nad_vec_shrink_to_fit(nad_Vec *self) {
+tda_Status tda_vec_shrink_to_fit(tda_Vec *self) {
     ASSERT_VEC(self);
 
     if (self->len == self->cap) {
-        return NAD_STATUS_OK;
+        return TDA_STATUS_OK;
     }
 
     if (self->len == 0) {
-        nad_dealloc(self->al, self->data, cap_bytes(self));
+        tda_dealloc(self->al, self->data, cap_bytes(self));
         self->data = nullptr;
         self->cap = 0;
 
         ASSERT_VEC(self);
 
-        return NAD_STATUS_OK;
+        return TDA_STATUS_OK;
     }
 
-    void *data = nad_realloc(self->al, self->data, cap_bytes(self), len_bytes(self));
+    void *data = tda_realloc(self->al, self->data, cap_bytes(self), len_bytes(self));
     if (!data) {
-        return NAD_STATUS_ERR_NO_MEM;
+        return TDA_STATUS_ERR_NO_MEM;
     }
 
     self->data = data;
@@ -435,20 +435,20 @@ nad_Status nad_vec_shrink_to_fit(nad_Vec *self) {
 
     ASSERT_VEC(self);
 
-    return NAD_STATUS_OK;
+    return TDA_STATUS_OK;
 }
 
-nad_Status nad_vec_resize(nad_Vec *self, size_t new_len) {
+tda_Status tda_vec_resize(tda_Vec *self, size_t new_len) {
     ASSERT_VEC(self);
 
     if (new_len <= self->len) {
         self->len = new_len;
-        return NAD_STATUS_OK;
+        return TDA_STATUS_OK;
     }
 
     if (new_len > self->cap) {
-        const nad_Status st = nad_vec_reserve(self, new_len);
-        if (NAD_STATUS_IS_ERR(st)) {
+        const tda_Status st = tda_vec_reserve(self, new_len);
+        if (TDA_STATUS_IS_ERR(st)) {
             return st;
         }
     }
@@ -458,10 +458,10 @@ nad_Status nad_vec_resize(nad_Vec *self, size_t new_len) {
     memset(vec_offset_mut(self, self->len), 0, add_bytes);
     self->len = new_len;
 
-    return NAD_STATUS_OK;
+    return TDA_STATUS_OK;
 }
 
-void nad_vec_swap(nad_Vec *self, nad_Vec *other) {
+void tda_vec_swap(tda_Vec *self, tda_Vec *other) {
     ASSERT_VEC(self);
     ASSERT_VEC(other);
     assert(self->elem_size == other->elem_size);
@@ -471,46 +471,46 @@ void nad_vec_swap(nad_Vec *self, nad_Vec *other) {
         return;
     }
 
-    NAD_SWAP(*self, *other);
+    TDA_SWAP(*self, *other);
 
     ASSERT_VEC(self);
     ASSERT_VEC(other);
 }
 
-void nad_vec_swap_elems(nad_Vec *self, size_t i, size_t j) {
+void tda_vec_swap_elems(tda_Vec *self, size_t i, size_t j) {
     ASSERT_VEC(self);
 
-    nad_span_swap_elems(nad_vec_to_span_mut(self), i, j);
+    tda_span_swap_elems(tda_vec_to_span_mut(self), i, j);
 }
 
 /* ========== bulk mods ========== */
 
-nad_Status nad_vec_extend(nad_Vec *self, nad_Span src) {
+tda_Status tda_vec_extend(tda_Vec *self, tda_Span src) {
     ASSERT_VEC(self);
-    NAD_SPAN_ASSERT(src);
+    TDA_SPAN_ASSERT(src);
     assert(src.elem_size == self->elem_size);
 
-    return nad_vec_insert_span(self, self->len, src);
+    return tda_vec_insert_span(self, self->len, src);
 }
 
-nad_Status nad_vec_insert_span(nad_Vec *self, size_t idx, nad_Span src) {
+tda_Status tda_vec_insert_span(tda_Vec *self, size_t idx, tda_Span src) {
     ASSERT_VEC(self);
-    NAD_SPAN_ASSERT(src);
+    TDA_SPAN_ASSERT(src);
     assert(src.elem_size == self->elem_size);
     assert(idx <= self->len);
 
     if (src.len == 0) {
-        return NAD_STATUS_OK;
+        return TDA_STATUS_OK;
     }
 
     size_t new_len;
     if (ckd_add(&new_len, self->len, src.len)) {
-        return NAD_STATUS_ERR_NO_MEM;
+        return TDA_STATUS_ERR_NO_MEM;
     }
 
     if (new_len > self->cap) {
-        const nad_Status st = reserve_for(self, new_len);
-        if (NAD_STATUS_IS_ERR(st)) {
+        const tda_Status st = reserve_for(self, new_len);
+        if (TDA_STATUS_IS_ERR(st)) {
             return st;
         }
     }
@@ -525,10 +525,10 @@ nad_Status nad_vec_insert_span(nad_Vec *self, size_t idx, nad_Span src) {
     memcpy(vec_offset_mut(self, idx), src.data, src.len * self->elem_size);
     self->len = new_len;
 
-    return NAD_STATUS_OK;
+    return TDA_STATUS_OK;
 }
 
-void nad_vec_remove_range(nad_Vec *self, size_t idx, size_t count) {
+void tda_vec_remove_range(tda_Vec *self, size_t idx, size_t count) {
     ASSERT_VEC(self);
     assert(idx <= self->len);
     assert(count <= self->len - idx);
@@ -547,47 +547,47 @@ void nad_vec_remove_range(nad_Vec *self, size_t idx, size_t count) {
 
 /* ========== to span ========== */
 
-nad_SpanMut nad_vec_to_span_mut(nad_Vec *self) {
+tda_SpanMut tda_vec_to_span_mut(tda_Vec *self) {
     ASSERT_VEC(self);
 
-    return nad_span_from_data_mut(self->data, self->len, self->elem_size);
+    return tda_span_from_data_mut(self->data, self->len, self->elem_size);
 }
 
-nad_Span nad_vec_to_span(const nad_Vec *self) {
+tda_Span tda_vec_to_span(const tda_Vec *self) {
     ASSERT_VEC(self);
 
-    return nad_span_from_data(self->data, self->len, self->elem_size);
+    return tda_span_from_data(self->data, self->len, self->elem_size);
 }
 
 /* ========== print ========== */
 
-void nad_vec_fprint(const nad_Vec *self, FILE *stream, nad_FPrint fprint) {
+void tda_vec_fprint(const tda_Vec *self, FILE *stream, tda_FPrint fprint) {
     ASSERT_VEC(self);
     assert(stream);
     assert(fprint);
 
-    nad_span_fprint(nad_vec_to_span(self), stream, fprint);
+    tda_span_fprint(tda_vec_to_span(self), stream, fprint);
 }
 
-void nad_vec_print(const nad_Vec *self, nad_FPrint fprint) {
+void tda_vec_print(const tda_Vec *self, tda_FPrint fprint) {
     ASSERT_VEC(self);
     assert(fprint);
 
-    nad_vec_fprint(self, stdout, fprint);
+    tda_vec_fprint(self, stdout, fprint);
 }
 
 /* ========== internals ========== */
 
 [[nodiscard]]
-static nad_Status new_impl(bool zeroed, size_t len, size_t cap, size_t elem_size, nad_Al *al, nad_Vec **out) {
+static tda_Status new_impl(bool zeroed, size_t len, size_t cap, size_t elem_size, tda_Al *al, tda_Vec **out) {
     assert(len <= cap);
     assert(elem_size > 0);
     assert(al);
     assert(out);
 
-    nad_Vec *obj = nad_alloc(al, sizeof(nad_Vec));
+    tda_Vec *obj = tda_alloc(al, sizeof(tda_Vec));
     if (!obj) {
-        return NAD_STATUS_ERR_NO_MEM;
+        return TDA_STATUS_ERR_NO_MEM;
     }
 
     void *data = nullptr;
@@ -597,7 +597,7 @@ static nad_Status new_impl(bool zeroed, size_t len, size_t cap, size_t elem_size
         if (ckd_mul(&bytes, cap, elem_size)) {
             goto fail;
         }
-        data = nad_alloc(al, bytes);
+        data = tda_alloc(al, bytes);
         if (!data) {
             goto fail;
         }
@@ -611,14 +611,14 @@ static nad_Status new_impl(bool zeroed, size_t len, size_t cap, size_t elem_size
     ASSERT_VEC(obj);
 
     *out = obj;
-    return NAD_STATUS_OK;
+    return TDA_STATUS_OK;
 
 fail:
-    nad_dealloc(al, obj, sizeof(nad_Vec));
-    return NAD_STATUS_ERR_NO_MEM;
+    tda_dealloc(al, obj, sizeof(tda_Vec));
+    return TDA_STATUS_ERR_NO_MEM;
 }
 
-static void set_fields(nad_Vec *obj, void *data, size_t len, size_t cap, size_t elem_size, nad_Al *al) {
+static void set_fields(tda_Vec *obj, void *data, size_t len, size_t cap, size_t elem_size, tda_Al *al) {
     obj->data = data;
     obj->len = len;
     obj->cap = cap;
@@ -626,7 +626,7 @@ static void set_fields(nad_Vec *obj, void *data, size_t len, size_t cap, size_t 
     obj->al = al;
 }
 
-static size_t next_cap(const nad_Vec *self) {
+static size_t next_cap(const tda_Vec *self) {
     if (self->cap == 0) {
         return VEC_GROWTH_BASE;
     }
@@ -639,60 +639,60 @@ static size_t next_cap(const nad_Vec *self) {
     return grown;
 }
 
-static nad_Status grow(nad_Vec *self) {
+static tda_Status grow(tda_Vec *self) {
     assert(self->len == self->cap);
 
     if (self->cap == SIZE_MAX) {
-        return NAD_STATUS_ERR_NO_MEM;
+        return TDA_STATUS_ERR_NO_MEM;
     }
 
     const size_t wanted = next_cap(self);
 
-    const nad_Status st = nad_vec_reserve(self, wanted);
-    if (NAD_STATUS_IS_OK(st) || wanted <= self->cap + 1) {
+    const tda_Status st = tda_vec_reserve(self, wanted);
+    if (TDA_STATUS_IS_OK(st) || wanted <= self->cap + 1) {
         return st;
     }
 
-    return nad_vec_reserve(self, self->cap + 1);
+    return tda_vec_reserve(self, self->cap + 1);
 }
 
-static nad_Status reserve_one(nad_Vec *self) {
-    return self->len == self->cap ? grow(self) : NAD_STATUS_OK;
+static tda_Status reserve_one(tda_Vec *self) {
+    return self->len == self->cap ? grow(self) : TDA_STATUS_OK;
 }
 
-static nad_Status reserve_for(nad_Vec *self, size_t new_len) {
+static tda_Status reserve_for(tda_Vec *self, size_t new_len) {
     assert(new_len > self->cap);
 
     const size_t eager = next_cap(self);
     if (eager > new_len) {
-        const nad_Status st = nad_vec_reserve(self, eager);
-        if (NAD_STATUS_IS_OK(st)) {
+        const tda_Status st = tda_vec_reserve(self, eager);
+        if (TDA_STATUS_IS_OK(st)) {
             return st;
         }
     }
 
-    return nad_vec_reserve(self, new_len);
+    return tda_vec_reserve(self, new_len);
 }
 
-static void release_data(nad_Vec *self) {
-    nad_dealloc(self->al, self->data, cap_bytes(self));
+static void release_data(tda_Vec *self) {
+    tda_dealloc(self->al, self->data, cap_bytes(self));
     self->data = nullptr;
     self->len = 0;
     self->cap = 0;
 }
 
-static size_t len_bytes(const nad_Vec *self) {
+static size_t len_bytes(const tda_Vec *self) {
     return self->len * self->elem_size;
 }
 
-static size_t cap_bytes(const nad_Vec *self) {
+static size_t cap_bytes(const tda_Vec *self) {
     return self->cap * self->elem_size;
 }
 
-static const unsigned char *vec_offset(const nad_Vec *self, size_t idx) {
-    return nad_byte_offset(self->data, self->elem_size, idx);
+static const unsigned char *vec_offset(const tda_Vec *self, size_t idx) {
+    return tda_byte_offset(self->data, self->elem_size, idx);
 }
 
-static unsigned char *vec_offset_mut(nad_Vec *self, size_t idx) {
-    return nad_byte_offset_mut(self->data, self->elem_size, idx);
+static unsigned char *vec_offset_mut(tda_Vec *self, size_t idx) {
+    return tda_byte_offset_mut(self->data, self->elem_size, idx);
 }

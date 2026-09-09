@@ -1,8 +1,8 @@
-function(nad_add_example target_name source_file)
+function(tda_add_example target_name source_file)
     add_executable(${target_name} ${source_file})
 
-    target_link_libraries(${target_name} PRIVATE nadc::nadc)
-    target_compile_options(${target_name} PRIVATE ${NAD_WARNINGS})
+    target_link_libraries(${target_name} PRIVATE tda::tda)
+    target_compile_options(${target_name} PRIVATE ${TDA_WARNINGS})
 
     add_test(NAME ${target_name} COMMAND ${target_name})
 endfunction()

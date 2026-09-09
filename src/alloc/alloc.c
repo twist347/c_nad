@@ -1,4 +1,4 @@
-#include "nad/alloc/alloc.h"
+#include "tda/alloc/alloc.h"
 
 #include <assert.h>
 #include <stdckdint.h>
@@ -6,7 +6,7 @@
 
 /* ========== wrappers ========== */
 
-void *nad_alloc(nad_Al *al, size_t size) {
+void *tda_alloc(tda_Al *al, size_t size) {
     assert(al);
     assert(al->alloc);
 
@@ -17,7 +17,7 @@ void *nad_alloc(nad_Al *al, size_t size) {
     return al->alloc(al->ctx, size);
 }
 
-void *nad_calloc(nad_Al *al, size_t num, size_t size) {
+void *tda_calloc(tda_Al *al, size_t num, size_t size) {
     assert(al);
 
     if (num == 0 || size == 0) {
@@ -31,7 +31,7 @@ void *nad_calloc(nad_Al *al, size_t num, size_t size) {
 
     // fallback
     if (!al->calloc) {
-        void *ptr = nad_alloc(al, total);
+        void *ptr = tda_alloc(al, total);
         if (!ptr) {
             return nullptr;
         }
@@ -42,18 +42,18 @@ void *nad_calloc(nad_Al *al, size_t num, size_t size) {
     return al->calloc(al->ctx, num, size);
 }
 
-void *nad_realloc(nad_Al *al, void *ptr, size_t old_size, size_t new_size) {
+void *tda_realloc(tda_Al *al, void *ptr, size_t old_size, size_t new_size) {
     assert(al);
     assert(ptr || old_size == 0);
 
     if (new_size == 0) {
-        nad_dealloc(al, ptr, old_size);
+        tda_dealloc(al, ptr, old_size);
         return nullptr;
     }
 
     // fallback
     if (!al->realloc) {
-        void *new_ptr = nad_alloc(al, new_size);
+        void *new_ptr = tda_alloc(al, new_size);
         if (!new_ptr) {
             return nullptr;
         }
@@ -61,7 +61,7 @@ void *nad_realloc(nad_Al *al, void *ptr, size_t old_size, size_t new_size) {
         if (ptr) {
             const size_t copy_size = old_size < new_size ? old_size : new_size;
             memcpy(new_ptr, ptr, copy_size);
-            nad_dealloc(al, ptr, old_size);
+            tda_dealloc(al, ptr, old_size);
         }
         return new_ptr;
     }
@@ -69,7 +69,7 @@ void *nad_realloc(nad_Al *al, void *ptr, size_t old_size, size_t new_size) {
     return al->realloc(al->ctx, ptr, old_size, new_size);
 }
 
-void nad_dealloc(nad_Al *al, void *ptr, size_t size) {
+void tda_dealloc(tda_Al *al, void *ptr, size_t size) {
     assert(al);
     assert(al->dealloc);
 

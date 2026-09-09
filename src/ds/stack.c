@@ -1,6 +1,6 @@
-#include "nad/ds/stack.h"
+#include "tda/ds/stack.h"
 
-#include "nad/ds/vec.h"
+#include "tda/ds/vec.h"
 
 #include <assert.h>
 
@@ -14,52 +14,52 @@
 // every operation here is one of the vec's, renamed to the end it acts on. Reusing it
 // keeps the growth policy, the allocator handling and the copy semantics in one place
 // instead of two — what this type contributes is the operations it does NOT forward.
-struct nad_Stack {
-    nad_Vec *vec;
+struct tda_Stack {
+    tda_Vec *vec;
 };
 
 /// takes ownership of 'vec' either way: on failure it is dropped, not handed back
 [[nodiscard]]
-static nad_Status wrap(nad_Vec *vec, nad_Stack **out);
+static tda_Status wrap(tda_Vec *vec, tda_Stack **out);
 
 /* ========== lifetime ========== */
 
-nad_Status nad_stack_new(size_t elem_size, nad_Al *al, nad_Stack **out) {
+tda_Status tda_stack_new(size_t elem_size, tda_Al *al, tda_Stack **out) {
     assert(elem_size > 0);
     assert(al);
     assert(out);
 
-    nad_Vec *vec;
-    const nad_Status st = nad_vec_new(elem_size, al, &vec);
-    if (NAD_STATUS_IS_ERR(st)) {
+    tda_Vec *vec;
+    const tda_Status st = tda_vec_new(elem_size, al, &vec);
+    if (TDA_STATUS_IS_ERR(st)) {
         return st;
     }
 
     return wrap(vec, out);
 }
 
-nad_Status nad_stack_new_cap(size_t cap, size_t elem_size, nad_Al *al, nad_Stack **out) {
+tda_Status tda_stack_new_cap(size_t cap, size_t elem_size, tda_Al *al, tda_Stack **out) {
     assert(elem_size > 0);
     assert(al);
     assert(out);
 
-    nad_Vec *vec;
-    const nad_Status st = nad_vec_new_cap(cap, elem_size, al, &vec);
-    if (NAD_STATUS_IS_ERR(st)) {
+    tda_Vec *vec;
+    const tda_Status st = tda_vec_new_cap(cap, elem_size, al, &vec);
+    if (TDA_STATUS_IS_ERR(st)) {
         return st;
     }
 
     return wrap(vec, out);
 }
 
-nad_Status nad_stack_from_data(const void *data, size_t len, size_t elem_size, nad_Al *al, nad_Stack **out) {
+tda_Status tda_stack_from_data(const void *data, size_t len, size_t elem_size, tda_Al *al, tda_Stack **out) {
     assert(elem_size > 0);
     assert(al);
     assert(out);
 
-    nad_Vec *vec;
-    const nad_Status st = nad_vec_from_data(data, len, elem_size, al, &vec);
-    if (NAD_STATUS_IS_ERR(st)) {
+    tda_Vec *vec;
+    const tda_Status st = tda_vec_from_data(data, len, elem_size, al, &vec);
+    if (TDA_STATUS_IS_ERR(st)) {
         return st;
     }
 
@@ -67,214 +67,214 @@ nad_Status nad_stack_from_data(const void *data, size_t len, size_t elem_size, n
     return wrap(vec, out);
 }
 
-nad_Status nad_stack_from_span(nad_Span s, nad_Al *al, nad_Stack **out) {
-    NAD_SPAN_ASSERT(s);
+tda_Status tda_stack_from_span(tda_Span s, tda_Al *al, tda_Stack **out) {
+    TDA_SPAN_ASSERT(s);
     assert(al);
     assert(out);
 
-    return nad_stack_from_data(s.data, s.len, s.elem_size, al, out);
+    return tda_stack_from_data(s.data, s.len, s.elem_size, al, out);
 }
 
-void nad_stack_drop(nad_Stack *self) {
+void tda_stack_drop(tda_Stack *self) {
     if (!self) {
         return;
     }
 
     ASSERT_STACK(self);
 
-    nad_Al *al_copy = nad_vec_al(self->vec);
-    nad_vec_drop(self->vec);
-    nad_dealloc(al_copy, self, sizeof(nad_Stack));
+    tda_Al *al_copy = tda_vec_al(self->vec);
+    tda_vec_drop(self->vec);
+    tda_dealloc(al_copy, self, sizeof(tda_Stack));
 }
 
-nad_Vec *nad_stack_into_vec(nad_Stack *self) {
+tda_Vec *tda_stack_into_vec(tda_Stack *self) {
     ASSERT_STACK(self);
 
-    nad_Vec *vec = self->vec;
-    nad_dealloc(nad_vec_al(vec), self, sizeof(nad_Stack));
+    tda_Vec *vec = self->vec;
+    tda_dealloc(tda_vec_al(vec), self, sizeof(tda_Stack));
 
     return vec;
 }
 
 /* ========== copy ========== */
 
-nad_Status nad_stack_copy(const nad_Stack *self, nad_Stack **out) {
+tda_Status tda_stack_copy(const tda_Stack *self, tda_Stack **out) {
     ASSERT_STACK(self);
 
-    return nad_stack_copy_with(self, nad_vec_al(self->vec), out);
+    return tda_stack_copy_with(self, tda_vec_al(self->vec), out);
 }
 
-nad_Status nad_stack_copy_with(const nad_Stack *self, nad_Al *al, nad_Stack **out) {
+tda_Status tda_stack_copy_with(const tda_Stack *self, tda_Al *al, tda_Stack **out) {
     ASSERT_STACK(self);
     assert(al);
     assert(out);
 
-    nad_Vec *vec;
-    const nad_Status st = nad_vec_copy_with(self->vec, al, &vec);
-    if (NAD_STATUS_IS_ERR(st)) {
+    tda_Vec *vec;
+    const tda_Status st = tda_vec_copy_with(self->vec, al, &vec);
+    if (TDA_STATUS_IS_ERR(st)) {
         return st;
     }
 
     return wrap(vec, out);
 }
 
-nad_Status nad_stack_copy_assign(const nad_Stack *self, nad_Stack *other) {
+tda_Status tda_stack_copy_assign(const tda_Stack *self, tda_Stack *other) {
     ASSERT_STACK(self);
     ASSERT_STACK(other);
-    assert(nad_vec_elem_size(self->vec) == nad_vec_elem_size(other->vec));
+    assert(tda_vec_elem_size(self->vec) == tda_vec_elem_size(other->vec));
 
     // self assignment is left to the vec, which already returns early on it: a guard
     // repeated here would be a branch no test could tell from its absence
-    return nad_vec_copy_assign(self->vec, other->vec);
+    return tda_vec_copy_assign(self->vec, other->vec);
 }
 
-nad_Status nad_stack_move_assign(nad_Stack *self, nad_Stack *other) {
+tda_Status tda_stack_move_assign(tda_Stack *self, tda_Stack *other) {
     ASSERT_STACK(self);
     ASSERT_STACK(other);
-    assert(nad_vec_elem_size(self->vec) == nad_vec_elem_size(other->vec));
+    assert(tda_vec_elem_size(self->vec) == tda_vec_elem_size(other->vec));
 
     // as in copy_assign, moving a stack onto itself is the vec's early return
-    return nad_vec_move_assign(self->vec, other->vec);
+    return tda_vec_move_assign(self->vec, other->vec);
 }
 
 /* ========== compare ========== */
 
-bool nad_stack_eq(const nad_Stack *a, const nad_Stack *b) {
+bool tda_stack_eq(const tda_Stack *a, const tda_Stack *b) {
     ASSERT_STACK(a);
     ASSERT_STACK(b);
 
-    return nad_vec_eq(a->vec, b->vec);
+    return tda_vec_eq(a->vec, b->vec);
 }
 
-bool nad_stack_eq_by(const nad_Stack *a, const nad_Stack *b, nad_Eq eq) {
+bool tda_stack_eq_by(const tda_Stack *a, const tda_Stack *b, tda_Eq eq) {
     ASSERT_STACK(a);
     ASSERT_STACK(b);
 
-    return nad_vec_eq_by(a->vec, b->vec, eq);
+    return tda_vec_eq_by(a->vec, b->vec, eq);
 }
 
 /* ========== info ========== */
 
-size_t nad_stack_len(const nad_Stack *self) {
+size_t tda_stack_len(const tda_Stack *self) {
     ASSERT_STACK(self);
 
-    return nad_vec_len(self->vec);
+    return tda_vec_len(self->vec);
 }
 
-size_t nad_stack_cap(const nad_Stack *self) {
+size_t tda_stack_cap(const tda_Stack *self) {
     ASSERT_STACK(self);
 
-    return nad_vec_cap(self->vec);
+    return tda_vec_cap(self->vec);
 }
 
-size_t nad_stack_elem_size(const nad_Stack *self) {
+size_t tda_stack_elem_size(const tda_Stack *self) {
     ASSERT_STACK(self);
 
-    return nad_vec_elem_size(self->vec);
+    return tda_vec_elem_size(self->vec);
 }
 
-nad_Al *nad_stack_al(const nad_Stack *self) {
+tda_Al *tda_stack_al(const tda_Stack *self) {
     ASSERT_STACK(self);
 
-    return nad_vec_al(self->vec);
+    return tda_vec_al(self->vec);
 }
 
 /* ========== access ========== */
 
-const void *nad_stack_top(const nad_Stack *self) {
+const void *tda_stack_top(const tda_Stack *self) {
     ASSERT_STACK(self);
-    assert(nad_vec_len(self->vec) > 0);
+    assert(tda_vec_len(self->vec) > 0);
 
-    return nad_vec_back(self->vec);
+    return tda_vec_back(self->vec);
 }
 
-void *nad_stack_top_mut(nad_Stack *self) {
+void *tda_stack_top_mut(tda_Stack *self) {
     ASSERT_STACK(self);
-    assert(nad_vec_len(self->vec) > 0);
+    assert(tda_vec_len(self->vec) > 0);
 
-    return nad_vec_back_mut(self->vec);
+    return tda_vec_back_mut(self->vec);
 }
 
 /* ========== mods ========== */
 
-nad_Status nad_stack_push(nad_Stack *self, const void *val) {
+tda_Status tda_stack_push(tda_Stack *self, const void *val) {
     ASSERT_STACK(self);
     assert(val);
 
-    return nad_vec_push(self->vec, val);
+    return tda_vec_push(self->vec, val);
 }
 
-void nad_stack_pop(nad_Stack *self) {
+void tda_stack_pop(tda_Stack *self) {
     ASSERT_STACK(self);
-    assert(nad_vec_len(self->vec) > 0);
+    assert(tda_vec_len(self->vec) > 0);
 
-    nad_vec_pop(self->vec);
+    tda_vec_pop(self->vec);
 }
 
-void nad_stack_clear(nad_Stack *self) {
-    ASSERT_STACK(self);
-
-    nad_vec_clear(self->vec);
-}
-
-nad_Status nad_stack_reserve(nad_Stack *self, size_t new_cap) {
+void tda_stack_clear(tda_Stack *self) {
     ASSERT_STACK(self);
 
-    return nad_vec_reserve(self->vec, new_cap);
+    tda_vec_clear(self->vec);
 }
 
-nad_Status nad_stack_shrink_to_fit(nad_Stack *self) {
+tda_Status tda_stack_reserve(tda_Stack *self, size_t new_cap) {
     ASSERT_STACK(self);
 
-    return nad_vec_shrink_to_fit(self->vec);
+    return tda_vec_reserve(self->vec, new_cap);
 }
 
-void nad_stack_swap(nad_Stack *self, nad_Stack *other) {
+tda_Status tda_stack_shrink_to_fit(tda_Stack *self) {
+    ASSERT_STACK(self);
+
+    return tda_vec_shrink_to_fit(self->vec);
+}
+
+void tda_stack_swap(tda_Stack *self, tda_Stack *other) {
     ASSERT_STACK(self);
     ASSERT_STACK(other);
-    assert(nad_vec_elem_size(self->vec) == nad_vec_elem_size(other->vec));
+    assert(tda_vec_elem_size(self->vec) == tda_vec_elem_size(other->vec));
 
     // as in copy_assign, swapping a stack with itself is the vec's early return
-    nad_vec_swap(self->vec, other->vec);
+    tda_vec_swap(self->vec, other->vec);
 }
 
 /* ========== to span ========== */
 
-nad_Span nad_stack_to_span(const nad_Stack *self) {
+tda_Span tda_stack_to_span(const tda_Stack *self) {
     ASSERT_STACK(self);
 
-    return nad_vec_to_span(self->vec);
+    return tda_vec_to_span(self->vec);
 }
 
 /* ========== print ========== */
 
-void nad_stack_fprint(const nad_Stack *self, FILE *stream, nad_FPrint fprint) {
+void tda_stack_fprint(const tda_Stack *self, FILE *stream, tda_FPrint fprint) {
     ASSERT_STACK(self);
 
-    nad_vec_fprint(self->vec, stream, fprint);
+    tda_vec_fprint(self->vec, stream, fprint);
 }
 
-void nad_stack_print(const nad_Stack *self, nad_FPrint fprint) {
+void tda_stack_print(const tda_Stack *self, tda_FPrint fprint) {
     ASSERT_STACK(self);
 
-    nad_vec_print(self->vec, fprint);
+    tda_vec_print(self->vec, fprint);
 }
 
 /* ========== internals ========== */
 
-static nad_Status wrap(nad_Vec *vec, nad_Stack **out) {
+static tda_Status wrap(tda_Vec *vec, tda_Stack **out) {
     assert(vec);
     assert(out);
 
-    nad_Stack *obj = nad_alloc(nad_vec_al(vec), sizeof(nad_Stack));
+    tda_Stack *obj = tda_alloc(tda_vec_al(vec), sizeof(tda_Stack));
     if (!obj) {
-        nad_vec_drop(vec);
-        return NAD_STATUS_ERR_NO_MEM;
+        tda_vec_drop(vec);
+        return TDA_STATUS_ERR_NO_MEM;
     }
 
     obj->vec = vec;
 
     *out = obj;
 
-    return NAD_STATUS_OK;
+    return TDA_STATUS_OK;
 }

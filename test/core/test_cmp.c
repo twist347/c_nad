@@ -1,6 +1,6 @@
-#include "nad/core/cmp.h"
-#include "nad/algo/search.h"
-#include "nad/algo/sort.h"
+#include "tda/core/cmp.h"
+#include "tda/algo/search.h"
+#include "tda/algo/sort.h"
 
 #include <unity.h>
 
@@ -15,17 +15,17 @@ void tearDown() {
 }
 
 // The value form the public API no longer carries. It lives here, in the only file that
-// wants readable operands, and is exactly what nad_cmp_<T> used to be: the comparator
+// wants readable operands, and is exactly what tda_cmp_<T> used to be: the comparator
 // called with the addresses of two values. Instantiated only where a case calls it, so
 // an unused one is a warning rather than dead weight.
 #define DEFINE_CMP_FORM(name, T)      \
     static int cmp_##name(T a, T b) { \
-        return nad_cmp_##name(&a, &b); \
+        return tda_cmp_##name(&a, &b); \
     }
 
 #define DEFINE_EQ_FORM(name, T)       \
     static bool eq_##name(T a, T b) { \
-        return nad_eq_##name(&a, &b);  \
+        return tda_eq_##name(&a, &b);  \
     }
 
 DEFINE_CMP_FORM(i8, int8_t)
@@ -61,14 +61,14 @@ static void expect_order(int less, int equal, int greater) {
 }
 
 // a descending comparator is its ascending twin with the operands the other way round
-static void expect_desc(nad_Cmp desc, const void *small, const void *big) {
+static void expect_desc(tda_Cmp desc, const void *small, const void *big) {
     TEST_ASSERT_EQUAL_INT(1, desc(small, big));
     TEST_ASSERT_EQUAL_INT(-1, desc(big, small));
     TEST_ASSERT_EQUAL_INT(0, desc(small, small));
 }
 
 // an equality answers true on the same value and false on a neighbour of it
-static void expect_eq(nad_Eq eq, const void *val, const void *same, const void *other) {
+static void expect_eq(tda_Eq eq, const void *val, const void *same, const void *other) {
     TEST_ASSERT_TRUE(eq(val, same));
     TEST_ASSERT_FALSE(eq(val, other));
 }
@@ -109,8 +109,8 @@ static void test_cmp_unsigned_survives_the_extremes() {
 /* ========== ptrdiff ========== */
 
 // size and ptrdiff are the two entries whose width follows the target, so neither can be
-// stood in for by a fixed-width one: on a 32-bit build nad_cmp_u64 would read past a
-// size_t, and nad_cmp_i64 past a ptrdiff_t
+// stood in for by a fixed-width one: on a 32-bit build tda_cmp_u64 would read past a
+// size_t, and tda_cmp_i64 past a ptrdiff_t
 static void test_cmp_ptrdiff_orders_and_survives_the_extremes() {
     expect_order(cmp_ptrdiff(-1, 0), cmp_ptrdiff(7, 7), cmp_ptrdiff(0, -1));
     expect_order(
@@ -125,8 +125,8 @@ static void test_cmp_ptrdiff_orders_and_survives_the_extremes() {
 // char is neither signed char nor unsigned char, and which of the two it behaves like is
 // the target's business. So the expectation cannot be a literal: it is that the
 // comparator answers what the platform's own operators answer for the same two chars.
-// (char) 200 is negative on x86 and 200 under -funsigned-char; substituting nad_cmp_i8
-// or nad_cmp_u8 is wrong on exactly one of the two, and this case says which.
+// (char) 200 is negative on x86 and 200 under -funsigned-char; substituting tda_cmp_i8
+// or tda_cmp_u8 is wrong on exactly one of the two, and this case says which.
 static void test_cmp_char_follows_the_signedness_of_the_target() {
     constexpr char high = (char) 200;
     constexpr char low = 100;
@@ -144,7 +144,7 @@ static void test_cmp_char_follows_the_signedness_of_the_target() {
 static void test_cmp_char_sorts_letters() {
     char buf[5] = {'d', 'a', 'e', 'b', 'c'};
 
-    nad_span_sort(NAD_SPAN_FROM_DATA_MUT(char, buf, 5), nad_cmp_char);
+    tda_span_sort(TDA_SPAN_FROM_DATA_MUT(char, buf, 5), tda_cmp_char);
 
     TEST_ASSERT_EQUAL_CHAR_ARRAY("abcde", buf, 5);
 }
@@ -184,11 +184,11 @@ static void test_cmp_float_orders_the_infinities() {
 // a span with a NaN in it must still come out ordered, with the NaN at the end
 static void test_cmp_float_gives_sort_a_usable_order() {
     double buf[5] = {3.0, NAN, 1.0, -0.0, 2.0};
-    const nad_SpanMut s = NAD_SPAN_FROM_DATA_MUT(double, buf, 5);
+    const tda_SpanMut s = TDA_SPAN_FROM_DATA_MUT(double, buf, 5);
 
-    nad_span_sort(s, nad_cmp_f64);
+    tda_span_sort(s, tda_cmp_f64);
 
-    TEST_ASSERT_TRUE(nad_span_is_sorted(nad_span_mut_to_span(s), nad_cmp_f64));
+    TEST_ASSERT_TRUE(tda_span_is_sorted(tda_span_mut_to_span(s), tda_cmp_f64));
     TEST_ASSERT_EQUAL_DOUBLE(0.0, buf[0]);
     TEST_ASSERT_EQUAL_DOUBLE(1.0, buf[1]);
     TEST_ASSERT_EQUAL_DOUBLE(2.0, buf[2]);
@@ -235,14 +235,14 @@ static void test_eq_answers_true_only_on_equal() {
 
 // the ready-made equalities the cases above do not spell out, one line per type
 static void test_eq_covers_every_ready_made_type() {
-    expect_eq(nad_eq_i8, &(int8_t){-8}, &(int8_t){-8}, &(int8_t){-7});
-    expect_eq(nad_eq_i16, &(int16_t){-16}, &(int16_t){-16}, &(int16_t){-15});
-    expect_eq(nad_eq_i64, &(int64_t){-64}, &(int64_t){-64}, &(int64_t){-63});
-    expect_eq(nad_eq_u16, &(uint16_t){16}, &(uint16_t){16}, &(uint16_t){17});
-    expect_eq(nad_eq_u32, &(uint32_t){32}, &(uint32_t){32}, &(uint32_t){33});
-    expect_eq(nad_eq_u64, &(uint64_t){UINT64_MAX}, &(uint64_t){UINT64_MAX}, &(uint64_t){0});
-    expect_eq(nad_eq_ptrdiff, &(ptrdiff_t){-1}, &(ptrdiff_t){-1}, &(ptrdiff_t){1});
-    expect_eq(nad_eq_f32, &(float){1.5f}, &(float){1.5f}, &(float){2.5f});
+    expect_eq(tda_eq_i8, &(int8_t){-8}, &(int8_t){-8}, &(int8_t){-7});
+    expect_eq(tda_eq_i16, &(int16_t){-16}, &(int16_t){-16}, &(int16_t){-15});
+    expect_eq(tda_eq_i64, &(int64_t){-64}, &(int64_t){-64}, &(int64_t){-63});
+    expect_eq(tda_eq_u16, &(uint16_t){16}, &(uint16_t){16}, &(uint16_t){17});
+    expect_eq(tda_eq_u32, &(uint32_t){32}, &(uint32_t){32}, &(uint32_t){33});
+    expect_eq(tda_eq_u64, &(uint64_t){UINT64_MAX}, &(uint64_t){UINT64_MAX}, &(uint64_t){0});
+    expect_eq(tda_eq_ptrdiff, &(ptrdiff_t){-1}, &(ptrdiff_t){-1}, &(ptrdiff_t){1});
+    expect_eq(tda_eq_f32, &(float){1.5f}, &(float){1.5f}, &(float){2.5f});
 }
 
 /* ========== descending ========== */
@@ -252,57 +252,57 @@ static void test_descending_inverts_the_ascending_one() {
     constexpr int32_t a = 1;
     constexpr int32_t b = 2;
 
-    TEST_ASSERT_EQUAL_INT(1, nad_cmp_desc_i32(&a, &b));
-    TEST_ASSERT_EQUAL_INT(-1, nad_cmp_desc_i32(&b, &a));
-    TEST_ASSERT_EQUAL_INT(0, nad_cmp_desc_i32(&a, &a));
+    TEST_ASSERT_EQUAL_INT(1, tda_cmp_desc_i32(&a, &b));
+    TEST_ASSERT_EQUAL_INT(-1, tda_cmp_desc_i32(&b, &a));
+    TEST_ASSERT_EQUAL_INT(0, tda_cmp_desc_i32(&a, &a));
 
     constexpr double x = 1.5;
     constexpr double y = 2.5;
-    TEST_ASSERT_EQUAL_INT(1, nad_cmp_desc_f64(&x, &y));
-    TEST_ASSERT_EQUAL_INT(-1, nad_cmp_desc_f64(&y, &x));
+    TEST_ASSERT_EQUAL_INT(1, tda_cmp_desc_f64(&x, &y));
+    TEST_ASSERT_EQUAL_INT(-1, tda_cmp_desc_f64(&y, &x));
 
     // cstr goes through the same shared body despite its pointer-to-pointer operands
     const char *p = "abc";
     const char *q = "abd";
-    TEST_ASSERT_EQUAL_INT(1, nad_cmp_desc_cstr(&p, &q));
-    TEST_ASSERT_EQUAL_INT(-1, nad_cmp_desc_cstr(&q, &p));
+    TEST_ASSERT_EQUAL_INT(1, tda_cmp_desc_cstr(&p, &q));
+    TEST_ASSERT_EQUAL_INT(-1, tda_cmp_desc_cstr(&q, &p));
 }
 
 // the descending twins the case above does not spell out, one line per type
 static void test_descending_covers_every_ready_made_type() {
-    expect_desc(nad_cmp_desc_i8, &(int8_t){1}, &(int8_t){2});
-    expect_desc(nad_cmp_desc_i16, &(int16_t){1}, &(int16_t){2});
-    expect_desc(nad_cmp_desc_i64, &(int64_t){1}, &(int64_t){2});
-    expect_desc(nad_cmp_desc_u8, &(uint8_t){1}, &(uint8_t){2});
-    expect_desc(nad_cmp_desc_u16, &(uint16_t){1}, &(uint16_t){2});
-    expect_desc(nad_cmp_desc_u32, &(uint32_t){1}, &(uint32_t){2});
-    expect_desc(nad_cmp_desc_u64, &(uint64_t){1}, &(uint64_t){2});
-    expect_desc(nad_cmp_desc_size, &(size_t){1}, &(size_t){2});
-    expect_desc(nad_cmp_desc_ptrdiff, &(ptrdiff_t){-1}, &(ptrdiff_t){1});
-    expect_desc(nad_cmp_desc_char, &(char){'a'}, &(char){'b'});
-    expect_desc(nad_cmp_desc_f32, &(float){1.5f}, &(float){2.5f});
+    expect_desc(tda_cmp_desc_i8, &(int8_t){1}, &(int8_t){2});
+    expect_desc(tda_cmp_desc_i16, &(int16_t){1}, &(int16_t){2});
+    expect_desc(tda_cmp_desc_i64, &(int64_t){1}, &(int64_t){2});
+    expect_desc(tda_cmp_desc_u8, &(uint8_t){1}, &(uint8_t){2});
+    expect_desc(tda_cmp_desc_u16, &(uint16_t){1}, &(uint16_t){2});
+    expect_desc(tda_cmp_desc_u32, &(uint32_t){1}, &(uint32_t){2});
+    expect_desc(tda_cmp_desc_u64, &(uint64_t){1}, &(uint64_t){2});
+    expect_desc(tda_cmp_desc_size, &(size_t){1}, &(size_t){2});
+    expect_desc(tda_cmp_desc_ptrdiff, &(ptrdiff_t){-1}, &(ptrdiff_t){1});
+    expect_desc(tda_cmp_desc_char, &(char){'a'}, &(char){'b'});
+    expect_desc(tda_cmp_desc_f32, &(float){1.5f}, &(float){2.5f});
 }
 
 /* ========== through the algorithms ========== */
 
 static void test_comparators_drive_sort_both_ways() {
     int32_t buf[5] = {3, 1, 5, 2, 4};
-    const nad_SpanMut s = NAD_SPAN_FROM_DATA_MUT(int32_t, buf, 5);
+    const tda_SpanMut s = TDA_SPAN_FROM_DATA_MUT(int32_t, buf, 5);
 
-    nad_span_sort(s, nad_cmp_i32);
+    tda_span_sort(s, tda_cmp_i32);
     constexpr int32_t up[5] = {1, 2, 3, 4, 5};
     TEST_ASSERT_EQUAL_INT32_ARRAY(up, buf, 5);
 
-    nad_span_sort(s, nad_cmp_desc_i32);
+    tda_span_sort(s, tda_cmp_desc_i32);
     constexpr int32_t down[5] = {5, 4, 3, 2, 1};
     TEST_ASSERT_EQUAL_INT32_ARRAY(down, buf, 5);
 }
 
 static void test_cstr_comparator_drives_sort() {
     const char *buf[4] = {"pear", "apple", nullptr, "fig"};
-    const nad_SpanMut s = NAD_SPAN_FROM_DATA_MUT(const char *, buf, 4);
+    const tda_SpanMut s = TDA_SPAN_FROM_DATA_MUT(const char *, buf, 4);
 
-    nad_span_sort(s, nad_cmp_cstr);
+    tda_span_sort(s, tda_cmp_cstr);
 
     TEST_ASSERT_NULL(buf[0]); // null sorts first
     TEST_ASSERT_EQUAL_STRING("apple", buf[1]);
@@ -312,13 +312,13 @@ static void test_cstr_comparator_drives_sort() {
 
 static void test_eq_drives_search() {
     constexpr int32_t buf[5] = {10, 20, 30, 20, 10};
-    const nad_Span s = NAD_SPAN_FROM_DATA(int32_t, buf, 5);
+    const tda_Span s = TDA_SPAN_FROM_DATA(int32_t, buf, 5);
 
     size_t idx = 0;
-    TEST_ASSERT_TRUE(nad_span_find(s, &(int32_t){20}, nad_eq_i32, &idx));
+    TEST_ASSERT_TRUE(tda_span_find(s, &(int32_t){20}, tda_eq_i32, &idx));
     TEST_ASSERT_EQUAL_size_t(1, idx);
-    TEST_ASSERT_EQUAL_size_t(2, nad_span_count(s, &(int32_t){20}, nad_eq_i32));
-    TEST_ASSERT_FALSE(nad_span_contains(s, &(int32_t){99}, nad_eq_i32));
+    TEST_ASSERT_EQUAL_size_t(2, tda_span_count(s, &(int32_t){20}, tda_eq_i32));
+    TEST_ASSERT_FALSE(tda_span_contains(s, &(int32_t){99}, tda_eq_i32));
 }
 
 int main() {

@@ -1,6 +1,6 @@
-#include "nad/alloc/log.h"
+#include "tda/alloc/log.h"
 
-#include "nad/alloc/alloc.h"
+#include "tda/alloc/alloc.h"
 
 #include <assert.h>
 #include <stddef.h>
@@ -20,7 +20,7 @@ static void *log_realloc(void *ctx, void *ptr, size_t old_size, size_t new_size)
 static void log_dealloc(void *ctx, void *ptr, size_t size);
 
 typedef struct {
-    nad_Al *wrapped;
+    tda_Al *wrapped;
     FILE *stream;
 } LogCtx;
 
@@ -31,11 +31,11 @@ typedef struct {
 
 /* ========== lifetime ========== */
 
-nad_Al *nad_al_log_new(nad_Al *wrapped, FILE *stream) {
+tda_Al *tda_al_log_new(tda_Al *wrapped, FILE *stream) {
     assert(wrapped);
     assert(stream);
 
-    LogCtx *log_ctx = nad_alloc(wrapped, sizeof(LogCtx));
+    LogCtx *log_ctx = tda_alloc(wrapped, sizeof(LogCtx));
     if (!log_ctx) {
         return nullptr;
     }
@@ -43,9 +43,9 @@ nad_Al *nad_al_log_new(nad_Al *wrapped, FILE *stream) {
     log_ctx->wrapped = wrapped;
     log_ctx->stream = stream;
 
-    nad_Al *obj = nad_alloc(wrapped, sizeof(nad_Al));
+    tda_Al *obj = tda_alloc(wrapped, sizeof(tda_Al));
     if (!obj) {
-        nad_dealloc(wrapped, log_ctx, sizeof(LogCtx));
+        tda_dealloc(wrapped, log_ctx, sizeof(LogCtx));
         return nullptr;
     }
 
@@ -57,14 +57,14 @@ nad_Al *nad_al_log_new(nad_Al *wrapped, FILE *stream) {
 
     fprintf(
         log_ctx->stream,
-        "[NAD] log allocator created (wrapping %p)\n",
+        "[TDA] log allocator created (wrapping %p)\n",
         (void *) wrapped
     );
 
     return obj;
 }
 
-void nad_al_log_drop(nad_Al *self) {
+void tda_al_log_drop(tda_Al *self) {
     if (!self) {
         return;
     }
@@ -75,16 +75,16 @@ void nad_al_log_drop(nad_Al *self) {
 
     fprintf(
         log_ctx->stream,
-        "[NAD] log allocator destroyed (wrapping %p)\n",
+        "[TDA] log allocator destroyed (wrapping %p)\n",
         (void *) log_ctx->wrapped
     );
     fflush(log_ctx->stream);
 
-    nad_Al *wrapped = log_ctx->wrapped;
+    tda_Al *wrapped = log_ctx->wrapped;
     assert(wrapped);
 
-    nad_dealloc(wrapped, log_ctx, sizeof(LogCtx));
-    nad_dealloc(wrapped, self, sizeof(nad_Al));
+    tda_dealloc(wrapped, log_ctx, sizeof(LogCtx));
+    tda_dealloc(wrapped, self, sizeof(tda_Al));
 }
 
 /* ========== internals ========== */
@@ -95,10 +95,10 @@ static void *log_alloc(void *ctx, size_t size) {
     const LogCtx *log_ctx = ctx;
     assert(log_ctx->stream);
 
-    void *p = nad_alloc(log_ctx->wrapped, size);
+    void *p = tda_alloc(log_ctx->wrapped, size);
     fprintf(
         log_ctx->stream,
-        "[NAD] alloc size = %zu -> %p\n",
+        "[TDA] alloc size = %zu -> %p\n",
         size, p
     );
     fflush(log_ctx->stream);
@@ -111,10 +111,10 @@ static void *log_calloc(void *ctx, size_t num, size_t size) {
     const LogCtx *log_ctx = ctx;
     assert(log_ctx->stream);
 
-    void *p = nad_calloc(log_ctx->wrapped, num, size);
+    void *p = tda_calloc(log_ctx->wrapped, num, size);
     fprintf(
         log_ctx->stream,
-        "[NAD] calloc num = %zu size = %zu -> %p\n",
+        "[TDA] calloc num = %zu size = %zu -> %p\n",
         num, size, p
     );
     fflush(log_ctx->stream);
@@ -127,10 +127,10 @@ static void *log_realloc(void *ctx, void *ptr, size_t old_size, size_t new_size)
     const LogCtx *log_ctx = ctx;
     assert(log_ctx->stream);
 
-    void *p = nad_realloc(log_ctx->wrapped, ptr, old_size, new_size);
+    void *p = tda_realloc(log_ctx->wrapped, ptr, old_size, new_size);
     fprintf(
         log_ctx->stream,
-        "[NAD] realloc %p old size = %zu new_size = %zu -> %p\n",
+        "[TDA] realloc %p old size = %zu new_size = %zu -> %p\n",
         ptr, old_size, new_size, p
     );
     fflush(log_ctx->stream);
@@ -145,9 +145,9 @@ static void log_dealloc(void *ctx, void *ptr, size_t size) {
 
     fprintf(
         log_ctx->stream,
-        "[NAD] dealloc %p size = %zu\n",
+        "[TDA] dealloc %p size = %zu\n",
         ptr, size
     );
     fflush(log_ctx->stream);
-    nad_dealloc(log_ctx->wrapped, ptr, size);
+    tda_dealloc(log_ctx->wrapped, ptr, size);
 }

@@ -1,8 +1,8 @@
 cmake_minimum_required(VERSION 3.22)
 
-project(nadc
+project(tda
         VERSION 0.1.0
-        DESCRIPTION "Naive algorithms and data structures in C23"
+        DESCRIPTION "Taut data structures and algorithms in C23"
         LANGUAGES C
 )
 
@@ -14,19 +14,19 @@ if (PROJECT_IS_TOP_LEVEL)
     set(CMAKE_C_EXTENSIONS OFF)
 endif ()
 
-set(NAD_C_STANDARD 23)
+set(TDA_C_STANDARD 23)
 
-option(NAD_BUILD_SHARED "Build nadc as a shared library" ${PROJECT_IS_TOP_LEVEL})
-option(NAD_BUILD_TEST "Build unit tests" ${PROJECT_IS_TOP_LEVEL})
-option(NAD_BUILD_EXAMPLE "Build the examples the reference quotes" ${PROJECT_IS_TOP_LEVEL})
-option(NAD_BUILD_BENCH "Build the benchmarks" OFF)
+option(TDA_BUILD_SHARED "Build tda as a shared library" ${PROJECT_IS_TOP_LEVEL})
+option(TDA_BUILD_TEST "Build unit tests" ${PROJECT_IS_TOP_LEVEL})
+option(TDA_BUILD_EXAMPLE "Build the examples the reference quotes" ${PROJECT_IS_TOP_LEVEL})
+option(TDA_BUILD_BENCH "Build the benchmarks" OFF)
 
-set(NAD_WARNINGS
+set(TDA_WARNINGS
         $<$<C_COMPILER_ID:GNU,Clang,AppleClang>:-Wall;-Wextra;-Wpedantic>
         $<$<C_COMPILER_ID:MSVC>:/W4> #unused for now
 )
 
-set(NAD_ALGO_SOURCES
+set(TDA_ALGO_SOURCES
         src/algo/compare.c
         src/algo/copy.c
         src/algo/fill.c
@@ -41,7 +41,7 @@ set(NAD_ALGO_SOURCES
         src/algo/transform.c
 )
 
-set(NAD_ALLOC_SOURCES
+set(TDA_ALLOC_SOURCES
         src/alloc/aligned.c
         src/alloc/alloc.c
         src/alloc/arena.c
@@ -50,7 +50,7 @@ set(NAD_ALLOC_SOURCES
         src/alloc/pool.c
 )
 
-set(NAD_CORE_SOURCES
+set(TDA_CORE_SOURCES
         src/core/cmp.c
         src/core/hash.c
         src/core/print.c
@@ -59,7 +59,7 @@ set(NAD_CORE_SOURCES
         src/core/status.c
 )
 
-set(NAD_DS_SOURCES
+set(TDA_DS_SOURCES
         src/ds/arr.c
         src/ds/bitset.c
         src/ds/deque.c
@@ -72,39 +72,39 @@ set(NAD_DS_SOURCES
         src/ds/vec.c
 )
 
-set(NAD_SOURCES
-        ${NAD_ALGO_SOURCES}
-        ${NAD_ALLOC_SOURCES}
-        ${NAD_CORE_SOURCES}
-        ${NAD_DS_SOURCES}
+set(TDA_SOURCES
+        ${TDA_ALGO_SOURCES}
+        ${TDA_ALLOC_SOURCES}
+        ${TDA_CORE_SOURCES}
+        ${TDA_DS_SOURCES}
 )
 
-if (NAD_BUILD_SHARED)
-    set(NAD_LIBRARY_TYPE SHARED)
+if (TDA_BUILD_SHARED)
+    set(TDA_LIBRARY_TYPE SHARED)
 else ()
-    set(NAD_LIBRARY_TYPE STATIC)
+    set(TDA_LIBRARY_TYPE STATIC)
 endif ()
 
-add_library(nadc ${NAD_LIBRARY_TYPE} ${NAD_SOURCES})
-add_library(nadc::nadc ALIAS nadc)
+add_library(tda ${TDA_LIBRARY_TYPE} ${TDA_SOURCES})
+add_library(tda::tda ALIAS tda)
 
-target_include_directories(nadc
+target_include_directories(tda
         PUBLIC $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
         PRIVATE ${PROJECT_SOURCE_DIR}/src
 )
-target_compile_features(nadc PUBLIC c_std_${NAD_C_STANDARD})
-target_compile_options(nadc PRIVATE ${NAD_WARNINGS})
+target_compile_features(tda PUBLIC c_std_${TDA_C_STANDARD})
+target_compile_options(tda PRIVATE ${TDA_WARNINGS})
 
 if (UNIX)
-    target_link_libraries(nadc PUBLIC m)
+    target_link_libraries(tda PUBLIC m)
 endif ()
 
-target_compile_definitions(nadc
-        PRIVATE NAD_BUILD
-        PUBLIC $<$<NOT:$<BOOL:${NAD_BUILD_SHARED}>>:NAD_STATIC>
+target_compile_definitions(tda
+        PRIVATE TDA_BUILD
+        PUBLIC $<$<NOT:$<BOOL:${TDA_BUILD_SHARED}>>:TDA_STATIC>
 )
 
-set_target_properties(nadc PROPERTIES
+set_target_properties(tda PROPERTIES
         VERSION ${PROJECT_VERSION}
         SOVERSION ${PROJECT_VERSION_MAJOR}
         POSITION_INDEPENDENT_CODE ON
@@ -113,21 +113,21 @@ set_target_properties(nadc PROPERTIES
 )
 
 include(CheckIPOSupported)
-check_ipo_supported(RESULT NAD_IPO_SUPPORTED OUTPUT NAD_IPO_ERROR)
-if (NAD_IPO_SUPPORTED)
-    set_target_properties(nadc PROPERTIES
+check_ipo_supported(RESULT TDA_IPO_SUPPORTED OUTPUT TDA_IPO_ERROR)
+if (TDA_IPO_SUPPORTED)
+    set_target_properties(tda PROPERTIES
             INTERPROCEDURAL_OPTIMIZATION_RELEASE ON
             INTERPROCEDURAL_OPTIMIZATION_RELWITHDEBINFO ON
     )
 else ()
-    message(STATUS "  LTO unavailable : ${NAD_IPO_ERROR}")
+    message(STATUS "  LTO unavailable : ${TDA_IPO_ERROR}")
 endif ()
 
-if (NAD_BUILD_TEST OR NAD_BUILD_EXAMPLE)
+if (TDA_BUILD_TEST OR TDA_BUILD_EXAMPLE)
     enable_testing()
 endif ()
 
-if (NAD_BUILD_TEST)
+if (TDA_BUILD_TEST)
     set(UNITY_DIR ${PROJECT_SOURCE_DIR}/thirdparty/Unity-2.7.0)
     add_subdirectory(${UNITY_DIR} EXCLUDE_FROM_ALL)
     target_compile_definitions(unity PUBLIC UNITY_INCLUDE_DOUBLE UNITY_INCLUDE_FLOAT)
@@ -135,25 +135,25 @@ if (NAD_BUILD_TEST)
     add_subdirectory(test)
 endif ()
 
-if (NAD_BUILD_EXAMPLE)
+if (TDA_BUILD_EXAMPLE)
     add_subdirectory(example)
 endif ()
 
-if (NAD_BUILD_BENCH)
+if (TDA_BUILD_BENCH)
     add_subdirectory(bench)
 endif ()
 
 if (PROJECT_IS_TOP_LEVEL)
-    string(TOLOWER ${NAD_LIBRARY_TYPE} NAD_LIBRARY_TYPE_LOWER)
+    string(TOLOWER ${TDA_LIBRARY_TYPE} TDA_LIBRARY_TYPE_LOWER)
     message(STATUS "")
-    message(STATUS "nadc configuration:")
+    message(STATUS "tda configuration:")
     message(STATUS "  version        : ${PROJECT_VERSION}")
     message(STATUS "  build type     : ${CMAKE_BUILD_TYPE}")
-    message(STATUS "  library        : ${NAD_LIBRARY_TYPE_LOWER}")
+    message(STATUS "  library        : ${TDA_LIBRARY_TYPE_LOWER}")
     message(STATUS "  compiler       : ${CMAKE_C_COMPILER_ID} ${CMAKE_C_COMPILER_VERSION}")
-    message(STATUS "  C standard     : C${NAD_C_STANDARD}")
-    message(STATUS "  tests          : ${NAD_BUILD_TEST}")
-    message(STATUS "  examples       : ${NAD_BUILD_EXAMPLE}")
-    message(STATUS "  benchmarks     : ${NAD_BUILD_BENCH}")
+    message(STATUS "  C standard     : C${TDA_C_STANDARD}")
+    message(STATUS "  tests          : ${TDA_BUILD_TEST}")
+    message(STATUS "  examples       : ${TDA_BUILD_EXAMPLE}")
+    message(STATUS "  benchmarks     : ${TDA_BUILD_BENCH}")
     message(STATUS "")
 endif ()

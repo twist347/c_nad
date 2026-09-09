@@ -1,6 +1,6 @@
-#include "nad/ds/bitset.h"
+#include "tda/ds/bitset.h"
 
-#include "nad/core/util.h"
+#include "tda/core/util.h"
 
 #include <assert.h>
 #include <stdbit.h>
@@ -24,11 +24,11 @@ static constexpr size_t WORD_BITS = 64;
     assert((b)->nwords == 0 || ((b)->words[(b)->nwords - 1] & ~tail_mask((b)->nbits)) == 0), \
     assert((b)->al))
 
-struct nad_BitSet {
+struct tda_BitSet {
     uint64_t *words;
     size_t nbits;
     size_t nwords;
-    nad_Al *al;
+    tda_Al *al;
 };
 
 [[nodiscard]]
@@ -36,10 +36,10 @@ static size_t words_for(size_t nbits);
 
 /// how many bytes the words take, the size the block was asked for
 [[nodiscard]]
-static size_t words_bytes(const nad_BitSet *self);
+static size_t words_bytes(const tda_BitSet *self);
 
 /// hands the words back and leaves an empty universe on the same allocator
-static void release_words(nad_BitSet *self);
+static void release_words(tda_BitSet *self);
 
 [[nodiscard]]
 static size_t word_of(size_t idx);
@@ -51,7 +51,7 @@ static uint64_t bit_of(size_t idx);
 [[nodiscard]]
 static uint64_t tail_mask(size_t nbits);
 
-static void clear_tail(nad_BitSet *self);
+static void clear_tail(tda_BitSet *self);
 
 /// the word with the bits below 'from' masked off; 'from' must be inside the set
 [[nodiscard]]
@@ -63,23 +63,23 @@ static size_t idx_of_first_one(size_t w, uint64_t word);
 
 /* ========== lifetime ========== */
 
-nad_Status nad_bitset_new(size_t nbits, nad_Al *al, nad_BitSet **out) {
+tda_Status tda_bitset_new(size_t nbits, tda_Al *al, tda_BitSet **out) {
     assert(al);
     assert(out);
 
-    nad_BitSet *obj = nad_alloc(al, sizeof(nad_BitSet));
+    tda_BitSet *obj = tda_alloc(al, sizeof(tda_BitSet));
     if (!obj) {
-        return NAD_STATUS_ERR_NO_MEM;
+        return TDA_STATUS_ERR_NO_MEM;
     }
 
     const size_t nwords = words_for(nbits);
     uint64_t *words = nullptr;
 
     if (nwords > 0) {
-        words = nad_calloc(al, nwords, sizeof(uint64_t));
+        words = tda_calloc(al, nwords, sizeof(uint64_t));
         if (!words) {
-            nad_dealloc(al, obj, sizeof(nad_BitSet));
-            return NAD_STATUS_ERR_NO_MEM;
+            tda_dealloc(al, obj, sizeof(tda_BitSet));
+            return TDA_STATUS_ERR_NO_MEM;
         }
     }
 
@@ -92,37 +92,37 @@ nad_Status nad_bitset_new(size_t nbits, nad_Al *al, nad_BitSet **out) {
 
     *out = obj;
 
-    return NAD_STATUS_OK;
+    return TDA_STATUS_OK;
 }
 
-void nad_bitset_drop(nad_BitSet *self) {
+void tda_bitset_drop(tda_BitSet *self) {
     if (!self) {
         return;
     }
 
     ASSERT_BITSET(self);
 
-    nad_Al *al_copy = self->al;
-    nad_dealloc(al_copy, self->words, words_bytes(self));
-    nad_dealloc(al_copy, self, sizeof(nad_BitSet));
+    tda_Al *al_copy = self->al;
+    tda_dealloc(al_copy, self->words, words_bytes(self));
+    tda_dealloc(al_copy, self, sizeof(tda_BitSet));
 }
 
 /* ========== copy ========== */
 
-nad_Status nad_bitset_copy(const nad_BitSet *self, nad_BitSet **out) {
+tda_Status tda_bitset_copy(const tda_BitSet *self, tda_BitSet **out) {
     ASSERT_BITSET(self);
 
-    return nad_bitset_copy_with(self, self->al, out);
+    return tda_bitset_copy_with(self, self->al, out);
 }
 
-nad_Status nad_bitset_copy_with(const nad_BitSet *self, nad_Al *al, nad_BitSet **out) {
+tda_Status tda_bitset_copy_with(const tda_BitSet *self, tda_Al *al, tda_BitSet **out) {
     ASSERT_BITSET(self);
     assert(al);
     assert(out);
 
-    nad_BitSet *copy;
-    const nad_Status st = nad_bitset_new(self->nbits, al, &copy);
-    if (NAD_STATUS_IS_ERR(st)) {
+    tda_BitSet *copy;
+    const tda_Status st = tda_bitset_new(self->nbits, al, &copy);
+    if (TDA_STATUS_IS_ERR(st)) {
         return st;
     }
 
@@ -132,19 +132,19 @@ nad_Status nad_bitset_copy_with(const nad_BitSet *self, nad_Al *al, nad_BitSet *
 
     *out = copy;
 
-    return NAD_STATUS_OK;
+    return TDA_STATUS_OK;
 }
 
-nad_Status nad_bitset_copy_assign(const nad_BitSet *self, nad_BitSet *other) {
+tda_Status tda_bitset_copy_assign(const tda_BitSet *self, tda_BitSet *other) {
     ASSERT_BITSET(self);
     ASSERT_BITSET(other);
 
     if (self == other) {
-        return NAD_STATUS_OK;
+        return TDA_STATUS_OK;
     }
 
     if (self->nwords != other->nwords) {
-        uint64_t *new_words = nad_realloc(
+        uint64_t *new_words = tda_realloc(
             other->al,
             other->words,
             words_bytes(other),
@@ -152,7 +152,7 @@ nad_Status nad_bitset_copy_assign(const nad_BitSet *self, nad_BitSet *other) {
         );
         // a new_size of 0 hands the block back and answers null, which is not a failure
         if (self->nwords > 0 && !new_words) {
-            return NAD_STATUS_ERR_NO_MEM;
+            return TDA_STATUS_ERR_NO_MEM;
         }
 
         other->words = new_words;
@@ -167,48 +167,48 @@ nad_Status nad_bitset_copy_assign(const nad_BitSet *self, nad_BitSet *other) {
 
     ASSERT_BITSET(other);
 
-    return NAD_STATUS_OK;
+    return TDA_STATUS_OK;
 }
 
-nad_Status nad_bitset_move_assign(nad_BitSet *self, nad_BitSet *other) {
+tda_Status tda_bitset_move_assign(tda_BitSet *self, tda_BitSet *other) {
     ASSERT_BITSET(self);
     ASSERT_BITSET(other);
 
     if (self == other) {
-        return NAD_STATUS_OK;
+        return TDA_STATUS_OK;
     }
 
     // one allocator: the words are handed over, universe and all. What 'other' held ends up in 'self' and is released
     // there, through the very allocator that made it
     if (self->al == other->al) {
-        NAD_SWAP(*self, *other);
+        TDA_SWAP(*self, *other);
         release_words(self);
 
         ASSERT_BITSET(self);
         ASSERT_BITSET(other);
 
-        return NAD_STATUS_OK;
+        return TDA_STATUS_OK;
     }
 
     // two allocators: the whole copy is built on the target's before anything of it is
     // touched, so a refusal leaves both as they were
-    nad_BitSet *obj;
-    const nad_Status st = nad_bitset_copy_with(self, other->al, &obj);
-    if (NAD_STATUS_IS_ERR(st)) {
+    tda_BitSet *obj;
+    const tda_Status st = tda_bitset_copy_with(self, other->al, &obj);
+    if (TDA_STATUS_IS_ERR(st)) {
         return st;
     }
 
-    NAD_SWAP(*other, *obj);
-    nad_bitset_drop(obj);
+    TDA_SWAP(*other, *obj);
+    tda_bitset_drop(obj);
     release_words(self);
 
     ASSERT_BITSET(self);
     ASSERT_BITSET(other);
 
-    return NAD_STATUS_OK;
+    return TDA_STATUS_OK;
 }
 
-void nad_bitset_swap(nad_BitSet *self, nad_BitSet *other) {
+void tda_bitset_swap(tda_BitSet *self, tda_BitSet *other) {
     ASSERT_BITSET(self);
     ASSERT_BITSET(other);
     assert(self->al == other->al);
@@ -217,7 +217,7 @@ void nad_bitset_swap(nad_BitSet *self, nad_BitSet *other) {
         return;
     }
 
-    NAD_SWAP(*self, *other);
+    TDA_SWAP(*self, *other);
 
     ASSERT_BITSET(self);
     ASSERT_BITSET(other);
@@ -225,45 +225,45 @@ void nad_bitset_swap(nad_BitSet *self, nad_BitSet *other) {
 
 /* ========== one bit ========== */
 
-bool nad_bitset_test(const nad_BitSet *self, size_t idx) {
+bool tda_bitset_test(const tda_BitSet *self, size_t idx) {
     ASSERT_BITSET(self);
     assert(idx < self->nbits);
 
     return (self->words[word_of(idx)] & bit_of(idx)) != 0;
 }
 
-void nad_bitset_set(nad_BitSet *self, size_t idx) {
+void tda_bitset_set(tda_BitSet *self, size_t idx) {
     ASSERT_BITSET(self);
     assert(idx < self->nbits);
 
     self->words[word_of(idx)] |= bit_of(idx);
 }
 
-void nad_bitset_clear(nad_BitSet *self, size_t idx) {
+void tda_bitset_clear(tda_BitSet *self, size_t idx) {
     ASSERT_BITSET(self);
     assert(idx < self->nbits);
 
     self->words[word_of(idx)] &= ~bit_of(idx);
 }
 
-void nad_bitset_flip(nad_BitSet *self, size_t idx) {
+void tda_bitset_flip(tda_BitSet *self, size_t idx) {
     ASSERT_BITSET(self);
     assert(idx < self->nbits);
 
     self->words[word_of(idx)] ^= bit_of(idx);
 }
 
-void nad_bitset_set_to(nad_BitSet *self, size_t idx, bool val) {
+void tda_bitset_set_to(tda_BitSet *self, size_t idx, bool val) {
     if (val) {
-        nad_bitset_set(self, idx);
+        tda_bitset_set(self, idx);
     } else {
-        nad_bitset_clear(self, idx);
+        tda_bitset_clear(self, idx);
     }
 }
 
 /* ========== all bits ========== */
 
-void nad_bitset_set_all(nad_BitSet *self) {
+void tda_bitset_set_all(tda_BitSet *self) {
     ASSERT_BITSET(self);
 
     // a byte of ones is a word of ones, and memset over no bytes wants a real pointer
@@ -274,7 +274,7 @@ void nad_bitset_set_all(nad_BitSet *self) {
     clear_tail(self);
 }
 
-void nad_bitset_clear_all(nad_BitSet *self) {
+void tda_bitset_clear_all(tda_BitSet *self) {
     ASSERT_BITSET(self);
 
     if (self->nwords > 0) {
@@ -282,7 +282,7 @@ void nad_bitset_clear_all(nad_BitSet *self) {
     }
 }
 
-void nad_bitset_flip_all(nad_BitSet *self) {
+void tda_bitset_flip_all(tda_BitSet *self) {
     ASSERT_BITSET(self);
 
     for (size_t w = 0; w < self->nwords; ++w) {
@@ -294,7 +294,7 @@ void nad_bitset_flip_all(nad_BitSet *self) {
 
 /* ========== info ========== */
 
-size_t nad_bitset_count(const nad_BitSet *self) {
+size_t tda_bitset_count(const tda_BitSet *self) {
     ASSERT_BITSET(self);
 
     size_t count = 0;
@@ -305,7 +305,7 @@ size_t nad_bitset_count(const nad_BitSet *self) {
     return count;
 }
 
-bool nad_bitset_any(const nad_BitSet *self) {
+bool tda_bitset_any(const tda_BitSet *self) {
     ASSERT_BITSET(self);
 
     for (size_t w = 0; w < self->nwords; ++w) {
@@ -317,7 +317,7 @@ bool nad_bitset_any(const nad_BitSet *self) {
     return false;
 }
 
-bool nad_bitset_all(const nad_BitSet *self) {
+bool tda_bitset_all(const tda_BitSet *self) {
     ASSERT_BITSET(self);
 
     for (size_t w = 0; w < self->nwords; ++w) {
@@ -330,19 +330,19 @@ bool nad_bitset_all(const nad_BitSet *self) {
     return true;
 }
 
-bool nad_bitset_none(const nad_BitSet *self) {
+bool tda_bitset_none(const tda_BitSet *self) {
     ASSERT_BITSET(self);
 
-    return !nad_bitset_any(self);
+    return !tda_bitset_any(self);
 }
 
-size_t nad_bitset_len(const nad_BitSet *self) {
+size_t tda_bitset_len(const tda_BitSet *self) {
     ASSERT_BITSET(self);
 
     return self->nbits;
 }
 
-nad_Al *nad_bitset_al(const nad_BitSet *self) {
+tda_Al *tda_bitset_al(const tda_BitSet *self) {
     ASSERT_BITSET(self);
 
     return self->al;
@@ -350,7 +350,7 @@ nad_Al *nad_bitset_al(const nad_BitSet *self) {
 
 /* ========== scan ========== */
 
-bool nad_bitset_find_next(const nad_BitSet *self, size_t from, size_t *out_idx) {
+bool tda_bitset_find_next(const tda_BitSet *self, size_t from, size_t *out_idx) {
     ASSERT_BITSET(self);
     assert(out_idx);
 
@@ -375,7 +375,7 @@ bool nad_bitset_find_next(const nad_BitSet *self, size_t from, size_t *out_idx) 
     }
 }
 
-bool nad_bitset_find_next_clear(const nad_BitSet *self, size_t from, size_t *out_idx) {
+bool tda_bitset_find_next_clear(const tda_BitSet *self, size_t from, size_t *out_idx) {
     ASSERT_BITSET(self);
     assert(out_idx);
 
@@ -409,7 +409,7 @@ bool nad_bitset_find_next_clear(const nad_BitSet *self, size_t from, size_t *out
 
 /* ========== set ops ========== */
 
-bool nad_bitset_eq(const nad_BitSet *a, const nad_BitSet *b) {
+bool tda_bitset_eq(const tda_BitSet *a, const tda_BitSet *b) {
     ASSERT_BITSET(a);
     ASSERT_BITSET(b);
 
@@ -424,7 +424,7 @@ bool nad_bitset_eq(const nad_BitSet *a, const nad_BitSet *b) {
     return a->nwords == 0 || memcmp(a->words, b->words, words_bytes(a)) == 0;
 }
 
-void nad_bitset_union(nad_BitSet *self, const nad_BitSet *other) {
+void tda_bitset_union(tda_BitSet *self, const tda_BitSet *other) {
     ASSERT_BITSET(self);
     ASSERT_BITSET(other);
     assert(self->nbits == other->nbits);
@@ -434,7 +434,7 @@ void nad_bitset_union(nad_BitSet *self, const nad_BitSet *other) {
     }
 }
 
-void nad_bitset_intersect(nad_BitSet *self, const nad_BitSet *other) {
+void tda_bitset_intersect(tda_BitSet *self, const tda_BitSet *other) {
     ASSERT_BITSET(self);
     ASSERT_BITSET(other);
     assert(self->nbits == other->nbits);
@@ -444,7 +444,7 @@ void nad_bitset_intersect(nad_BitSet *self, const nad_BitSet *other) {
     }
 }
 
-void nad_bitset_difference(nad_BitSet *self, const nad_BitSet *other) {
+void tda_bitset_difference(tda_BitSet *self, const tda_BitSet *other) {
     ASSERT_BITSET(self);
     ASSERT_BITSET(other);
     assert(self->nbits == other->nbits);
@@ -454,7 +454,7 @@ void nad_bitset_difference(nad_BitSet *self, const nad_BitSet *other) {
     }
 }
 
-void nad_bitset_symmetric_difference(nad_BitSet *self, const nad_BitSet *other) {
+void tda_bitset_symmetric_difference(tda_BitSet *self, const tda_BitSet *other) {
     ASSERT_BITSET(self);
     ASSERT_BITSET(other);
     assert(self->nbits == other->nbits);
@@ -464,7 +464,7 @@ void nad_bitset_symmetric_difference(nad_BitSet *self, const nad_BitSet *other) 
     }
 }
 
-bool nad_bitset_is_subset(const nad_BitSet *self, const nad_BitSet *other) {
+bool tda_bitset_is_subset(const tda_BitSet *self, const tda_BitSet *other) {
     ASSERT_BITSET(self);
     ASSERT_BITSET(other);
     assert(self->nbits == other->nbits);
@@ -478,7 +478,7 @@ bool nad_bitset_is_subset(const nad_BitSet *self, const nad_BitSet *other) {
     return true;
 }
 
-bool nad_bitset_intersects(const nad_BitSet *self, const nad_BitSet *other) {
+bool tda_bitset_intersects(const tda_BitSet *self, const tda_BitSet *other) {
     ASSERT_BITSET(self);
     ASSERT_BITSET(other);
     assert(self->nbits == other->nbits);
@@ -494,7 +494,7 @@ bool nad_bitset_intersects(const nad_BitSet *self, const nad_BitSet *other) {
 
 /* ========== print ========== */
 
-void nad_bitset_fprint(const nad_BitSet *self, FILE *stream) {
+void tda_bitset_fprint(const tda_BitSet *self, FILE *stream) {
     ASSERT_BITSET(self);
     assert(stream);
 
@@ -502,7 +502,7 @@ void nad_bitset_fprint(const nad_BitSet *self, FILE *stream) {
 
     bool first = true;
     size_t idx;
-    for (size_t from = 0; nad_bitset_find_next(self, from, &idx); from = idx + 1) {
+    for (size_t from = 0; tda_bitset_find_next(self, from, &idx); from = idx + 1) {
         if (!first) {
             fputs(", ", stream);
         }
@@ -513,8 +513,8 @@ void nad_bitset_fprint(const nad_BitSet *self, FILE *stream) {
     fputs("}\n", stream);
 }
 
-void nad_bitset_print(const nad_BitSet *self) {
-    nad_bitset_fprint(self, stdout);
+void tda_bitset_print(const tda_BitSet *self) {
+    tda_bitset_fprint(self, stdout);
 }
 
 /* ========== internals ========== */
@@ -524,14 +524,14 @@ static size_t words_for(size_t nbits) {
     return nbits / WORD_BITS + (nbits % WORD_BITS != 0);
 }
 
-static void release_words(nad_BitSet *self) {
-    nad_dealloc(self->al, self->words, words_bytes(self));
+static void release_words(tda_BitSet *self) {
+    tda_dealloc(self->al, self->words, words_bytes(self));
     self->words = nullptr;
     self->nbits = 0;
     self->nwords = 0;
 }
 
-static size_t words_bytes(const nad_BitSet *self) {
+static size_t words_bytes(const tda_BitSet *self) {
     assert(self);
 
     return self->nwords * sizeof(uint64_t);
@@ -552,7 +552,7 @@ static uint64_t tail_mask(size_t nbits) {
     return rem == 0 ? ~UINT64_C(0) : (UINT64_C(1) << rem) - 1;
 }
 
-static void clear_tail(nad_BitSet *self) {
+static void clear_tail(tda_BitSet *self) {
     assert(self);
 
     if (self->nwords > 0) {

@@ -1,6 +1,6 @@
-#include "nad/ds/list.h"
+#include "tda/ds/list.h"
 
-#include "nad/core/util.h"
+#include "tda/core/util.h"
 
 #include "internal/ptr.h"
 
@@ -22,77 +22,77 @@
      assert(!(n)->prev || (n)->prev->next == (n)), \
      assert(!(n)->next || (n)->next->prev == (n)))
 
-struct nad_ListNode {
-    nad_ListNode *next;
-    nad_ListNode *prev;
+struct tda_ListNode {
+    tda_ListNode *next;
+    tda_ListNode *prev;
     alignas(max_align_t) unsigned char elem[];
 };
 
-struct nad_List {
-    nad_ListNode *head;
-    nad_ListNode *tail;
+struct tda_List {
+    tda_ListNode *head;
+    tda_ListNode *tail;
     size_t len;
     size_t elem_size;
-    nad_Al *al;
+    tda_Al *al;
 };
 
 [[nodiscard]]
 static size_t node_bytes(size_t elem_size);
 
 [[nodiscard]]
-static nad_Status node_new(nad_Al *al, size_t elem_size, const void *val, nad_ListNode **out);
+static tda_Status node_new(tda_Al *al, size_t elem_size, const void *val, tda_ListNode **out);
 
-static void node_drop(nad_Al *al, size_t elem_size, nad_ListNode *node);
+static void node_drop(tda_Al *al, size_t elem_size, tda_ListNode *node);
 
-static void link_node(nad_List *self, nad_ListNode *node, nad_ListNode *prev, nad_ListNode *next);
+static void link_node(tda_List *self, tda_ListNode *node, tda_ListNode *prev, tda_ListNode *next);
 
 [[nodiscard]]
-static nad_Status insert_between(nad_List *self, nad_ListNode *prev, nad_ListNode *next, const void *val);
+static tda_Status insert_between(tda_List *self, tda_ListNode *prev, tda_ListNode *next, const void *val);
 
-static void unlink_node(nad_List *self, nad_ListNode *node);
+static void unlink_node(tda_List *self, tda_ListNode *node);
 
-static void remove_node(nad_List *self, nad_ListNode *node);
+static void remove_node(tda_List *self, tda_ListNode *node);
 
-static void splice_nodes(nad_List *self, nad_List *src, bool front);
+static void splice_nodes(tda_List *self, tda_List *src, bool front);
 
-static void swap_contents(nad_List *a, nad_List *b);
+static void swap_contents(tda_List *a, tda_List *b);
 
 /// the walk both find doors take. The node comes back mutable and the const door hands it
 /// out as const: the walk is the same either way
 [[nodiscard]]
-static nad_ListNode *find_node(const nad_List *self, const void *key, nad_Eq eq);
+static tda_ListNode *find_node(const tda_List *self, const void *key, tda_Eq eq);
 
-static void clear_nodes(nad_List *self);
+static void clear_nodes(tda_List *self);
 
 [[nodiscard]] [[maybe_unused]]
-static bool owns_node(const nad_List *self, const nad_ListNode *node);
+static bool owns_node(const tda_List *self, const tda_ListNode *node);
 
 /// merges two chains linked through 'next' alone and returns the head of the result.
 /// Equal elems keep 'a' before 'b', which is what makes the sort stable. 'prev' is left
 /// wrong on purpose: relink_prev repairs it once, at the end, instead of on every step
 [[nodiscard]]
-static nad_ListNode *merge_chains(nad_ListNode *a, nad_ListNode *b, nad_Cmp cmp);
+static tda_ListNode *merge_chains(tda_ListNode *a, tda_ListNode *b, tda_Cmp cmp);
 
 /// sorts a chain of 'len' nodes linked through 'next' alone and returns its new head
 [[nodiscard]]
-static nad_ListNode *sort_chain(nad_ListNode *head, size_t len, nad_Cmp cmp);
+static tda_ListNode *sort_chain(tda_ListNode *head, size_t len, tda_Cmp cmp);
 
 /// walks the list forward and rebuilds every 'prev' and the tail from the 'next' chain
-static void relink_prev(nad_List *self);
+static void relink_prev(tda_List *self);
 
 /// merges 'src' into 'self' by relinking and leaves 'src' empty; both already sorted
-static void merge_into(nad_List *self, nad_List *src, nad_Cmp cmp);
+static void merge_into(tda_List *self, tda_List *src, tda_Cmp cmp);
 
 /* ========== lifetime ========== */
 
-nad_Status nad_list_new(size_t elem_size, nad_Al *al, nad_List **out) {
+tda_Status tda_list_new(size_t elem_size, tda_Al *al, tda_List **out) {
     assert(elem_size > 0);
     assert(al);
     assert(out);
 
-    nad_List *obj = nad_alloc(al, sizeof(nad_List));
+    tda_List *obj = tda_alloc(al, sizeof(tda_List));
     if (!obj) {
-        return NAD_STATUS_ERR_NO_MEM;
+        return TDA_STATUS_ERR_NO_MEM;
     }
 
     obj->head = nullptr;
@@ -105,97 +105,97 @@ nad_Status nad_list_new(size_t elem_size, nad_Al *al, nad_List **out) {
 
     *out = obj;
 
-    return NAD_STATUS_OK;
+    return TDA_STATUS_OK;
 }
 
-nad_Status nad_list_from_data(const void *data, size_t len, size_t elem_size, nad_Al *al, nad_List **out) {
+tda_Status tda_list_from_data(const void *data, size_t len, size_t elem_size, tda_Al *al, tda_List **out) {
     assert(data || len == 0);
     assert(elem_size > 0);
     assert(al);
     assert(out);
 
-    nad_List *list;
-    nad_Status st = nad_list_new(elem_size, al, &list);
-    if (NAD_STATUS_IS_ERR(st)) {
+    tda_List *list;
+    tda_Status st = tda_list_new(elem_size, al, &list);
+    if (TDA_STATUS_IS_ERR(st)) {
         return st;
     }
 
     for (size_t i = 0; i < len; ++i) {
-        st = nad_list_push_back(list, nad_byte_offset(data, elem_size, i));
-        if (NAD_STATUS_IS_ERR(st)) {
-            nad_list_drop(list);
+        st = tda_list_push_back(list, tda_byte_offset(data, elem_size, i));
+        if (TDA_STATUS_IS_ERR(st)) {
+            tda_list_drop(list);
             return st;
         }
     }
 
     *out = list;
 
-    return NAD_STATUS_OK;
+    return TDA_STATUS_OK;
 }
 
-nad_Status nad_list_from_span(nad_Span s, nad_Al *al, nad_List **out) {
-    NAD_SPAN_ASSERT(s);
+tda_Status tda_list_from_span(tda_Span s, tda_Al *al, tda_List **out) {
+    TDA_SPAN_ASSERT(s);
     assert(al);
     assert(out);
 
-    return nad_list_from_data(s.data, s.len, s.elem_size, al, out);
+    return tda_list_from_data(s.data, s.len, s.elem_size, al, out);
 }
 
-void nad_list_drop(nad_List *self) {
+void tda_list_drop(tda_List *self) {
     if (!self) {
         return;
     }
 
     ASSERT_LIST(self);
 
-    nad_Al *al_copy = self->al;
+    tda_Al *al_copy = self->al;
     clear_nodes(self);
-    nad_dealloc(al_copy, self, sizeof(nad_List));
+    tda_dealloc(al_copy, self, sizeof(tda_List));
 }
 
 /* ========== copy ========== */
 
-nad_Status nad_list_copy(const nad_List *self, nad_List **out) {
+tda_Status tda_list_copy(const tda_List *self, tda_List **out) {
     ASSERT_LIST(self);
 
-    return nad_list_copy_with(self, self->al, out);
+    return tda_list_copy_with(self, self->al, out);
 }
 
-nad_Status nad_list_copy_with(const nad_List *self, nad_Al *al, nad_List **out) {
+tda_Status tda_list_copy_with(const tda_List *self, tda_Al *al, tda_List **out) {
     ASSERT_LIST(self);
     assert(al);
     assert(out);
 
-    nad_List *obj;
-    nad_Status st = nad_list_new(self->elem_size, al, &obj);
-    if (NAD_STATUS_IS_ERR(st)) {
+    tda_List *obj;
+    tda_Status st = tda_list_new(self->elem_size, al, &obj);
+    if (TDA_STATUS_IS_ERR(st)) {
         return st;
     }
 
-    for (const nad_ListNode *node = self->head; node; node = node->next) {
-        st = nad_list_push_back(obj, node->elem);
-        if (NAD_STATUS_IS_ERR(st)) {
-            nad_list_drop(obj);
+    for (const tda_ListNode *node = self->head; node; node = node->next) {
+        st = tda_list_push_back(obj, node->elem);
+        if (TDA_STATUS_IS_ERR(st)) {
+            tda_list_drop(obj);
             return st;
         }
     }
 
     *out = obj;
 
-    return NAD_STATUS_OK;
+    return TDA_STATUS_OK;
 }
 
-nad_Status nad_list_copy_assign(const nad_List *self, nad_List *other) {
+tda_Status tda_list_copy_assign(const tda_List *self, tda_List *other) {
     ASSERT_LIST(self);
     ASSERT_LIST(other);
     assert(self->elem_size == other->elem_size);
 
     if (self == other) {
-        return NAD_STATUS_OK;
+        return TDA_STATUS_OK;
     }
 
-    const nad_ListNode *src = self->head;
-    const nad_ListNode *dst = other->head;
+    const tda_ListNode *src = self->head;
+    const tda_ListNode *dst = other->head;
 
     while (src && dst) {
         src = src->next;
@@ -204,7 +204,7 @@ nad_Status nad_list_copy_assign(const nad_List *self, nad_List *other) {
 
     // 'src' is the first elem the target has no node for; those nodes are
     // allocated up front, so the only failure happens before any mutation
-    nad_List spare = {
+    tda_List spare = {
         .head = nullptr,
         .tail = nullptr,
         .len = 0,
@@ -212,17 +212,17 @@ nad_Status nad_list_copy_assign(const nad_List *self, nad_List *other) {
         .al = other->al,
     };
 
-    for (const nad_ListNode *node = src; node; node = node->next) {
-        const nad_Status st = nad_list_push_back(&spare, node->elem);
-        if (NAD_STATUS_IS_ERR(st)) {
+    for (const tda_ListNode *node = src; node; node = node->next) {
+        const tda_Status st = tda_list_push_back(&spare, node->elem);
+        if (TDA_STATUS_IS_ERR(st)) {
             clear_nodes(&spare);
             return st;
         }
     }
 
     // from here on nothing can fail
-    const nad_ListNode *from = self->head;
-    for (nad_ListNode *to = other->head; to && from; to = to->next, from = from->next) {
+    const tda_ListNode *from = self->head;
+    for (tda_ListNode *to = other->head; to && from; to = to->next, from = from->next) {
         memcpy(to->elem, from->elem, other->elem_size);
     }
 
@@ -236,51 +236,51 @@ nad_Status nad_list_copy_assign(const nad_List *self, nad_List *other) {
 
     ASSERT_LIST(other);
 
-    return NAD_STATUS_OK;
+    return TDA_STATUS_OK;
 }
 
-nad_Status nad_list_move_assign(nad_List *self, nad_List *other) {
+tda_Status tda_list_move_assign(tda_List *self, tda_List *other) {
     ASSERT_LIST(self);
     ASSERT_LIST(other);
     assert(self->elem_size == other->elem_size);
 
     if (self == other) {
-        return NAD_STATUS_OK;
+        return TDA_STATUS_OK;
     }
 
     // one allocator: the nodes change list without moving. What 'other' held ends up in 'self' and is released
     // there, through the very allocator that made it
     if (self->al == other->al) {
-        NAD_SWAP(*self, *other);
+        TDA_SWAP(*self, *other);
         clear_nodes(self);
 
         ASSERT_LIST(self);
         ASSERT_LIST(other);
 
-        return NAD_STATUS_OK;
+        return TDA_STATUS_OK;
     }
 
     // two allocators: the whole copy is built on the target's before anything of it is
     // touched, so a refusal leaves both as they were
-    nad_List *obj;
-    const nad_Status st = nad_list_copy_with(self, other->al, &obj);
-    if (NAD_STATUS_IS_ERR(st)) {
+    tda_List *obj;
+    const tda_Status st = tda_list_copy_with(self, other->al, &obj);
+    if (TDA_STATUS_IS_ERR(st)) {
         return st;
     }
 
-    NAD_SWAP(*other, *obj);
-    nad_list_drop(obj);
+    TDA_SWAP(*other, *obj);
+    tda_list_drop(obj);
     clear_nodes(self);
 
     ASSERT_LIST(self);
     ASSERT_LIST(other);
 
-    return NAD_STATUS_OK;
+    return TDA_STATUS_OK;
 }
 
 /* ========== compare ========== */
 
-bool nad_list_eq(const nad_List *a, const nad_List *b) {
+bool tda_list_eq(const tda_List *a, const tda_List *b) {
     ASSERT_LIST(a);
     ASSERT_LIST(b);
     assert(a->elem_size == b->elem_size);
@@ -293,8 +293,8 @@ bool nad_list_eq(const nad_List *a, const nad_List *b) {
         return false;
     }
 
-    const nad_ListNode *x = a->head;
-    const nad_ListNode *y = b->head;
+    const tda_ListNode *x = a->head;
+    const tda_ListNode *y = b->head;
     while (x) {
         if (memcmp(x->elem, y->elem, a->elem_size) != 0) {
             return false;
@@ -306,7 +306,7 @@ bool nad_list_eq(const nad_List *a, const nad_List *b) {
     return true;
 }
 
-bool nad_list_eq_by(const nad_List *a, const nad_List *b, nad_Eq eq) {
+bool tda_list_eq_by(const tda_List *a, const tda_List *b, tda_Eq eq) {
     ASSERT_LIST(a);
     ASSERT_LIST(b);
     assert(a->elem_size == b->elem_size);
@@ -320,8 +320,8 @@ bool nad_list_eq_by(const nad_List *a, const nad_List *b, nad_Eq eq) {
         return false;
     }
 
-    const nad_ListNode *x = a->head;
-    const nad_ListNode *y = b->head;
+    const tda_ListNode *x = a->head;
+    const tda_ListNode *y = b->head;
     while (x) {
         if (!eq(x->elem, y->elem)) {
             return false;
@@ -335,19 +335,19 @@ bool nad_list_eq_by(const nad_List *a, const nad_List *b, nad_Eq eq) {
 
 /* ========== info ========== */
 
-size_t nad_list_len(const nad_List *self) {
+size_t tda_list_len(const tda_List *self) {
     ASSERT_LIST(self);
 
     return self->len;
 }
 
-size_t nad_list_elem_size(const nad_List *self) {
+size_t tda_list_elem_size(const tda_List *self) {
     ASSERT_LIST(self);
 
     return self->elem_size;
 }
 
-nad_Al *nad_list_al(const nad_List *self) {
+tda_Al *tda_list_al(const tda_List *self) {
     ASSERT_LIST(self);
 
     return self->al;
@@ -355,28 +355,28 @@ nad_Al *nad_list_al(const nad_List *self) {
 
 /* ========== access ========== */
 
-const void *nad_list_front(const nad_List *self) {
+const void *tda_list_front(const tda_List *self) {
     ASSERT_LIST(self);
     assert(self->len > 0);
 
     return self->head->elem;
 }
 
-void *nad_list_front_mut(nad_List *self) {
+void *tda_list_front_mut(tda_List *self) {
     ASSERT_LIST(self);
     assert(self->len > 0);
 
     return self->head->elem;
 }
 
-const void *nad_list_back(const nad_List *self) {
+const void *tda_list_back(const tda_List *self) {
     ASSERT_LIST(self);
     assert(self->len > 0);
 
     return self->tail->elem;
 }
 
-void *nad_list_back_mut(nad_List *self) {
+void *tda_list_back_mut(tda_List *self) {
     ASSERT_LIST(self);
     assert(self->len > 0);
 
@@ -385,55 +385,55 @@ void *nad_list_back_mut(nad_List *self) {
 
 /* ========== nodes ========== */
 
-const nad_ListNode *nad_list_front_node(const nad_List *self) {
+const tda_ListNode *tda_list_front_node(const tda_List *self) {
     ASSERT_LIST(self);
 
     return self->head;
 }
 
-nad_ListNode *nad_list_front_node_mut(nad_List *self) {
+tda_ListNode *tda_list_front_node_mut(tda_List *self) {
     ASSERT_LIST(self);
 
     return self->head;
 }
 
-const nad_ListNode *nad_list_back_node(const nad_List *self) {
+const tda_ListNode *tda_list_back_node(const tda_List *self) {
     ASSERT_LIST(self);
 
     return self->tail;
 }
 
-nad_ListNode *nad_list_back_node_mut(nad_List *self) {
+tda_ListNode *tda_list_back_node_mut(tda_List *self) {
     ASSERT_LIST(self);
 
     return self->tail;
 }
 
-const nad_ListNode *nad_list_node_next(const nad_ListNode *node) {
+const tda_ListNode *tda_list_node_next(const tda_ListNode *node) {
     ASSERT_NODE(node);
 
     return node->next;
 }
 
-nad_ListNode *nad_list_node_next_mut(nad_ListNode *node) {
+tda_ListNode *tda_list_node_next_mut(tda_ListNode *node) {
     ASSERT_NODE(node);
 
     return node->next;
 }
 
-const nad_ListNode *nad_list_node_prev(const nad_ListNode *node) {
+const tda_ListNode *tda_list_node_prev(const tda_ListNode *node) {
     ASSERT_NODE(node);
 
     return node->prev;
 }
 
-nad_ListNode *nad_list_node_prev_mut(nad_ListNode *node) {
+tda_ListNode *tda_list_node_prev_mut(tda_ListNode *node) {
     ASSERT_NODE(node);
 
     return node->prev;
 }
 
-const nad_ListNode *nad_list_find(const nad_List *self, const void *key, nad_Eq eq) {
+const tda_ListNode *tda_list_find(const tda_List *self, const void *key, tda_Eq eq) {
     ASSERT_LIST(self);
     assert(key);
     assert(eq);
@@ -441,7 +441,7 @@ const nad_ListNode *nad_list_find(const nad_List *self, const void *key, nad_Eq 
     return find_node(self, key, eq);
 }
 
-nad_ListNode *nad_list_find_mut(nad_List *self, const void *key, nad_Eq eq) {
+tda_ListNode *tda_list_find_mut(tda_List *self, const void *key, tda_Eq eq) {
     ASSERT_LIST(self);
     assert(key);
     assert(eq);
@@ -449,13 +449,13 @@ nad_ListNode *nad_list_find_mut(nad_List *self, const void *key, nad_Eq eq) {
     return find_node(self, key, eq);
 }
 
-const void *nad_list_node_elem(const nad_ListNode *node) {
+const void *tda_list_node_elem(const tda_ListNode *node) {
     ASSERT_NODE(node);
 
     return node->elem;
 }
 
-void *nad_list_node_elem_mut(nad_ListNode *node) {
+void *tda_list_node_elem_mut(tda_ListNode *node) {
     ASSERT_NODE(node);
 
     return node->elem;
@@ -463,35 +463,35 @@ void *nad_list_node_elem_mut(nad_ListNode *node) {
 
 /* ========== mods ========== */
 
-nad_Status nad_list_push_front(nad_List *self, const void *val) {
+tda_Status tda_list_push_front(tda_List *self, const void *val) {
     ASSERT_LIST(self);
     assert(val);
 
     return insert_between(self, nullptr, self->head, val);
 }
 
-nad_Status nad_list_push_back(nad_List *self, const void *val) {
+tda_Status tda_list_push_back(tda_List *self, const void *val) {
     ASSERT_LIST(self);
     assert(val);
 
     return insert_between(self, self->tail, nullptr, val);
 }
 
-void nad_list_pop_front(nad_List *self) {
+void tda_list_pop_front(tda_List *self) {
     ASSERT_LIST(self);
     assert(self->len > 0);
 
     remove_node(self, self->head);
 }
 
-void nad_list_pop_back(nad_List *self) {
+void tda_list_pop_back(tda_List *self) {
     ASSERT_LIST(self);
     assert(self->len > 0);
 
     remove_node(self, self->tail);
 }
 
-nad_Status nad_list_insert_before(nad_List *self, nad_ListNode *at, const void *val) {
+tda_Status tda_list_insert_before(tda_List *self, tda_ListNode *at, const void *val) {
     ASSERT_LIST(self);
     ASSERT_NODE(at);
     assert(owns_node(self, at));
@@ -500,7 +500,7 @@ nad_Status nad_list_insert_before(nad_List *self, nad_ListNode *at, const void *
     return insert_between(self, at->prev, at, val);
 }
 
-nad_Status nad_list_insert_after(nad_List *self, nad_ListNode *at, const void *val) {
+tda_Status tda_list_insert_after(tda_List *self, tda_ListNode *at, const void *val) {
     ASSERT_LIST(self);
     ASSERT_NODE(at);
     assert(owns_node(self, at));
@@ -509,7 +509,7 @@ nad_Status nad_list_insert_after(nad_List *self, nad_ListNode *at, const void *v
     return insert_between(self, at, at->next, val);
 }
 
-void nad_list_remove(nad_List *self, nad_ListNode *node) {
+void tda_list_remove(tda_List *self, tda_ListNode *node) {
     ASSERT_LIST(self);
     ASSERT_NODE(node);
     assert(owns_node(self, node));
@@ -517,7 +517,7 @@ void nad_list_remove(nad_List *self, nad_ListNode *node) {
     remove_node(self, node);
 }
 
-void nad_list_clear(nad_List *self) {
+void tda_list_clear(tda_List *self) {
     ASSERT_LIST(self);
 
     clear_nodes(self);
@@ -525,69 +525,69 @@ void nad_list_clear(nad_List *self) {
     ASSERT_LIST(self);
 }
 
-nad_Status nad_list_splice_front(nad_List *self, nad_List *src) {
+tda_Status tda_list_splice_front(tda_List *self, tda_List *src) {
     ASSERT_LIST(self);
     ASSERT_LIST(src);
     assert(self != src);
     assert(self->elem_size == src->elem_size);
 
     if (src->len == 0) {
-        return NAD_STATUS_OK;
+        return TDA_STATUS_OK;
     }
 
     if (self->al == src->al) {
         splice_nodes(self, src, true);
-        return NAD_STATUS_OK;
+        return TDA_STATUS_OK;
     }
 
-    nad_List *copy;
-    const nad_Status st = nad_list_copy_with(src, self->al, &copy);
-    if (NAD_STATUS_IS_ERR(st)) {
+    tda_List *copy;
+    const tda_Status st = tda_list_copy_with(src, self->al, &copy);
+    if (TDA_STATUS_IS_ERR(st)) {
         return st;
     }
 
     splice_nodes(self, copy, true);
-    nad_list_drop(copy);
+    tda_list_drop(copy);
     clear_nodes(src);
 
     ASSERT_LIST(self);
     ASSERT_LIST(src);
 
-    return NAD_STATUS_OK;
+    return TDA_STATUS_OK;
 }
 
-nad_Status nad_list_splice_back(nad_List *self, nad_List *src) {
+tda_Status tda_list_splice_back(tda_List *self, tda_List *src) {
     ASSERT_LIST(self);
     ASSERT_LIST(src);
     assert(self != src);
     assert(self->elem_size == src->elem_size);
 
     if (src->len == 0) {
-        return NAD_STATUS_OK;
+        return TDA_STATUS_OK;
     }
 
     if (self->al == src->al) {
         splice_nodes(self, src, false);
-        return NAD_STATUS_OK;
+        return TDA_STATUS_OK;
     }
 
-    nad_List *copy;
-    const nad_Status st = nad_list_copy_with(src, self->al, &copy);
-    if (NAD_STATUS_IS_ERR(st)) {
+    tda_List *copy;
+    const tda_Status st = tda_list_copy_with(src, self->al, &copy);
+    if (TDA_STATUS_IS_ERR(st)) {
         return st;
     }
 
     splice_nodes(self, copy, false);
-    nad_list_drop(copy);
+    tda_list_drop(copy);
     clear_nodes(src);
 
     ASSERT_LIST(self);
     ASSERT_LIST(src);
 
-    return NAD_STATUS_OK;
+    return TDA_STATUS_OK;
 }
 
-void nad_list_swap(nad_List *self, nad_List *other) {
+void tda_list_swap(tda_List *self, tda_List *other) {
     ASSERT_LIST(self);
     ASSERT_LIST(other);
     assert(self->elem_size == other->elem_size);
@@ -603,7 +603,7 @@ void nad_list_swap(nad_List *self, nad_List *other) {
     ASSERT_LIST(other);
 }
 
-nad_Status nad_list_splice_node(nad_List *self, nad_ListNode *at, nad_List *src, nad_ListNode *node) {
+tda_Status tda_list_splice_node(tda_List *self, tda_ListNode *at, tda_List *src, tda_ListNode *node) {
     ASSERT_LIST(self);
     ASSERT_LIST(src);
     assert(self->elem_size == src->elem_size);
@@ -615,9 +615,9 @@ nad_Status nad_list_splice_node(nad_List *self, nad_ListNode *at, nad_List *src,
     if (self->al != src->al) {
         // a node belongs to the allocator that made it, so it cannot change lists: the
         // elem is copied into a node of 'self' and the old one goes
-        nad_ListNode *prev = at ? at->prev : self->tail;
-        const nad_Status st = insert_between(self, prev, at, node->elem);
-        if (NAD_STATUS_IS_ERR(st)) {
+        tda_ListNode *prev = at ? at->prev : self->tail;
+        const tda_Status st = insert_between(self, prev, at, node->elem);
+        if (TDA_STATUS_IS_ERR(st)) {
             return st;
         }
 
@@ -626,7 +626,7 @@ nad_Status nad_list_splice_node(nad_List *self, nad_ListNode *at, nad_List *src,
         ASSERT_LIST(self);
         ASSERT_LIST(src);
 
-        return NAD_STATUS_OK;
+        return TDA_STATUS_OK;
     }
 
     // unlinking first is what makes 'self == src' work: 'at->prev' is read from a list
@@ -638,27 +638,27 @@ nad_Status nad_list_splice_node(nad_List *self, nad_ListNode *at, nad_List *src,
     ASSERT_LIST(src);
     ASSERT_NODE(node);
 
-    return NAD_STATUS_OK;
+    return TDA_STATUS_OK;
 }
 
 /* ========== relink ========== */
 
-void nad_list_reverse(nad_List *self) {
+void tda_list_reverse(tda_List *self) {
     ASSERT_LIST(self);
 
-    nad_ListNode *cur = self->head;
+    tda_ListNode *cur = self->head;
     while (cur) {
-        nad_ListNode *next = cur->next;
-        NAD_SWAP(cur->next, cur->prev);
+        tda_ListNode *next = cur->next;
+        TDA_SWAP(cur->next, cur->prev);
         cur = next;
     }
 
-    NAD_SWAP(self->head, self->tail);
+    TDA_SWAP(self->head, self->tail);
 
     ASSERT_LIST(self);
 }
 
-void nad_list_sort(nad_List *self, nad_Cmp cmp) {
+void tda_list_sort(tda_List *self, tda_Cmp cmp) {
     ASSERT_LIST(self);
     assert(cmp);
 
@@ -672,7 +672,7 @@ void nad_list_sort(nad_List *self, nad_Cmp cmp) {
     ASSERT_LIST(self);
 }
 
-nad_Status nad_list_merge(nad_List *self, nad_List *src, nad_Cmp cmp) {
+tda_Status tda_list_merge(tda_List *self, tda_List *src, tda_Cmp cmp) {
     ASSERT_LIST(self);
     ASSERT_LIST(src);
     assert(self != src);
@@ -680,65 +680,65 @@ nad_Status nad_list_merge(nad_List *self, nad_List *src, nad_Cmp cmp) {
     assert(cmp);
 
     if (src->len == 0) {
-        return NAD_STATUS_OK;
+        return TDA_STATUS_OK;
     }
 
     if (self->al == src->al) {
         merge_into(self, src, cmp);
-        return NAD_STATUS_OK;
+        return TDA_STATUS_OK;
     }
 
-    nad_List *copy;
-    const nad_Status st = nad_list_copy_with(src, self->al, &copy);
-    if (NAD_STATUS_IS_ERR(st)) {
+    tda_List *copy;
+    const tda_Status st = tda_list_copy_with(src, self->al, &copy);
+    if (TDA_STATUS_IS_ERR(st)) {
         return st;
     }
 
     merge_into(self, copy, cmp);
-    nad_list_drop(copy);
+    tda_list_drop(copy);
     clear_nodes(src);
 
     ASSERT_LIST(self);
     ASSERT_LIST(src);
 
-    return NAD_STATUS_OK;
+    return TDA_STATUS_OK;
 }
 
 /* ========== copy to span ========== */
 
-void nad_list_copy_to_span(const nad_List *self, nad_SpanMut dst) {
+void tda_list_copy_to_span(const tda_List *self, tda_SpanMut dst) {
     ASSERT_LIST(self);
-    NAD_SPAN_ASSERT(dst);
+    TDA_SPAN_ASSERT(dst);
     assert(dst.elem_size == self->elem_size);
     assert(dst.len == self->len);
 
     size_t i = 0;
-    for (const nad_ListNode *node = self->head; node; node = node->next, ++i) {
-        memcpy(nad_byte_offset_mut(dst.data, self->elem_size, i), node->elem, self->elem_size);
+    for (const tda_ListNode *node = self->head; node; node = node->next, ++i) {
+        memcpy(tda_byte_offset_mut(dst.data, self->elem_size, i), node->elem, self->elem_size);
     }
 }
 
-void nad_list_copy_from_span(nad_List *self, nad_Span src) {
+void tda_list_copy_from_span(tda_List *self, tda_Span src) {
     ASSERT_LIST(self);
-    NAD_SPAN_ASSERT(src);
+    TDA_SPAN_ASSERT(src);
     assert(src.elem_size == self->elem_size);
     assert(src.len == self->len);
 
     size_t i = 0;
-    for (nad_ListNode *node = self->head; node; node = node->next, ++i) {
-        memcpy(node->elem, nad_byte_offset(src.data, self->elem_size, i), self->elem_size);
+    for (tda_ListNode *node = self->head; node; node = node->next, ++i) {
+        memcpy(node->elem, tda_byte_offset(src.data, self->elem_size, i), self->elem_size);
     }
 }
 
 /* ========== print ========== */
 
-void nad_list_fprint(const nad_List *self, FILE *stream, nad_FPrint fprint) {
+void tda_list_fprint(const tda_List *self, FILE *stream, tda_FPrint fprint) {
     ASSERT_LIST(self);
     assert(stream);
     assert(fprint);
 
     fputc('[', stream);
-    for (const nad_ListNode *node = self->head; node; node = node->next) {
+    for (const tda_ListNode *node = self->head; node; node = node->next) {
         if (node != self->head) {
             fputs(", ", stream);
         }
@@ -747,36 +747,36 @@ void nad_list_fprint(const nad_List *self, FILE *stream, nad_FPrint fprint) {
     fputs("]\n", stream);
 }
 
-void nad_list_print(const nad_List *self, nad_FPrint fprint) {
+void tda_list_print(const tda_List *self, tda_FPrint fprint) {
     ASSERT_LIST(self);
     assert(fprint);
 
-    nad_list_fprint(self, stdout, fprint);
+    tda_list_fprint(self, stdout, fprint);
 }
 
 /* ========== internals ========== */
 
 static size_t node_bytes(size_t elem_size) {
-    return sizeof(nad_ListNode) + elem_size;
+    return sizeof(tda_ListNode) + elem_size;
 }
 
-static nad_Status node_new(nad_Al *al, size_t elem_size, const void *val, nad_ListNode **out) {
+static tda_Status node_new(tda_Al *al, size_t elem_size, const void *val, tda_ListNode **out) {
     assert(al);
     assert(elem_size > 0);
     assert(val);
     assert(out);
 
     size_t bytes;
-    if (ckd_add(&bytes, sizeof(nad_ListNode), elem_size)) {
-        return NAD_STATUS_ERR_NO_MEM;
+    if (ckd_add(&bytes, sizeof(tda_ListNode), elem_size)) {
+        return TDA_STATUS_ERR_NO_MEM;
     }
 
-    nad_ListNode *node = nad_alloc(al, bytes);
+    tda_ListNode *node = tda_alloc(al, bytes);
     if (!node) {
-        return NAD_STATUS_ERR_NO_MEM;
+        return TDA_STATUS_ERR_NO_MEM;
     }
 
-    assert(nad_ptr_is_aligned(node, alignof(max_align_t)));
+    assert(tda_ptr_is_aligned(node, alignof(max_align_t)));
 
     node->next = nullptr;
     node->prev = nullptr;
@@ -784,14 +784,14 @@ static nad_Status node_new(nad_Al *al, size_t elem_size, const void *val, nad_Li
 
     *out = node;
 
-    return NAD_STATUS_OK;
+    return TDA_STATUS_OK;
 }
 
-static void node_drop(nad_Al *al, size_t elem_size, nad_ListNode *node) {
-    nad_dealloc(al, node, node_bytes(elem_size));
+static void node_drop(tda_Al *al, size_t elem_size, tda_ListNode *node) {
+    tda_dealloc(al, node, node_bytes(elem_size));
 }
 
-static void link_node(nad_List *self, nad_ListNode *node, nad_ListNode *prev, nad_ListNode *next) {
+static void link_node(tda_List *self, tda_ListNode *node, tda_ListNode *prev, tda_ListNode *next) {
     node->prev = prev;
     node->next = next;
 
@@ -813,10 +813,10 @@ static void link_node(nad_List *self, nad_ListNode *node, nad_ListNode *prev, na
 // the whole of push_front/push_back/insert_before/insert_after: the four differ only in
 // which pair of neighbours they hand over, and link_node already reads a null neighbour
 // as "this end of the list"
-static nad_Status insert_between(nad_List *self, nad_ListNode *prev, nad_ListNode *next, const void *val) {
-    nad_ListNode *node;
-    const nad_Status st = node_new(self->al, self->elem_size, val, &node);
-    if (NAD_STATUS_IS_ERR(st)) {
+static tda_Status insert_between(tda_List *self, tda_ListNode *prev, tda_ListNode *next, const void *val) {
+    tda_ListNode *node;
+    const tda_Status st = node_new(self->al, self->elem_size, val, &node);
+    if (TDA_STATUS_IS_ERR(st)) {
         return st;
     }
 
@@ -825,10 +825,10 @@ static nad_Status insert_between(nad_List *self, nad_ListNode *prev, nad_ListNod
     ASSERT_LIST(self);
     ASSERT_NODE(node);
 
-    return NAD_STATUS_OK;
+    return TDA_STATUS_OK;
 }
 
-static void unlink_node(nad_List *self, nad_ListNode *node) {
+static void unlink_node(tda_List *self, tda_ListNode *node) {
     ASSERT_NODE(node);
     assert(self->len > 0);
 
@@ -847,14 +847,14 @@ static void unlink_node(nad_List *self, nad_ListNode *node) {
     --self->len;
 }
 
-static void remove_node(nad_List *self, nad_ListNode *node) {
+static void remove_node(tda_List *self, tda_ListNode *node) {
     unlink_node(self, node);
     node_drop(self->al, self->elem_size, node);
 
     ASSERT_LIST(self);
 }
 
-static void splice_nodes(nad_List *self, nad_List *src, bool front) {
+static void splice_nodes(tda_List *self, tda_List *src, bool front) {
     assert(self->al == src->al);
     assert(self->elem_size == src->elem_size);
     assert(src->len > 0);
@@ -882,14 +882,14 @@ static void splice_nodes(nad_List *self, nad_List *src, bool front) {
     ASSERT_LIST(src);
 }
 
-static void swap_contents(nad_List *a, nad_List *b) {
-    NAD_SWAP(a->head, b->head);
-    NAD_SWAP(a->tail, b->tail);
-    NAD_SWAP(a->len, b->len);
+static void swap_contents(tda_List *a, tda_List *b) {
+    TDA_SWAP(a->head, b->head);
+    TDA_SWAP(a->tail, b->tail);
+    TDA_SWAP(a->len, b->len);
 }
 
-static nad_ListNode *find_node(const nad_List *self, const void *key, nad_Eq eq) {
-    for (nad_ListNode *node = self->head; node; node = node->next) {
+static tda_ListNode *find_node(const tda_List *self, const void *key, tda_Eq eq) {
+    for (tda_ListNode *node = self->head; node; node = node->next) {
         if (eq(node->elem, key)) {
             return node;
         }
@@ -898,10 +898,10 @@ static nad_ListNode *find_node(const nad_List *self, const void *key, nad_Eq eq)
     return nullptr;
 }
 
-static void clear_nodes(nad_List *self) {
-    nad_ListNode *node = self->head;
+static void clear_nodes(tda_List *self) {
+    tda_ListNode *node = self->head;
     while (node) {
-        nad_ListNode *next = node->next;
+        tda_ListNode *next = node->next;
         node_drop(self->al, self->elem_size, node);
         node = next;
     }
@@ -911,11 +911,11 @@ static void clear_nodes(nad_List *self) {
     self->len = 0;
 }
 
-static nad_ListNode *merge_chains(nad_ListNode *a, nad_ListNode *b, nad_Cmp cmp) {
+static tda_ListNode *merge_chains(tda_ListNode *a, tda_ListNode *b, tda_Cmp cmp) {
     assert(cmp);
 
-    nad_ListNode *head = nullptr;
-    nad_ListNode **tail = &head;
+    tda_ListNode *head = nullptr;
+    tda_ListNode **tail = &head;
 
     while (a && b) {
         if (cmp(a->elem, b->elem) <= 0) {
@@ -933,7 +933,7 @@ static nad_ListNode *merge_chains(nad_ListNode *a, nad_ListNode *b, nad_Cmp cmp)
     return head;
 }
 
-static nad_ListNode *sort_chain(nad_ListNode *head, size_t len, nad_Cmp cmp) {
+static tda_ListNode *sort_chain(tda_ListNode *head, size_t len, tda_Cmp cmp) {
     assert(head);
     assert(cmp);
 
@@ -944,21 +944,21 @@ static nad_ListNode *sort_chain(nad_ListNode *head, size_t len, nad_Cmp cmp) {
     const size_t half = len / 2;
 
     // walk to the LAST node of the left half, so the chain can be cut behind it
-    nad_ListNode *left_tail = head;
+    tda_ListNode *left_tail = head;
     for (size_t i = 1; i < half; ++i) {
         left_tail = left_tail->next;
     }
 
-    nad_ListNode *right = left_tail->next;
+    tda_ListNode *right = left_tail->next;
     left_tail->next = nullptr;
 
     return merge_chains(sort_chain(head, half, cmp), sort_chain(right, len - half, cmp), cmp);
 }
 
-static void relink_prev(nad_List *self) {
-    nad_ListNode *prev = nullptr;
+static void relink_prev(tda_List *self) {
+    tda_ListNode *prev = nullptr;
 
-    for (nad_ListNode *node = self->head; node; node = node->next) {
+    for (tda_ListNode *node = self->head; node; node = node->next) {
         node->prev = prev;
         prev = node;
     }
@@ -966,7 +966,7 @@ static void relink_prev(nad_List *self) {
     self->tail = prev;
 }
 
-static void merge_into(nad_List *self, nad_List *src, nad_Cmp cmp) {
+static void merge_into(tda_List *self, tda_List *src, tda_Cmp cmp) {
     assert(self->al == src->al);
     assert(self->elem_size == src->elem_size);
     assert(src->len > 0);
@@ -983,8 +983,8 @@ static void merge_into(nad_List *self, nad_List *src, nad_Cmp cmp) {
     ASSERT_LIST(src);
 }
 
-static bool owns_node(const nad_List *self, const nad_ListNode *node) {
-    for (const nad_ListNode *cur = self->head; cur; cur = cur->next) {
+static bool owns_node(const tda_List *self, const tda_ListNode *node) {
+    for (const tda_ListNode *cur = self->head; cur; cur = cur->next) {
         if (cur == node) {
             return true;
         }

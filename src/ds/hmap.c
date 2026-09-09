@@ -1,6 +1,6 @@
-#include "nad/ds/hmap.h"
+#include "tda/ds/hmap.h"
 
-#include "nad/core/util.h"
+#include "tda/core/util.h"
 
 #include "internal/hmap_impl.h"
 #include "internal/ptr.h"
@@ -30,54 +30,54 @@ static constexpr size_t HMAP_GROWTH_FACTOR = 2;
 // up to the widest alignment the platform has. The hash is kept because it pays twice —
 // growing relinks without asking the hasher again, and a lookup rejects on a number
 // before it ever calls 'eq'.
-struct nad_HMapNode {
-    nad_HMapNode *next;
-    nad_Hash hash;
+struct tda_HMapNode {
+    tda_HMapNode *next;
+    tda_Hash hash;
     alignas(max_align_t) unsigned char kv[];
 };
 
-struct nad_HMap {
-    nad_HMapNode **buckets;
+struct tda_HMap {
+    tda_HMapNode **buckets;
     size_t bucket_count;
     size_t len;
     size_t key_size;
     size_t val_size;
     size_t val_offset;
-    nad_Hasher hasher;
-    nad_Eq eq;
-    nad_Al *al;
+    tda_Hasher hasher;
+    tda_Eq eq;
+    tda_Al *al;
 };
 
 [[nodiscard]]
-static size_t node_bytes(const nad_HMap *self);
+static size_t node_bytes(const tda_HMap *self);
 
 [[nodiscard]]
-static const void *node_key(const nad_HMapNode *node);
+static const void *node_key(const tda_HMapNode *node);
 
 [[nodiscard]]
-static void *node_val_mut(const nad_HMap *self, nad_HMapNode *node);
+static void *node_val_mut(const tda_HMap *self, tda_HMapNode *node);
 
 [[nodiscard]]
-static const void *node_val(const nad_HMap *self, const nad_HMapNode *node);
+static const void *node_val(const tda_HMap *self, const tda_HMapNode *node);
 
 [[nodiscard]]
-static nad_Status node_new(const nad_HMap *self, const void *key, const void *val, nad_Hash hash, nad_HMapNode **out);
+static tda_Status node_new(const tda_HMap *self, const void *key, const void *val, tda_Hash hash, tda_HMapNode **out);
 
-static void node_drop(const nad_HMap *self, nad_HMapNode *node);
+static void node_drop(const tda_HMap *self, tda_HMapNode *node);
 
 /// which bucket a hash belongs to. The count is a power of two, so this is a mask and not
 /// a division — affordable only because the mixer in core/hash gives every bit avalanche
 [[nodiscard]]
-static size_t bucket_of(const nad_HMap *self, nad_Hash hash);
+static size_t bucket_of(const tda_HMap *self, tda_Hash hash);
 
 [[nodiscard]]
-static nad_HMapNode *find_node(const nad_HMap *self, const void *key, nad_Hash hash);
+static tda_HMapNode *find_node(const tda_HMap *self, const void *key, tda_Hash hash);
 
 /// builds the entry for a key the caller has already found to be absent and links it into
 /// its bucket. Shared by insert and get_or_insert, which differ only in what they do when
 /// the key IS there
 [[nodiscard]]
-static nad_Status add_node(nad_HMap *self, const void *key, const void *val, nad_Hash hash, nad_HMapNode **out);
+static tda_Status add_node(tda_HMap *self, const void *key, const void *val, tda_Hash hash, tda_HMapNode **out);
 
 /// the smallest power of two that is at least 'want', or 0 on overflow
 [[nodiscard]]
@@ -87,45 +87,45 @@ static size_t round_up_pow2(size_t want);
 /// allocated: the nodes are relinked where they lie, which is what keeps a borrowed node
 /// valid across a growth
 [[nodiscard]]
-static nad_Status rehash(nad_HMap *self, size_t new_count);
+static tda_Status rehash(tda_HMap *self, size_t new_count);
 
 /// room for one more entry, growing the buckets when the load would pass one per bucket
 [[nodiscard]]
-static nad_Status reserve_one(nad_HMap *self);
+static tda_Status reserve_one(tda_HMap *self);
 
 /// the first node from bucket 'idx' onward, or null when the rest are empty
 [[nodiscard]]
-static nad_HMapNode *first_from(const nad_HMap *self, size_t idx);
+static tda_HMapNode *first_from(const tda_HMap *self, size_t idx);
 
-static void clear_nodes(nad_HMap *self);
+static void clear_nodes(tda_HMap *self);
 
 /// the walk both compare doors take, with 'val_eq' null standing for the bytes
 [[nodiscard]]
-static bool eq_impl(const nad_HMap *a, const nad_HMap *b, nad_Eq val_eq);
+static bool eq_impl(const tda_HMap *a, const tda_HMap *b, tda_Eq val_eq);
 
 /* ========== lifetime ========== */
 
-nad_Status nad_hmap_new(size_t key_size, size_t val_size, nad_Hasher hasher, nad_Eq eq, nad_Al *al, nad_HMap **out) {
-    return nad_hmap_new_cap(0, key_size, val_size, hasher, eq, al, out);
+tda_Status tda_hmap_new(size_t key_size, size_t val_size, tda_Hasher hasher, tda_Eq eq, tda_Al *al, tda_HMap **out) {
+    return tda_hmap_new_cap(0, key_size, val_size, hasher, eq, al, out);
 }
 
-nad_Status nad_hmap_new_cap(
+tda_Status tda_hmap_new_cap(
     size_t cap,
     size_t key_size, size_t val_size,
-    nad_Hasher hasher, nad_Eq eq,
-    nad_Al *al,
-    nad_HMap **out
+    tda_Hasher hasher, tda_Eq eq,
+    tda_Al *al,
+    tda_HMap **out
 ) {
     assert(val_size > 0); // the zero belongs to internal/hmap_impl.h and to ds/hset alone
 
-    return nad_hmap_new_raw_(cap, key_size, val_size, hasher, eq, al, out);
+    return tda_hmap_new_raw_(cap, key_size, val_size, hasher, eq, al, out);
 }
 
-nad_Status nad_hmap_new_raw_(
+tda_Status tda_hmap_new_raw_(
     size_t cap, size_t key_size, size_t val_size,
-    nad_Hasher hasher, nad_Eq eq,
-    nad_Al *al,
-    nad_HMap **out
+    tda_Hasher hasher, tda_Eq eq,
+    tda_Al *al,
+    tda_HMap **out
 ) {
     assert(key_size > 0);
     assert(hasher);
@@ -137,16 +137,16 @@ nad_Status nad_hmap_new_raw_(
     // the header plus the key and not a byte more
     const size_t val_offset = val_size == 0
                                   ? key_size
-                                  : nad_align_up(key_size, alignof(max_align_t));
+                                  : tda_align_up(key_size, alignof(max_align_t));
 
     size_t kv_bytes;
     if (ckd_add(&kv_bytes, val_offset, val_size)) {
-        return NAD_STATUS_ERR_NO_MEM;
+        return TDA_STATUS_ERR_NO_MEM;
     }
 
-    nad_HMap *obj = nad_alloc(al, sizeof(nad_HMap));
+    tda_HMap *obj = tda_alloc(al, sizeof(tda_HMap));
     if (!obj) {
-        return NAD_STATUS_ERR_NO_MEM;
+        return TDA_STATUS_ERR_NO_MEM;
     }
 
     obj->buckets = nullptr;
@@ -160,9 +160,9 @@ nad_Status nad_hmap_new_raw_(
     obj->al = al;
 
     if (cap > 0) {
-        const nad_Status st = nad_hmap_reserve(obj, cap);
-        if (NAD_STATUS_IS_ERR(st)) {
-            nad_dealloc(al, obj, sizeof(nad_HMap));
+        const tda_Status st = tda_hmap_reserve(obj, cap);
+        if (TDA_STATUS_IS_ERR(st)) {
+            tda_dealloc(al, obj, sizeof(tda_HMap));
             return st;
         }
     }
@@ -171,160 +171,160 @@ nad_Status nad_hmap_new_raw_(
 
     *out = obj;
 
-    return NAD_STATUS_OK;
+    return TDA_STATUS_OK;
 }
 
-void nad_hmap_drop(nad_HMap *self) {
+void tda_hmap_drop(tda_HMap *self) {
     if (!self) {
         return;
     }
 
     ASSERT_HMAP(self);
 
-    nad_Al *al_copy = self->al;
+    tda_Al *al_copy = self->al;
     clear_nodes(self);
-    nad_dealloc(al_copy, self->buckets, self->bucket_count * sizeof(nad_HMapNode *));
-    nad_dealloc(al_copy, self, sizeof(nad_HMap));
+    tda_dealloc(al_copy, self->buckets, self->bucket_count * sizeof(tda_HMapNode *));
+    tda_dealloc(al_copy, self, sizeof(tda_HMap));
 }
 
 /* ========== copy ========== */
 
-nad_Status nad_hmap_copy(const nad_HMap *self, nad_HMap **out) {
+tda_Status tda_hmap_copy(const tda_HMap *self, tda_HMap **out) {
     ASSERT_HMAP(self);
 
-    return nad_hmap_copy_with(self, self->al, out);
+    return tda_hmap_copy_with(self, self->al, out);
 }
 
-nad_Status nad_hmap_copy_with(const nad_HMap *self, nad_Al *al, nad_HMap **out) {
+tda_Status tda_hmap_copy_with(const tda_HMap *self, tda_Al *al, tda_HMap **out) {
     ASSERT_HMAP(self);
     assert(al);
     assert(out);
 
-    nad_HMap *obj;
-    nad_Status st = nad_hmap_new_raw_(self->len, self->key_size, self->val_size, self->hasher, self->eq, al, &obj);
-    if (NAD_STATUS_IS_ERR(st)) {
+    tda_HMap *obj;
+    tda_Status st = tda_hmap_new_raw_(self->len, self->key_size, self->val_size, self->hasher, self->eq, al, &obj);
+    if (TDA_STATUS_IS_ERR(st)) {
         return st;
     }
 
-    for (const nad_HMapNode *node = first_from(self, 0); node; node = nad_hmap_node_next(self, node)) {
+    for (const tda_HMapNode *node = first_from(self, 0); node; node = tda_hmap_node_next(self, node)) {
         const void *val = self->val_size > 0 ? node_val(self, node) : nullptr;
-        st = nad_hmap_insert(obj, node_key(node), val, nullptr);
-        if (NAD_STATUS_IS_ERR(st)) {
-            nad_hmap_drop(obj);
+        st = tda_hmap_insert(obj, node_key(node), val, nullptr);
+        if (TDA_STATUS_IS_ERR(st)) {
+            tda_hmap_drop(obj);
             return st;
         }
     }
 
     *out = obj;
 
-    return NAD_STATUS_OK;
+    return TDA_STATUS_OK;
 }
 
-nad_Status nad_hmap_copy_assign(const nad_HMap *self, nad_HMap *other) {
+tda_Status tda_hmap_copy_assign(const tda_HMap *self, tda_HMap *other) {
     ASSERT_HMAP(self);
     ASSERT_HMAP(other);
     assert(self->key_size == other->key_size);
     assert(self->val_size == other->val_size);
 
     if (self == other) {
-        return NAD_STATUS_OK;
+        return TDA_STATUS_OK;
     }
 
     // the whole clone is built before anything of 'other' is touched, so a refusal
     // halfway through leaves the target exactly as it was
-    nad_HMap *clone;
-    const nad_Status st = nad_hmap_copy_with(self, other->al, &clone);
-    if (NAD_STATUS_IS_ERR(st)) {
+    tda_HMap *clone;
+    const tda_Status st = tda_hmap_copy_with(self, other->al, &clone);
+    if (TDA_STATUS_IS_ERR(st)) {
         return st;
     }
 
-    NAD_SWAP(*other, *clone);
-    nad_hmap_drop(clone);
+    TDA_SWAP(*other, *clone);
+    tda_hmap_drop(clone);
 
     ASSERT_HMAP(other);
 
-    return NAD_STATUS_OK;
+    return TDA_STATUS_OK;
 }
 
-nad_Status nad_hmap_move_assign(nad_HMap *self, nad_HMap *other) {
+tda_Status tda_hmap_move_assign(tda_HMap *self, tda_HMap *other) {
     ASSERT_HMAP(self);
     ASSERT_HMAP(other);
     assert(self->key_size == other->key_size);
     assert(self->val_size == other->val_size);
 
     if (self == other) {
-        return NAD_STATUS_OK;
+        return TDA_STATUS_OK;
     }
 
     // one allocator: the buckets are handed over, nodes and all. What 'other' held ends up in 'self' and is released
     // there, through the very allocator that made it
     if (self->al == other->al) {
-        NAD_SWAP(*self, *other);
-        nad_hmap_clear(self);
+        TDA_SWAP(*self, *other);
+        tda_hmap_clear(self);
 
         ASSERT_HMAP(self);
         ASSERT_HMAP(other);
 
-        return NAD_STATUS_OK;
+        return TDA_STATUS_OK;
     }
 
     // two allocators: the whole copy is built on the target's before anything of it is
     // touched, so a refusal leaves both as they were
-    nad_HMap *obj;
-    const nad_Status st = nad_hmap_copy_with(self, other->al, &obj);
-    if (NAD_STATUS_IS_ERR(st)) {
+    tda_HMap *obj;
+    const tda_Status st = tda_hmap_copy_with(self, other->al, &obj);
+    if (TDA_STATUS_IS_ERR(st)) {
         return st;
     }
 
-    NAD_SWAP(*other, *obj);
-    nad_hmap_drop(obj);
-    nad_hmap_clear(self);
+    TDA_SWAP(*other, *obj);
+    tda_hmap_drop(obj);
+    tda_hmap_clear(self);
 
     ASSERT_HMAP(self);
     ASSERT_HMAP(other);
 
-    return NAD_STATUS_OK;
+    return TDA_STATUS_OK;
 }
 
 /* ========== info ========== */
 
-size_t nad_hmap_len(const nad_HMap *self) {
+size_t tda_hmap_len(const tda_HMap *self) {
     ASSERT_HMAP(self);
 
     return self->len;
 }
 
-size_t nad_hmap_bucket_count(const nad_HMap *self) {
+size_t tda_hmap_bucket_count(const tda_HMap *self) {
     ASSERT_HMAP(self);
 
     return self->bucket_count;
 }
 
-size_t nad_hmap_key_size(const nad_HMap *self) {
+size_t tda_hmap_key_size(const tda_HMap *self) {
     ASSERT_HMAP(self);
 
     return self->key_size;
 }
 
-size_t nad_hmap_val_size(const nad_HMap *self) {
+size_t tda_hmap_val_size(const tda_HMap *self) {
     ASSERT_HMAP(self);
 
     return self->val_size;
 }
 
-nad_Al *nad_hmap_al(const nad_HMap *self) {
+tda_Al *tda_hmap_al(const tda_HMap *self) {
     ASSERT_HMAP(self);
 
     return self->al;
 }
 
-nad_Hasher nad_hmap_hasher(const nad_HMap *self) {
+tda_Hasher tda_hmap_hasher(const tda_HMap *self) {
     ASSERT_HMAP(self);
 
     return self->hasher;
 }
 
-nad_Eq nad_hmap_key_eq(const nad_HMap *self) {
+tda_Eq tda_hmap_key_eq(const tda_HMap *self) {
     ASSERT_HMAP(self);
 
     return self->eq;
@@ -332,7 +332,7 @@ nad_Eq nad_hmap_key_eq(const nad_HMap *self) {
 
 /* ========== compare ========== */
 
-bool nad_hmap_eq(const nad_HMap *a, const nad_HMap *b) {
+bool tda_hmap_eq(const tda_HMap *a, const tda_HMap *b) {
     ASSERT_HMAP(a);
     ASSERT_HMAP(b);
     assert(a->key_size == b->key_size);
@@ -341,7 +341,7 @@ bool nad_hmap_eq(const nad_HMap *a, const nad_HMap *b) {
     return eq_impl(a, b, nullptr);
 }
 
-bool nad_hmap_eq_by(const nad_HMap *a, const nad_HMap *b, nad_Eq val_eq) {
+bool tda_hmap_eq_by(const tda_HMap *a, const tda_HMap *b, tda_Eq val_eq) {
     ASSERT_HMAP(a);
     ASSERT_HMAP(b);
     assert(a->key_size == b->key_size);
@@ -353,39 +353,39 @@ bool nad_hmap_eq_by(const nad_HMap *a, const nad_HMap *b, nad_Eq val_eq) {
 
 /* ========== lookup ========== */
 
-const void *nad_hmap_get(const nad_HMap *self, const void *key) {
+const void *tda_hmap_get(const tda_HMap *self, const void *key) {
     ASSERT_HMAP(self);
     assert(key);
 
-    const nad_HMapNode *node = find_node(self, key, self->hasher(key));
+    const tda_HMapNode *node = find_node(self, key, self->hasher(key));
 
     return node ? node_val(self, node) : nullptr;
 }
 
-void *nad_hmap_get_mut(nad_HMap *self, const void *key) {
+void *tda_hmap_get_mut(tda_HMap *self, const void *key) {
     ASSERT_HMAP(self);
     assert(key);
 
-    nad_HMapNode *node = find_node(self, key, self->hasher(key));
+    tda_HMapNode *node = find_node(self, key, self->hasher(key));
 
     return node ? node_val_mut(self, node) : nullptr;
 }
 
-bool nad_hmap_contains(const nad_HMap *self, const void *key) {
+bool tda_hmap_contains(const tda_HMap *self, const void *key) {
     ASSERT_HMAP(self);
     assert(key);
 
     return find_node(self, key, self->hasher(key)) != nullptr;
 }
 
-const nad_HMapNode *nad_hmap_find(const nad_HMap *self, const void *key) {
+const tda_HMapNode *tda_hmap_find(const tda_HMap *self, const void *key) {
     ASSERT_HMAP(self);
     assert(key);
 
     return find_node(self, key, self->hasher(key));
 }
 
-nad_HMapNode *nad_hmap_find_mut(nad_HMap *self, const void *key) {
+tda_HMapNode *tda_hmap_find_mut(tda_HMap *self, const void *key) {
     ASSERT_HMAP(self);
     assert(key);
 
@@ -394,19 +394,19 @@ nad_HMapNode *nad_hmap_find_mut(nad_HMap *self, const void *key) {
 
 /* ========== nodes ========== */
 
-const nad_HMapNode *nad_hmap_first_node(const nad_HMap *self) {
+const tda_HMapNode *tda_hmap_first_node(const tda_HMap *self) {
     ASSERT_HMAP(self);
 
     return first_from(self, 0);
 }
 
-nad_HMapNode *nad_hmap_first_node_mut(nad_HMap *self) {
+tda_HMapNode *tda_hmap_first_node_mut(tda_HMap *self) {
     ASSERT_HMAP(self);
 
     return first_from(self, 0);
 }
 
-const nad_HMapNode *nad_hmap_node_next(const nad_HMap *self, const nad_HMapNode *node) {
+const tda_HMapNode *tda_hmap_node_next(const tda_HMap *self, const tda_HMapNode *node) {
     ASSERT_HMAP(self);
     assert(node);
 
@@ -417,7 +417,7 @@ const nad_HMapNode *nad_hmap_node_next(const nad_HMap *self, const nad_HMapNode 
     return first_from(self, bucket_of(self, node->hash) + 1);
 }
 
-nad_HMapNode *nad_hmap_node_next_mut(nad_HMap *self, nad_HMapNode *node) {
+tda_HMapNode *tda_hmap_node_next_mut(tda_HMap *self, tda_HMapNode *node) {
     ASSERT_HMAP(self);
     assert(node);
 
@@ -428,20 +428,20 @@ nad_HMapNode *nad_hmap_node_next_mut(nad_HMap *self, nad_HMapNode *node) {
     return first_from(self, bucket_of(self, node->hash) + 1);
 }
 
-const void *nad_hmap_node_key(const nad_HMapNode *node) {
+const void *tda_hmap_node_key(const tda_HMapNode *node) {
     assert(node);
 
     return node_key(node);
 }
 
-const void *nad_hmap_node_val(const nad_HMap *self, const nad_HMapNode *node) {
+const void *tda_hmap_node_val(const tda_HMap *self, const tda_HMapNode *node) {
     ASSERT_HMAP(self);
     assert(node);
 
     return node_val(self, node);
 }
 
-void *nad_hmap_node_val_mut(const nad_HMap *self, nad_HMapNode *node) {
+void *tda_hmap_node_val_mut(const tda_HMap *self, tda_HMapNode *node) {
     ASSERT_HMAP(self);
     assert(node);
 
@@ -450,14 +450,14 @@ void *nad_hmap_node_val_mut(const nad_HMap *self, nad_HMapNode *node) {
 
 /* ========== mods ========== */
 
-nad_Status nad_hmap_insert(nad_HMap *self, const void *key, const void *val, bool *out_is_new) {
+tda_Status tda_hmap_insert(tda_HMap *self, const void *key, const void *val, bool *out_is_new) {
     ASSERT_HMAP(self);
     assert(key);
     assert(val || self->val_size == 0); // a value pointer is wanted exactly when there is a value
 
-    const nad_Hash hash = self->hasher(key);
+    const tda_Hash hash = self->hasher(key);
 
-    nad_HMapNode *found = find_node(self, key, hash);
+    tda_HMapNode *found = find_node(self, key, hash);
     if (found) {
         if (self->val_size > 0) {
             memcpy(node_val_mut(self, found), val, self->val_size);
@@ -467,12 +467,12 @@ nad_Status nad_hmap_insert(nad_HMap *self, const void *key, const void *val, boo
             *out_is_new = false;
         }
 
-        return NAD_STATUS_OK;
+        return TDA_STATUS_OK;
     }
 
-    nad_HMapNode *node;
-    const nad_Status st = add_node(self, key, val, hash, &node);
-    if (NAD_STATUS_IS_ERR(st)) {
+    tda_HMapNode *node;
+    const tda_Status st = add_node(self, key, val, hash, &node);
+    if (TDA_STATUS_IS_ERR(st)) {
         return st;
     }
 
@@ -480,14 +480,14 @@ nad_Status nad_hmap_insert(nad_HMap *self, const void *key, const void *val, boo
         *out_is_new = true;
     }
 
-    return NAD_STATUS_OK;
+    return TDA_STATUS_OK;
 }
 
-nad_Status nad_hmap_get_or_insert(
-    nad_HMap *self,
+tda_Status tda_hmap_get_or_insert(
+    tda_HMap *self,
     const void *key,
     const void *val_if_absent,
-    nad_HMapNode **out_node
+    tda_HMapNode **out_node
 ) {
     ASSERT_HMAP(self);
     assert(key);
@@ -495,18 +495,18 @@ nad_Status nad_hmap_get_or_insert(
     assert(out_node);
 
     // one hash for both halves of the question, and one walk of the bucket it names
-    const nad_Hash hash = self->hasher(key);
+    const tda_Hash hash = self->hasher(key);
 
-    nad_HMapNode *found = find_node(self, key, hash);
+    tda_HMapNode *found = find_node(self, key, hash);
     if (found) {
         *out_node = found;
-        return NAD_STATUS_OK;
+        return TDA_STATUS_OK;
     }
 
     return add_node(self, key, val_if_absent, hash, out_node);
 }
 
-bool nad_hmap_remove(nad_HMap *self, const void *key) {
+bool tda_hmap_remove(tda_HMap *self, const void *key) {
     ASSERT_HMAP(self);
     assert(key);
 
@@ -514,14 +514,14 @@ bool nad_hmap_remove(nad_HMap *self, const void *key) {
         return false;
     }
 
-    const nad_Hash hash = self->hasher(key);
+    const tda_Hash hash = self->hasher(key);
 
     // walking the links themselves rather than the nodes: the chain is singly linked, and
     // this is what stands in for the previous node
-    nad_HMapNode **link = &self->buckets[bucket_of(self, hash)];
+    tda_HMapNode **link = &self->buckets[bucket_of(self, hash)];
     while (*link) {
         if ((*link)->hash == hash && self->eq(node_key(*link), key)) {
-            nad_HMapNode *dead = *link;
+            tda_HMapNode *dead = *link;
             *link = dead->next;
             node_drop(self, dead);
             --self->len;
@@ -536,12 +536,12 @@ bool nad_hmap_remove(nad_HMap *self, const void *key) {
     return false;
 }
 
-void nad_hmap_remove_node(nad_HMap *self, nad_HMapNode *node) {
+void tda_hmap_remove_node(tda_HMap *self, tda_HMapNode *node) {
     ASSERT_HMAP(self);
     assert(node);
     assert(self->len > 0);
 
-    nad_HMapNode **link = &self->buckets[bucket_of(self, node->hash)];
+    tda_HMapNode **link = &self->buckets[bucket_of(self, node->hash)];
     while (*link && *link != node) {
         link = &(*link)->next;
     }
@@ -555,7 +555,7 @@ void nad_hmap_remove_node(nad_HMap *self, nad_HMapNode *node) {
     ASSERT_HMAP(self);
 }
 
-void nad_hmap_clear(nad_HMap *self) {
+void tda_hmap_clear(tda_HMap *self) {
     ASSERT_HMAP(self);
 
     clear_nodes(self);
@@ -569,46 +569,46 @@ void nad_hmap_clear(nad_HMap *self) {
     ASSERT_HMAP(self);
 }
 
-nad_Status nad_hmap_reserve(nad_HMap *self, size_t cap) {
+tda_Status tda_hmap_reserve(tda_HMap *self, size_t cap) {
     ASSERT_HMAP(self);
 
     if (cap <= self->bucket_count) {
-        return NAD_STATUS_OK;
+        return TDA_STATUS_OK;
     }
 
     // round_up_pow2 never returns less than the base, so a small 'cap' still gets a
     // sensible bucket array rather than one or two buckets
     const size_t want = round_up_pow2(cap);
     if (want == 0) {
-        return NAD_STATUS_ERR_NO_MEM;
+        return TDA_STATUS_ERR_NO_MEM;
     }
 
     return rehash(self, want);
 }
 
-nad_Status nad_hmap_shrink_to_fit(nad_HMap *self) {
+tda_Status tda_hmap_shrink_to_fit(tda_HMap *self) {
     ASSERT_HMAP(self);
 
     if (self->len == 0) {
         // nothing left to hold: the map goes back to owning no buckets at all
-        nad_dealloc(self->al, self->buckets, self->bucket_count * sizeof(nad_HMapNode *));
+        tda_dealloc(self->al, self->buckets, self->bucket_count * sizeof(tda_HMapNode *));
         self->buckets = nullptr;
         self->bucket_count = 0;
 
         ASSERT_HMAP(self);
 
-        return NAD_STATUS_OK;
+        return TDA_STATUS_OK;
     }
 
     const size_t want = round_up_pow2(self->len);
     if (want == 0 || want >= self->bucket_count) {
-        return NAD_STATUS_OK;
+        return TDA_STATUS_OK;
     }
 
     return rehash(self, want);
 }
 
-void nad_hmap_swap(nad_HMap *self, nad_HMap *other) {
+void tda_hmap_swap(tda_HMap *self, tda_HMap *other) {
     ASSERT_HMAP(self);
     ASSERT_HMAP(other);
     assert(self->key_size == other->key_size);
@@ -619,7 +619,7 @@ void nad_hmap_swap(nad_HMap *self, nad_HMap *other) {
         return;
     }
 
-    NAD_SWAP(*self, *other);
+    TDA_SWAP(*self, *other);
 
     ASSERT_HMAP(self);
     ASSERT_HMAP(other);
@@ -627,7 +627,7 @@ void nad_hmap_swap(nad_HMap *self, nad_HMap *other) {
 
 /* ========== print ========== */
 
-void nad_hmap_fprint(const nad_HMap *self, FILE *stream, nad_FPrint key_fprint, nad_FPrint val_fprint) {
+void tda_hmap_fprint(const tda_HMap *self, FILE *stream, tda_FPrint key_fprint, tda_FPrint val_fprint) {
     ASSERT_HMAP(self);
     assert(stream);
     assert(key_fprint);
@@ -635,7 +635,7 @@ void nad_hmap_fprint(const nad_HMap *self, FILE *stream, nad_FPrint key_fprint, 
 
     fputc('{', stream);
     bool first = true;
-    for (const nad_HMapNode *node = first_from(self, 0); node; node = nad_hmap_node_next(self, node)) {
+    for (const tda_HMapNode *node = first_from(self, 0); node; node = tda_hmap_node_next(self, node)) {
         if (!first) {
             fputs(", ", stream);
         }
@@ -647,35 +647,35 @@ void nad_hmap_fprint(const nad_HMap *self, FILE *stream, nad_FPrint key_fprint, 
     fputs("}\n", stream);
 }
 
-void nad_hmap_print(const nad_HMap *self, nad_FPrint key_fprint, nad_FPrint val_fprint) {
-    nad_hmap_fprint(self, stdout, key_fprint, val_fprint);
+void tda_hmap_print(const tda_HMap *self, tda_FPrint key_fprint, tda_FPrint val_fprint) {
+    tda_hmap_fprint(self, stdout, key_fprint, val_fprint);
 }
 
 /* ========== internals ========== */
 
-static size_t node_bytes(const nad_HMap *self) {
-    return sizeof(nad_HMapNode) + self->val_offset + self->val_size;
+static size_t node_bytes(const tda_HMap *self) {
+    return sizeof(tda_HMapNode) + self->val_offset + self->val_size;
 }
 
-static const void *node_key(const nad_HMapNode *node) {
+static const void *node_key(const tda_HMapNode *node) {
     return node->kv;
 }
 
-static void *node_val_mut(const nad_HMap *self, nad_HMapNode *node) {
-    return nad_byte_offset_mut(node->kv, 1, self->val_offset);
+static void *node_val_mut(const tda_HMap *self, tda_HMapNode *node) {
+    return tda_byte_offset_mut(node->kv, 1, self->val_offset);
 }
 
-static const void *node_val(const nad_HMap *self, const nad_HMapNode *node) {
-    return nad_byte_offset(node->kv, 1, self->val_offset);
+static const void *node_val(const tda_HMap *self, const tda_HMapNode *node) {
+    return tda_byte_offset(node->kv, 1, self->val_offset);
 }
 
-static nad_Status node_new(const nad_HMap *self, const void *key, const void *val, nad_Hash hash, nad_HMapNode **out) {
-    nad_HMapNode *node = nad_alloc(self->al, node_bytes(self));
+static tda_Status node_new(const tda_HMap *self, const void *key, const void *val, tda_Hash hash, tda_HMapNode **out) {
+    tda_HMapNode *node = tda_alloc(self->al, node_bytes(self));
     if (!node) {
-        return NAD_STATUS_ERR_NO_MEM;
+        return TDA_STATUS_ERR_NO_MEM;
     }
 
-    assert(nad_ptr_is_aligned(node, alignof(max_align_t)));
+    assert(tda_ptr_is_aligned(node, alignof(max_align_t)));
 
     node->next = nullptr;
     node->hash = hash;
@@ -686,25 +686,25 @@ static nad_Status node_new(const nad_HMap *self, const void *key, const void *va
 
     *out = node;
 
-    return NAD_STATUS_OK;
+    return TDA_STATUS_OK;
 }
 
-static void node_drop(const nad_HMap *self, nad_HMapNode *node) {
-    nad_dealloc(self->al, node, node_bytes(self));
+static void node_drop(const tda_HMap *self, tda_HMapNode *node) {
+    tda_dealloc(self->al, node, node_bytes(self));
 }
 
-static size_t bucket_of(const nad_HMap *self, nad_Hash hash) {
+static size_t bucket_of(const tda_HMap *self, tda_Hash hash) {
     assert(self->bucket_count > 0);
 
     return (size_t) hash & (self->bucket_count - 1);
 }
 
-static nad_HMapNode *find_node(const nad_HMap *self, const void *key, nad_Hash hash) {
+static tda_HMapNode *find_node(const tda_HMap *self, const void *key, tda_Hash hash) {
     if (self->bucket_count == 0) {
         return nullptr;
     }
 
-    for (nad_HMapNode *node = self->buckets[bucket_of(self, hash)]; node; node = node->next) {
+    for (tda_HMapNode *node = self->buckets[bucket_of(self, hash)]; node; node = node->next) {
         // the hash is compared first because it is a word: 'eq' is only asked about keys
         // that already agree on every mixed bit
         if (node->hash == hash && self->eq(node_key(node), key)) {
@@ -715,17 +715,17 @@ static nad_HMapNode *find_node(const nad_HMap *self, const void *key, nad_Hash h
     return nullptr;
 }
 
-static nad_Status add_node(nad_HMap *self, const void *key, const void *val, nad_Hash hash, nad_HMapNode **out) {
+static tda_Status add_node(tda_HMap *self, const void *key, const void *val, tda_Hash hash, tda_HMapNode **out) {
     // the room is taken first: growing relinks the buckets, so the one this node belongs
     // to is only known afterwards
-    nad_Status st = reserve_one(self);
-    if (NAD_STATUS_IS_ERR(st)) {
+    tda_Status st = reserve_one(self);
+    if (TDA_STATUS_IS_ERR(st)) {
         return st;
     }
 
-    nad_HMapNode *node;
+    tda_HMapNode *node;
     st = node_new(self, key, val, hash, &node);
-    if (NAD_STATUS_IS_ERR(st)) {
+    if (TDA_STATUS_IS_ERR(st)) {
         return st;
     }
 
@@ -738,7 +738,7 @@ static nad_Status add_node(nad_HMap *self, const void *key, const void *val, nad
 
     *out = node;
 
-    return NAD_STATUS_OK;
+    return TDA_STATUS_OK;
 }
 
 static size_t round_up_pow2(size_t want) {
@@ -754,19 +754,19 @@ static size_t round_up_pow2(size_t want) {
     return n;
 }
 
-static nad_Status rehash(nad_HMap *self, size_t new_count) {
+static tda_Status rehash(tda_HMap *self, size_t new_count) {
     assert(new_count > 0);
     assert((new_count & (new_count - 1)) == 0);
 
-    nad_HMapNode **buckets = nad_calloc(self->al, new_count, sizeof(nad_HMapNode *));
+    tda_HMapNode **buckets = tda_calloc(self->al, new_count, sizeof(tda_HMapNode *));
     if (!buckets) {
-        return NAD_STATUS_ERR_NO_MEM;
+        return TDA_STATUS_ERR_NO_MEM;
     }
 
     for (size_t i = 0; i < self->bucket_count; ++i) {
-        nad_HMapNode *node = self->buckets[i];
+        tda_HMapNode *node = self->buckets[i];
         while (node) {
-            nad_HMapNode *next = node->next;
+            tda_HMapNode *next = node->next;
             const size_t bucket = node->hash & (new_count - 1);
             node->next = buckets[bucket];
             buckets[bucket] = node;
@@ -774,18 +774,18 @@ static nad_Status rehash(nad_HMap *self, size_t new_count) {
         }
     }
 
-    nad_dealloc(self->al, self->buckets, self->bucket_count * sizeof(nad_HMapNode *));
+    tda_dealloc(self->al, self->buckets, self->bucket_count * sizeof(tda_HMapNode *));
     self->buckets = buckets;
     self->bucket_count = new_count;
 
     ASSERT_HMAP(self);
 
-    return NAD_STATUS_OK;
+    return TDA_STATUS_OK;
 }
 
-static nad_Status reserve_one(nad_HMap *self) {
+static tda_Status reserve_one(tda_HMap *self) {
     if (self->len < self->bucket_count) {
-        return NAD_STATUS_OK;
+        return TDA_STATUS_OK;
     }
 
     if (self->bucket_count == 0) {
@@ -794,13 +794,13 @@ static nad_Status reserve_one(nad_HMap *self) {
 
     size_t grown;
     if (ckd_mul(&grown, self->bucket_count, HMAP_GROWTH_FACTOR)) {
-        return NAD_STATUS_ERR_NO_MEM;
+        return TDA_STATUS_ERR_NO_MEM;
     }
 
     return rehash(self, grown);
 }
 
-static nad_HMapNode *first_from(const nad_HMap *self, size_t idx) {
+static tda_HMapNode *first_from(const tda_HMap *self, size_t idx) {
     for (size_t i = idx; i < self->bucket_count; ++i) {
         if (self->buckets[i]) {
             return self->buckets[i];
@@ -810,18 +810,18 @@ static nad_HMapNode *first_from(const nad_HMap *self, size_t idx) {
     return nullptr;
 }
 
-static void clear_nodes(nad_HMap *self) {
+static void clear_nodes(tda_HMap *self) {
     for (size_t i = 0; i < self->bucket_count; ++i) {
-        nad_HMapNode *node = self->buckets[i];
+        tda_HMapNode *node = self->buckets[i];
         while (node) {
-            nad_HMapNode *next = node->next;
+            tda_HMapNode *next = node->next;
             node_drop(self, node);
             node = next;
         }
     }
 }
 
-static bool eq_impl(const nad_HMap *a, const nad_HMap *b, nad_Eq val_eq) {
+static bool eq_impl(const tda_HMap *a, const tda_HMap *b, tda_Eq val_eq) {
     if (a == b) {
         return true;
     }
@@ -834,9 +834,9 @@ static bool eq_impl(const nad_HMap *a, const nad_HMap *b, nad_Eq val_eq) {
     // is no second pass. 'b' answers with its own hasher and equality: the keys are being
     // looked up in it
     for (size_t i = 0; i < a->bucket_count; ++i) {
-        for (const nad_HMapNode *node = a->buckets[i]; node; node = node->next) {
+        for (const tda_HMapNode *node = a->buckets[i]; node; node = node->next) {
             const void *key = node_key(node);
-            const nad_HMapNode *found = find_node(b, key, b->hasher(key));
+            const tda_HMapNode *found = find_node(b, key, b->hasher(key));
             if (!found) {
                 return false;
             }

@@ -1,4 +1,4 @@
-#include "nad/ds/deque.h"
+#include "tda/ds/deque.h"
 
 #include "internal/ptr.h"
 
@@ -21,7 +21,7 @@
 static constexpr size_t DEQUE_GROWTH_BASE = 1;
 static constexpr size_t DEQUE_GROWTH_FACTOR = 2;
 
-struct nad_Deque {
+struct tda_Deque {
     void *data;
     size_t len;
     size_t cap;
@@ -29,66 +29,66 @@ struct nad_Deque {
     // with two indices a full ring and an empty one look exactly alike
     size_t head;
     size_t elem_size;
-    nad_Al *al;
+    tda_Al *al;
 };
 
 [[nodiscard]]
-static nad_Status new_impl(bool zeroed, size_t len, size_t cap, size_t elem_size, nad_Al *al, nad_Deque **out);
+static tda_Status new_impl(bool zeroed, size_t len, size_t cap, size_t elem_size, tda_Al *al, tda_Deque **out);
 
-static void set_fields(nad_Deque *obj, void *data, size_t len, size_t cap, size_t elem_size, nad_Al *al);
+static void set_fields(tda_Deque *obj, void *data, size_t len, size_t cap, size_t elem_size, tda_Al *al);
 
 /// hands the block back and leaves an empty deque on the same allocator
-static void release_data(nad_Deque *self);
+static void release_data(tda_Deque *self);
 
 [[nodiscard]]
-static size_t next_cap(const nad_Deque *self);
+static size_t next_cap(const tda_Deque *self);
 
 [[nodiscard]]
-static nad_Status grow(nad_Deque *self);
+static tda_Status grow(tda_Deque *self);
 
 /// room for one more elem, growing the ring when it is full
 [[nodiscard]]
-static nad_Status reserve_one(nad_Deque *self);
+static tda_Status reserve_one(tda_Deque *self);
 
 [[nodiscard]]
-static size_t len_bytes(const nad_Deque *self);
+static size_t len_bytes(const tda_Deque *self);
 
 [[nodiscard]]
-static size_t cap_bytes(const nad_Deque *self);
+static size_t cap_bytes(const tda_Deque *self);
 
 /// the slot holding the elem at 'idx' counted from the front. One subtraction and no
 /// division: 'idx' is below cap, so head + idx overshoots by less than one lap
 [[nodiscard]]
-static size_t slot_of(const nad_Deque *self, size_t idx);
+static size_t slot_of(const tda_Deque *self, size_t idx);
 
 [[nodiscard]]
-static const unsigned char *slot_at(const nad_Deque *self, size_t slot);
+static const unsigned char *slot_at(const tda_Deque *self, size_t slot);
 
 [[nodiscard]]
-static unsigned char *slot_at_mut(nad_Deque *self, size_t slot);
+static unsigned char *slot_at_mut(tda_Deque *self, size_t slot);
 
 [[nodiscard]]
-static const unsigned char *elem_at(const nad_Deque *self, size_t idx);
+static const unsigned char *elem_at(const tda_Deque *self, size_t idx);
 
 [[nodiscard]]
-static unsigned char *elem_at_mut(nad_Deque *self, size_t idx);
+static unsigned char *elem_at_mut(tda_Deque *self, size_t idx);
 
 /// how many elems sit between head and the end of the buffer — the length of the first
 /// of the at most two runs the contents form
 [[nodiscard]]
-static size_t first_run(const nad_Deque *self);
+static size_t first_run(const tda_Deque *self);
 
 /// every elem, in ring order, into 'dst' bytes. The caller guarantees the room
-static void copy_out(const nad_Deque *self, void *dst);
+static void copy_out(const tda_Deque *self, void *dst);
 
 /// the inverse: 'src' bytes over every elem, in ring order
-static void copy_in(nad_Deque *self, const void *src);
+static void copy_in(tda_Deque *self, const void *src);
 
-static void move_elem(nad_Deque *self, size_t to, size_t from);
+static void move_elem(tda_Deque *self, size_t to, size_t from);
 
 /* ========== lifetime ========== */
 
-nad_Status nad_deque_new(size_t elem_size, nad_Al *al, nad_Deque **out) {
+tda_Status tda_deque_new(size_t elem_size, tda_Al *al, tda_Deque **out) {
     assert(elem_size > 0);
     assert(al);
     assert(out);
@@ -96,7 +96,7 @@ nad_Status nad_deque_new(size_t elem_size, nad_Al *al, nad_Deque **out) {
     return new_impl(false, 0, 0, elem_size, al, out);
 }
 
-nad_Status nad_deque_new_len(size_t len, size_t elem_size, nad_Al *al, nad_Deque **out) {
+tda_Status tda_deque_new_len(size_t len, size_t elem_size, tda_Al *al, tda_Deque **out) {
     assert(elem_size > 0);
     assert(al);
     assert(out);
@@ -104,7 +104,7 @@ nad_Status nad_deque_new_len(size_t len, size_t elem_size, nad_Al *al, nad_Deque
     return new_impl(true, len, len, elem_size, al, out);
 }
 
-nad_Status nad_deque_new_cap(size_t cap, size_t elem_size, nad_Al *al, nad_Deque **out) {
+tda_Status tda_deque_new_cap(size_t cap, size_t elem_size, tda_Al *al, tda_Deque **out) {
     assert(elem_size > 0);
     assert(al);
     assert(out);
@@ -112,15 +112,15 @@ nad_Status nad_deque_new_cap(size_t cap, size_t elem_size, nad_Al *al, nad_Deque
     return new_impl(false, 0, cap, elem_size, al, out);
 }
 
-nad_Status nad_deque_from_data(const void *data, size_t len, size_t elem_size, nad_Al *al, nad_Deque **out) {
+tda_Status tda_deque_from_data(const void *data, size_t len, size_t elem_size, tda_Al *al, tda_Deque **out) {
     assert(data || len == 0);
     assert(elem_size > 0);
     assert(al);
     assert(out);
 
-    nad_Deque *deque;
-    const nad_Status st = new_impl(false, len, len, elem_size, al, &deque);
-    if (NAD_STATUS_IS_ERR(st)) {
+    tda_Deque *deque;
+    const tda_Status st = new_impl(false, len, len, elem_size, al, &deque);
+    if (TDA_STATUS_IS_ERR(st)) {
         return st;
     }
 
@@ -131,45 +131,45 @@ nad_Status nad_deque_from_data(const void *data, size_t len, size_t elem_size, n
 
     *out = deque;
 
-    return NAD_STATUS_OK;
+    return TDA_STATUS_OK;
 }
 
-nad_Status nad_deque_from_span(nad_Span s, nad_Al *al, nad_Deque **out) {
-    NAD_SPAN_ASSERT(s);
+tda_Status tda_deque_from_span(tda_Span s, tda_Al *al, tda_Deque **out) {
+    TDA_SPAN_ASSERT(s);
     assert(al);
     assert(out);
 
-    return nad_deque_from_data(s.data, s.len, s.elem_size, al, out);
+    return tda_deque_from_data(s.data, s.len, s.elem_size, al, out);
 }
 
-void nad_deque_drop(nad_Deque *self) {
+void tda_deque_drop(tda_Deque *self) {
     if (!self) {
         return;
     }
 
     ASSERT_DEQUE(self);
 
-    nad_Al *al_copy = self->al;
-    nad_dealloc(al_copy, self->data, cap_bytes(self));
-    nad_dealloc(al_copy, self, sizeof(nad_Deque));
+    tda_Al *al_copy = self->al;
+    tda_dealloc(al_copy, self->data, cap_bytes(self));
+    tda_dealloc(al_copy, self, sizeof(tda_Deque));
 }
 
 /* ========== copy ========== */
 
-nad_Status nad_deque_copy(const nad_Deque *self, nad_Deque **out) {
+tda_Status tda_deque_copy(const tda_Deque *self, tda_Deque **out) {
     ASSERT_DEQUE(self);
 
-    return nad_deque_copy_with(self, self->al, out);
+    return tda_deque_copy_with(self, self->al, out);
 }
 
-nad_Status nad_deque_copy_with(const nad_Deque *self, nad_Al *al, nad_Deque **out) {
+tda_Status tda_deque_copy_with(const tda_Deque *self, tda_Al *al, tda_Deque **out) {
     ASSERT_DEQUE(self);
     assert(al);
     assert(out);
 
-    nad_Deque *copy;
-    const nad_Status st = new_impl(false, self->len, self->len, self->elem_size, al, &copy);
-    if (NAD_STATUS_IS_ERR(st)) {
+    tda_Deque *copy;
+    const tda_Status st = new_impl(false, self->len, self->len, self->elem_size, al, &copy);
+    if (TDA_STATUS_IS_ERR(st)) {
         return st;
     }
 
@@ -178,20 +178,20 @@ nad_Status nad_deque_copy_with(const nad_Deque *self, nad_Al *al, nad_Deque **ou
 
     *out = copy;
 
-    return NAD_STATUS_OK;
+    return TDA_STATUS_OK;
 }
 
-nad_Status nad_deque_copy_assign(const nad_Deque *self, nad_Deque *other) {
+tda_Status tda_deque_copy_assign(const tda_Deque *self, tda_Deque *other) {
     ASSERT_DEQUE(self);
     ASSERT_DEQUE(other);
     assert(self->elem_size == other->elem_size);
 
     if (self == other) {
-        return NAD_STATUS_OK;
+        return TDA_STATUS_OK;
     }
 
-    const nad_Status st = nad_deque_reserve(other, self->len);
-    if (NAD_STATUS_IS_ERR(st)) {
+    const tda_Status st = tda_deque_reserve(other, self->len);
+    if (TDA_STATUS_IS_ERR(st)) {
         return st;
     }
 
@@ -202,60 +202,60 @@ nad_Status nad_deque_copy_assign(const nad_Deque *self, nad_Deque *other) {
 
     ASSERT_DEQUE(other);
 
-    return NAD_STATUS_OK;
+    return TDA_STATUS_OK;
 }
 
-nad_Status nad_deque_move_assign(nad_Deque *self, nad_Deque *other) {
+tda_Status tda_deque_move_assign(tda_Deque *self, tda_Deque *other) {
     ASSERT_DEQUE(self);
     ASSERT_DEQUE(other);
     assert(self->elem_size == other->elem_size);
 
     if (self == other) {
-        return NAD_STATUS_OK;
+        return TDA_STATUS_OK;
     }
 
     // one allocator: the block is handed over, ring and all. What 'other' held ends up in 'self' and is released
     // there, through the very allocator that made it
     if (self->al == other->al) {
-        NAD_SWAP(*self, *other);
+        TDA_SWAP(*self, *other);
         release_data(self);
 
         ASSERT_DEQUE(self);
         ASSERT_DEQUE(other);
 
-        return NAD_STATUS_OK;
+        return TDA_STATUS_OK;
     }
 
     // two allocators: the whole copy is built on the target's before anything of it is
     // touched, so a refusal leaves both as they were
-    nad_Deque *obj;
-    const nad_Status st = nad_deque_copy_with(self, other->al, &obj);
-    if (NAD_STATUS_IS_ERR(st)) {
+    tda_Deque *obj;
+    const tda_Status st = tda_deque_copy_with(self, other->al, &obj);
+    if (TDA_STATUS_IS_ERR(st)) {
         return st;
     }
 
-    NAD_SWAP(*other, *obj);
-    nad_deque_drop(obj);
+    TDA_SWAP(*other, *obj);
+    tda_deque_drop(obj);
     release_data(self);
 
     ASSERT_DEQUE(self);
     ASSERT_DEQUE(other);
 
-    return NAD_STATUS_OK;
+    return TDA_STATUS_OK;
 }
 
-void nad_deque_copy_to_span(const nad_Deque *self, nad_SpanMut dst) {
+void tda_deque_copy_to_span(const tda_Deque *self, tda_SpanMut dst) {
     ASSERT_DEQUE(self);
-    NAD_SPAN_ASSERT(dst);
+    TDA_SPAN_ASSERT(dst);
     assert(dst.elem_size == self->elem_size);
     assert(dst.len == self->len);
 
     copy_out(self, dst.data);
 }
 
-void nad_deque_copy_from_span(nad_Deque *self, nad_Span src) {
+void tda_deque_copy_from_span(tda_Deque *self, tda_Span src) {
     ASSERT_DEQUE(self);
-    NAD_SPAN_ASSERT(src);
+    TDA_SPAN_ASSERT(src);
     assert(src.elem_size == self->elem_size);
     assert(src.len == self->len);
 
@@ -264,7 +264,7 @@ void nad_deque_copy_from_span(nad_Deque *self, nad_Span src) {
 
 /* ========== compare ========== */
 
-bool nad_deque_eq(const nad_Deque *a, const nad_Deque *b) {
+bool tda_deque_eq(const tda_Deque *a, const tda_Deque *b) {
     ASSERT_DEQUE(a);
     ASSERT_DEQUE(b);
     assert(a->elem_size == b->elem_size);
@@ -288,7 +288,7 @@ bool nad_deque_eq(const nad_Deque *a, const nad_Deque *b) {
     return true;
 }
 
-bool nad_deque_eq_by(const nad_Deque *a, const nad_Deque *b, nad_Eq eq) {
+bool tda_deque_eq_by(const tda_Deque *a, const tda_Deque *b, tda_Eq eq) {
     ASSERT_DEQUE(a);
     ASSERT_DEQUE(b);
     assert(a->elem_size == b->elem_size);
@@ -313,31 +313,31 @@ bool nad_deque_eq_by(const nad_Deque *a, const nad_Deque *b, nad_Eq eq) {
 
 /* ========== info ========== */
 
-size_t nad_deque_len(const nad_Deque *self) {
+size_t tda_deque_len(const tda_Deque *self) {
     ASSERT_DEQUE(self);
 
     return self->len;
 }
 
-size_t nad_deque_cap(const nad_Deque *self) {
+size_t tda_deque_cap(const tda_Deque *self) {
     ASSERT_DEQUE(self);
 
     return self->cap;
 }
 
-size_t nad_deque_elem_size(const nad_Deque *self) {
+size_t tda_deque_elem_size(const tda_Deque *self) {
     ASSERT_DEQUE(self);
 
     return self->elem_size;
 }
 
-size_t nad_deque_bytes(const nad_Deque *self) {
+size_t tda_deque_bytes(const tda_Deque *self) {
     ASSERT_DEQUE(self);
 
     return len_bytes(self);
 }
 
-nad_Al *nad_deque_al(const nad_Deque *self) {
+tda_Al *tda_deque_al(const tda_Deque *self) {
     ASSERT_DEQUE(self);
 
     return self->al;
@@ -345,49 +345,49 @@ nad_Al *nad_deque_al(const nad_Deque *self) {
 
 /* ========== access ========== */
 
-const void *nad_deque_front(const nad_Deque *self) {
+const void *tda_deque_front(const tda_Deque *self) {
     ASSERT_DEQUE(self);
     assert(self->len > 0);
 
     return elem_at(self, 0);
 }
 
-void *nad_deque_front_mut(nad_Deque *self) {
+void *tda_deque_front_mut(tda_Deque *self) {
     ASSERT_DEQUE(self);
     assert(self->len > 0);
 
     return elem_at_mut(self, 0);
 }
 
-const void *nad_deque_back(const nad_Deque *self) {
+const void *tda_deque_back(const tda_Deque *self) {
     ASSERT_DEQUE(self);
     assert(self->len > 0);
 
     return elem_at(self, self->len - 1);
 }
 
-void *nad_deque_back_mut(nad_Deque *self) {
+void *tda_deque_back_mut(tda_Deque *self) {
     ASSERT_DEQUE(self);
     assert(self->len > 0);
 
     return elem_at_mut(self, self->len - 1);
 }
 
-const void *nad_deque_get(const nad_Deque *self, size_t idx) {
+const void *tda_deque_get(const tda_Deque *self, size_t idx) {
     ASSERT_DEQUE(self);
     assert(idx < self->len);
 
     return elem_at(self, idx);
 }
 
-void *nad_deque_get_mut(nad_Deque *self, size_t idx) {
+void *tda_deque_get_mut(tda_Deque *self, size_t idx) {
     ASSERT_DEQUE(self);
     assert(idx < self->len);
 
     return elem_at_mut(self, idx);
 }
 
-void nad_deque_set(nad_Deque *self, size_t idx, const void *val) {
+void tda_deque_set(tda_Deque *self, size_t idx, const void *val) {
     ASSERT_DEQUE(self);
     assert(val);
     assert(idx < self->len);
@@ -397,12 +397,12 @@ void nad_deque_set(nad_Deque *self, size_t idx, const void *val) {
 
 /* ========== mods ========== */
 
-nad_Status nad_deque_push_front(nad_Deque *self, const void *val) {
+tda_Status tda_deque_push_front(tda_Deque *self, const void *val) {
     ASSERT_DEQUE(self);
     assert(val);
 
-    const nad_Status st = reserve_one(self);
-    if (NAD_STATUS_IS_ERR(st)) {
+    const tda_Status st = reserve_one(self);
+    if (TDA_STATUS_IS_ERR(st)) {
         return st;
     }
 
@@ -411,25 +411,25 @@ nad_Status nad_deque_push_front(nad_Deque *self, const void *val) {
     memcpy(slot_at_mut(self, self->head), val, self->elem_size);
     ++self->len;
 
-    return NAD_STATUS_OK;
+    return TDA_STATUS_OK;
 }
 
-nad_Status nad_deque_push_back(nad_Deque *self, const void *val) {
+tda_Status tda_deque_push_back(tda_Deque *self, const void *val) {
     ASSERT_DEQUE(self);
     assert(val);
 
-    const nad_Status st = reserve_one(self);
-    if (NAD_STATUS_IS_ERR(st)) {
+    const tda_Status st = reserve_one(self);
+    if (TDA_STATUS_IS_ERR(st)) {
         return st;
     }
 
     memcpy(elem_at_mut(self, self->len), val, self->elem_size);
     ++self->len;
 
-    return NAD_STATUS_OK;
+    return TDA_STATUS_OK;
 }
 
-void nad_deque_pop_front(nad_Deque *self) {
+void tda_deque_pop_front(tda_Deque *self) {
     ASSERT_DEQUE(self);
     assert(self->len > 0);
 
@@ -437,20 +437,20 @@ void nad_deque_pop_front(nad_Deque *self) {
     --self->len;
 }
 
-void nad_deque_pop_back(nad_Deque *self) {
+void tda_deque_pop_back(tda_Deque *self) {
     ASSERT_DEQUE(self);
     assert(self->len > 0);
 
     --self->len;
 }
 
-nad_Status nad_deque_insert(nad_Deque *self, size_t idx, const void *val) {
+tda_Status tda_deque_insert(tda_Deque *self, size_t idx, const void *val) {
     ASSERT_DEQUE(self);
     assert(val);
     assert(idx <= self->len);
 
-    const nad_Status st = reserve_one(self);
-    if (NAD_STATUS_IS_ERR(st)) {
+    const tda_Status st = reserve_one(self);
+    if (TDA_STATUS_IS_ERR(st)) {
         return st;
     }
 
@@ -474,10 +474,10 @@ nad_Status nad_deque_insert(nad_Deque *self, size_t idx, const void *val) {
 
     memcpy(elem_at_mut(self, idx), val, self->elem_size);
 
-    return NAD_STATUS_OK;
+    return TDA_STATUS_OK;
 }
 
-void nad_deque_remove(nad_Deque *self, size_t idx) {
+void tda_deque_remove(tda_Deque *self, size_t idx) {
     ASSERT_DEQUE(self);
     assert(idx < self->len);
 
@@ -496,36 +496,36 @@ void nad_deque_remove(nad_Deque *self, size_t idx) {
     --self->len;
 }
 
-void nad_deque_clear(nad_Deque *self) {
+void tda_deque_clear(tda_Deque *self) {
     ASSERT_DEQUE(self);
 
     self->len = 0;
     self->head = 0;
 }
 
-nad_Status nad_deque_reserve(nad_Deque *self, size_t new_cap) {
+tda_Status tda_deque_reserve(tda_Deque *self, size_t new_cap) {
     ASSERT_DEQUE(self);
 
     if (new_cap <= self->cap) {
-        return NAD_STATUS_OK;
+        return TDA_STATUS_OK;
     }
 
     size_t new_bytes;
     if (ckd_mul(&new_bytes, new_cap, self->elem_size)) {
-        return NAD_STATUS_ERR_NO_MEM;
+        return TDA_STATUS_ERR_NO_MEM;
     }
 
     // a fresh block rather than a realloc: growing in place would leave the wrapped
     // part sitting before the seam, where the new capacity does not reach it. The
     // contents are unrolled into the new block instead, which is the same two memcpy
     // a realloc would have needed anyway
-    void *data = nad_alloc(self->al, new_bytes);
+    void *data = tda_alloc(self->al, new_bytes);
     if (!data) {
-        return NAD_STATUS_ERR_NO_MEM;
+        return TDA_STATUS_ERR_NO_MEM;
     }
 
     copy_out(self, data);
-    nad_dealloc(self->al, self->data, cap_bytes(self));
+    tda_dealloc(self->al, self->data, cap_bytes(self));
 
     self->data = data;
     self->cap = new_cap;
@@ -533,34 +533,34 @@ nad_Status nad_deque_reserve(nad_Deque *self, size_t new_cap) {
 
     ASSERT_DEQUE(self);
 
-    return NAD_STATUS_OK;
+    return TDA_STATUS_OK;
 }
 
-nad_Status nad_deque_shrink_to_fit(nad_Deque *self) {
+tda_Status tda_deque_shrink_to_fit(tda_Deque *self) {
     ASSERT_DEQUE(self);
 
     if (self->len == self->cap) {
-        return NAD_STATUS_OK;
+        return TDA_STATUS_OK;
     }
 
     if (self->len == 0) {
-        nad_dealloc(self->al, self->data, cap_bytes(self));
+        tda_dealloc(self->al, self->data, cap_bytes(self));
         self->data = nullptr;
         self->cap = 0;
         self->head = 0;
 
         ASSERT_DEQUE(self);
 
-        return NAD_STATUS_OK;
+        return TDA_STATUS_OK;
     }
 
-    void *data = nad_alloc(self->al, len_bytes(self));
+    void *data = tda_alloc(self->al, len_bytes(self));
     if (!data) {
-        return NAD_STATUS_ERR_NO_MEM;
+        return TDA_STATUS_ERR_NO_MEM;
     }
 
     copy_out(self, data);
-    nad_dealloc(self->al, self->data, cap_bytes(self));
+    tda_dealloc(self->al, self->data, cap_bytes(self));
 
     self->data = data;
     self->cap = self->len;
@@ -568,20 +568,20 @@ nad_Status nad_deque_shrink_to_fit(nad_Deque *self) {
 
     ASSERT_DEQUE(self);
 
-    return NAD_STATUS_OK;
+    return TDA_STATUS_OK;
 }
 
-nad_Status nad_deque_resize(nad_Deque *self, size_t new_len) {
+tda_Status tda_deque_resize(tda_Deque *self, size_t new_len) {
     ASSERT_DEQUE(self);
 
     if (new_len <= self->len) {
         self->len = new_len;
-        return NAD_STATUS_OK;
+        return TDA_STATUS_OK;
     }
 
     if (new_len > self->cap) {
-        const nad_Status st = nad_deque_reserve(self, new_len);
-        if (NAD_STATUS_IS_ERR(st)) {
+        const tda_Status st = tda_deque_reserve(self, new_len);
+        if (TDA_STATUS_IS_ERR(st)) {
             return st;
         }
     }
@@ -595,10 +595,10 @@ nad_Status nad_deque_resize(nad_Deque *self, size_t new_len) {
 
     ASSERT_DEQUE(self);
 
-    return NAD_STATUS_OK;
+    return TDA_STATUS_OK;
 }
 
-void nad_deque_swap(nad_Deque *self, nad_Deque *other) {
+void tda_deque_swap(tda_Deque *self, tda_Deque *other) {
     ASSERT_DEQUE(self);
     ASSERT_DEQUE(other);
     assert(self->elem_size == other->elem_size);
@@ -608,13 +608,13 @@ void nad_deque_swap(nad_Deque *self, nad_Deque *other) {
         return;
     }
 
-    NAD_SWAP(*self, *other);
+    TDA_SWAP(*self, *other);
 
     ASSERT_DEQUE(self);
     ASSERT_DEQUE(other);
 }
 
-void nad_deque_swap_elems(nad_Deque *self, size_t i, size_t j) {
+void tda_deque_swap_elems(tda_Deque *self, size_t i, size_t j) {
     ASSERT_DEQUE(self);
     assert(i < self->len);
     assert(j < self->len);
@@ -623,17 +623,17 @@ void nad_deque_swap_elems(nad_Deque *self, size_t i, size_t j) {
         return;
     }
 
-    nad_bytes_swap(elem_at_mut(self, i), elem_at_mut(self, j), self->elem_size);
+    tda_bytes_swap(elem_at_mut(self, i), elem_at_mut(self, j), self->elem_size);
 }
 
 /* ========== print ========== */
 
-void nad_deque_fprint(const nad_Deque *self, FILE *stream, nad_FPrint fprint) {
+void tda_deque_fprint(const tda_Deque *self, FILE *stream, tda_FPrint fprint) {
     ASSERT_DEQUE(self);
     assert(stream);
     assert(fprint);
 
-    // spelled out rather than delegated to nad_span_fprint: there is no span to
+    // spelled out rather than delegated to tda_span_fprint: there is no span to
     // delegate with. The format is the same one on purpose
     fputc('[', stream);
     for (size_t i = 0; i < self->len; ++i) {
@@ -645,24 +645,24 @@ void nad_deque_fprint(const nad_Deque *self, FILE *stream, nad_FPrint fprint) {
     fputs("]\n", stream);
 }
 
-void nad_deque_print(const nad_Deque *self, nad_FPrint fprint) {
+void tda_deque_print(const tda_Deque *self, tda_FPrint fprint) {
     ASSERT_DEQUE(self);
     assert(fprint);
 
-    nad_deque_fprint(self, stdout, fprint);
+    tda_deque_fprint(self, stdout, fprint);
 }
 
 /* ========== internals ========== */
 
-static nad_Status new_impl(bool zeroed, size_t len, size_t cap, size_t elem_size, nad_Al *al, nad_Deque **out) {
+static tda_Status new_impl(bool zeroed, size_t len, size_t cap, size_t elem_size, tda_Al *al, tda_Deque **out) {
     assert(len <= cap);
     assert(elem_size > 0);
     assert(al);
     assert(out);
 
-    nad_Deque *obj = nad_alloc(al, sizeof(nad_Deque));
+    tda_Deque *obj = tda_alloc(al, sizeof(tda_Deque));
     if (!obj) {
-        return NAD_STATUS_ERR_NO_MEM;
+        return TDA_STATUS_ERR_NO_MEM;
     }
 
     void *data = nullptr;
@@ -672,7 +672,7 @@ static nad_Status new_impl(bool zeroed, size_t len, size_t cap, size_t elem_size
         if (ckd_mul(&bytes, cap, elem_size)) {
             goto fail;
         }
-        data = nad_alloc(al, bytes);
+        data = tda_alloc(al, bytes);
         if (!data) {
             goto fail;
         }
@@ -686,14 +686,14 @@ static nad_Status new_impl(bool zeroed, size_t len, size_t cap, size_t elem_size
     ASSERT_DEQUE(obj);
 
     *out = obj;
-    return NAD_STATUS_OK;
+    return TDA_STATUS_OK;
 
 fail:
-    nad_dealloc(al, obj, sizeof(nad_Deque));
-    return NAD_STATUS_ERR_NO_MEM;
+    tda_dealloc(al, obj, sizeof(tda_Deque));
+    return TDA_STATUS_ERR_NO_MEM;
 }
 
-static void set_fields(nad_Deque *obj, void *data, size_t len, size_t cap, size_t elem_size, nad_Al *al) {
+static void set_fields(tda_Deque *obj, void *data, size_t len, size_t cap, size_t elem_size, tda_Al *al) {
     obj->data = data;
     obj->len = len;
     obj->cap = cap;
@@ -702,7 +702,7 @@ static void set_fields(nad_Deque *obj, void *data, size_t len, size_t cap, size_
     obj->al = al;
 }
 
-static size_t next_cap(const nad_Deque *self) {
+static size_t next_cap(const tda_Deque *self) {
     if (self->cap == 0) {
         return DEQUE_GROWTH_BASE;
     }
@@ -715,44 +715,44 @@ static size_t next_cap(const nad_Deque *self) {
     return grown;
 }
 
-static nad_Status reserve_one(nad_Deque *self) {
-    return self->len == self->cap ? grow(self) : NAD_STATUS_OK;
+static tda_Status reserve_one(tda_Deque *self) {
+    return self->len == self->cap ? grow(self) : TDA_STATUS_OK;
 }
 
-static nad_Status grow(nad_Deque *self) {
+static tda_Status grow(tda_Deque *self) {
     assert(self->len == self->cap);
 
     if (self->cap == SIZE_MAX) {
-        return NAD_STATUS_ERR_NO_MEM;
+        return TDA_STATUS_ERR_NO_MEM;
     }
 
     const size_t wanted = next_cap(self);
 
-    const nad_Status st = nad_deque_reserve(self, wanted);
-    if (NAD_STATUS_IS_OK(st) || wanted <= self->cap + 1) {
+    const tda_Status st = tda_deque_reserve(self, wanted);
+    if (TDA_STATUS_IS_OK(st) || wanted <= self->cap + 1) {
         return st;
     }
 
-    return nad_deque_reserve(self, self->cap + 1);
+    return tda_deque_reserve(self, self->cap + 1);
 }
 
-static void release_data(nad_Deque *self) {
-    nad_dealloc(self->al, self->data, cap_bytes(self));
+static void release_data(tda_Deque *self) {
+    tda_dealloc(self->al, self->data, cap_bytes(self));
     self->data = nullptr;
     self->len = 0;
     self->cap = 0;
     self->head = 0;
 }
 
-static size_t len_bytes(const nad_Deque *self) {
+static size_t len_bytes(const tda_Deque *self) {
     return self->len * self->elem_size;
 }
 
-static size_t cap_bytes(const nad_Deque *self) {
+static size_t cap_bytes(const tda_Deque *self) {
     return self->cap * self->elem_size;
 }
 
-static size_t slot_of(const nad_Deque *self, size_t idx) {
+static size_t slot_of(const tda_Deque *self, size_t idx) {
     assert(self->cap > 0);
     assert(idx < self->cap);
 
@@ -761,29 +761,29 @@ static size_t slot_of(const nad_Deque *self, size_t idx) {
     return raw < self->cap ? raw : raw - self->cap;
 }
 
-static const unsigned char *slot_at(const nad_Deque *self, size_t slot) {
-    return nad_byte_offset(self->data, self->elem_size, slot);
+static const unsigned char *slot_at(const tda_Deque *self, size_t slot) {
+    return tda_byte_offset(self->data, self->elem_size, slot);
 }
 
-static unsigned char *slot_at_mut(nad_Deque *self, size_t slot) {
-    return nad_byte_offset_mut(self->data, self->elem_size, slot);
+static unsigned char *slot_at_mut(tda_Deque *self, size_t slot) {
+    return tda_byte_offset_mut(self->data, self->elem_size, slot);
 }
 
-static const unsigned char *elem_at(const nad_Deque *self, size_t idx) {
+static const unsigned char *elem_at(const tda_Deque *self, size_t idx) {
     return slot_at(self, slot_of(self, idx));
 }
 
-static unsigned char *elem_at_mut(nad_Deque *self, size_t idx) {
+static unsigned char *elem_at_mut(tda_Deque *self, size_t idx) {
     return slot_at_mut(self, slot_of(self, idx));
 }
 
-static size_t first_run(const nad_Deque *self) {
+static size_t first_run(const tda_Deque *self) {
     const size_t to_end = self->cap - self->head;
 
     return to_end < self->len ? to_end : self->len;
 }
 
-static void copy_out(const nad_Deque *self, void *dst) {
+static void copy_out(const tda_Deque *self, void *dst) {
     if (self->len == 0) {
         return;
     }
@@ -793,14 +793,14 @@ static void copy_out(const nad_Deque *self, void *dst) {
 
     if (run < self->len) {
         memcpy(
-            nad_byte_offset_mut(dst, self->elem_size, run),
+            tda_byte_offset_mut(dst, self->elem_size, run),
             slot_at(self, 0),
             (self->len - run) * self->elem_size
         );
     }
 }
 
-static void copy_in(nad_Deque *self, const void *src) {
+static void copy_in(tda_Deque *self, const void *src) {
     if (self->len == 0) {
         return;
     }
@@ -811,13 +811,13 @@ static void copy_in(nad_Deque *self, const void *src) {
     if (run < self->len) {
         memcpy(
             slot_at_mut(self, 0),
-            nad_byte_offset(src, self->elem_size, run),
+            tda_byte_offset(src, self->elem_size, run),
             (self->len - run) * self->elem_size
         );
     }
 }
 
-static void move_elem(nad_Deque *self, size_t to, size_t from) {
+static void move_elem(tda_Deque *self, size_t to, size_t from) {
     // two distinct slots of the same ring, so they never overlap
     memcpy(elem_at_mut(self, to), elem_at_mut(self, from), self->elem_size);
 }
