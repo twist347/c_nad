@@ -393,6 +393,11 @@ void trs_hset_print(const trs_HSet *self, trs_FPrint fprint);
 #define TRS_HSET_FIND(K, self, key) \
     trs_hset_find((self), &(K){ (key) })
 
+/// trs_hset_find_mut from a value rather than an address
+/// @copydetails TRS_HSET_CONTAINS
+#define TRS_HSET_FIND_MUT(K, self, key) \
+    trs_hset_find_mut((self), &(K){ (key) })
+
 /// trs_hset_remove from a value rather than an address
 /// @copydetails TRS_HSET_CONTAINS
 #define TRS_HSET_REMOVE(K, self, key) \

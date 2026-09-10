@@ -397,7 +397,7 @@ static void test_mut_walk_of_an_empty_set_stops_at_once() {
 static void test_remove_node_drops_the_key_it_names() {
     trs_HSet *s = make_filled(hash_all_alike, 4);
 
-    trs_HSetNode *node = trs_hset_find_mut(s, &(int32_t){2});
+    trs_HSetNode *node = TRS_HSET_FIND_MUT(int32_t, s, 2);
     TEST_ASSERT_NOT_NULL(node);
 
     trs_hset_remove_node(s, node);

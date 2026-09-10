@@ -20,7 +20,8 @@
 ///     const size_t kept = trs_span_unique(trs_vec_to_span_mut(v), trs_eq_i32);
 ///     trs_Status st = trs_vec_resize(v, kept);
 ///
-/// [[nodiscard]] makes dropping that length a compile error.
+/// [[nodiscard]] makes dropping that length a warning the compiler raises unasked, and an
+/// error under -Werror.
 ///
 /// @par Example
 /// @snippet algo/example_modify.c drop

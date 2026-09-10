@@ -128,8 +128,8 @@ if (TRS_BUILD_TEST OR TRS_BUILD_EXAMPLE)
 endif ()
 
 if (TRS_BUILD_TEST)
-    set(UNITY_DIR ${PROJECT_SOURCE_DIR}/thirdparty/Unity-2.7.0)
-    add_subdirectory(${UNITY_DIR} EXCLUDE_FROM_ALL)
+    set(TRS_UNITY_DIR ${PROJECT_SOURCE_DIR}/thirdparty/Unity-2.7.0)
+    add_subdirectory(${TRS_UNITY_DIR} EXCLUDE_FROM_ALL)
     target_compile_definitions(unity PUBLIC UNITY_INCLUDE_DOUBLE UNITY_INCLUDE_FLOAT)
 
     add_subdirectory(test)

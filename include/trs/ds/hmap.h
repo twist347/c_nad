@@ -494,6 +494,11 @@ void trs_hmap_print(const trs_HMap *self, trs_FPrint key_fprint, trs_FPrint val_
 #define TRS_HMAP_FIND(K, self, key) \
     trs_hmap_find((self), &(K){ (key) })
 
+/// trs_hmap_find_mut from a key value rather than an address
+/// @copydetails TRS_HMAP_CONTAINS
+#define TRS_HMAP_FIND_MUT(K, self, key) \
+    trs_hmap_find_mut((self), &(K){ (key) })
+
 /// trs_hmap_insert from values rather than addresses
 /// @param K the key type; a scalar, since 'key' becomes a compound literal
 /// @param V the value type; a scalar, for the same reason

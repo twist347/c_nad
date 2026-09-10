@@ -16,7 +16,8 @@
 /// FILE. Only ops about the allocator itself carry a slug, as trs_al_default does.
 ///
 /// The wrappers return the pointer and say failure with null — the one place a fallible
-/// op returns no trs_Status, since [[nodiscard]] on the pointer enforces the same check.
+/// op returns no trs_Status, since [[nodiscard]] on the pointer flags the same dropped
+/// check.
 /// Null is not always failure: asking for nothing gives nothing, and each wrapper says
 /// which of its nulls mean what.
 ///

@@ -10,8 +10,9 @@ Two rules shape the whole API:
   handed an `trs_Al *` and uses only that. Swapping in an arena, a pool or a logging
   allocator is a one-line change at the call site.
 - **Errors cannot be dropped.** A fallible operation returns `trs_Status` and writes its
-  result through a trailing `out`; `[[nodiscard]]` makes ignoring it a compile error.
-  Broken preconditions are `assert`, not status — those are bugs, not runtime states.
+  result through a trailing `out`; `[[nodiscard]]` makes ignoring it a warning every
+  compiler raises unasked, and a compile error under `-Werror`. Broken preconditions are
+  `assert`, not status — those are bugs, not runtime states.
 
 The rest of them — how a name is built, where the `mut` marker sits, what is an `assert`
 and what a status — are written down in [conventions](docs/conventions.md), each with the

@@ -92,17 +92,18 @@ writes its result through a trailing `out`. Strictness over ergonomics — the p
 an error cannot be silently dropped.
 
 - **Fallible op:** `[[nodiscard]] trs_Status foo(args…, T *out);`. `[[nodiscard]]` turns an
-  ignored error into a compile error; `out` is written **only on `TRS_STATUS_OK`**, left
-  untouched otherwise. Propagate by hand — `trs_Status st = foo(…); if
-  (TRS_STATUS_IS_ERR(st)) return st;` — or `goto fail` while resources are held, since C
-  has no `defer` and a bare early return would leak them.
+  ignored error into a diagnostic the compiler raises without being asked, and into a hard
+  error under `-Werror`; `out` is written **only on `TRS_STATUS_OK`**, left untouched
+  otherwise. Propagate by hand — `trs_Status st = foo(…); if (TRS_STATUS_IS_ERR(st))
+  return st;` — or `goto fail` while resources are held, since C has no `defer` and a bare
+  early return would leak them.
 - **Never the inverse** (`T foo(args, trs_Status *st)`): a status out-param is silently
   ignorable, which is the "errors are optional" model this library rejects.
 - **Can't-fail ops return their value directly**, with no status: pure accessors such as
   `trs_arr_len` and `trs_arr_elem_size`. Uniform means uniform among *fallible* ops.
 - **Allocator wrappers are the value-return exception, and a principled one.** `trs_alloc`,
   `trs_calloc` and `trs_realloc` return the pointer, `nullptr` meaning failure: the value
-  and the single error cause share one channel, so `[[nodiscard]]` already enforces the
+  and the single error cause share one channel, so `[[nodiscard]]` already flags a dropped
   check. `trs_Status f(…, void **out)` would buy nothing and fight the `malloc` idiom.
 - **Everything else keeps the status**, though OOM is nearly its only cause, because the
   status is a type-level marker that an op *can* fail rather than a carrier of causes. The

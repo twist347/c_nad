@@ -277,7 +277,7 @@ static void test_node_val_mut_writes_through() {
     trs_HMap *m = make_map(trs_hash_i32);
     put(m, 7, 70);
 
-    trs_HMapNode *node = trs_hmap_find_mut(m, &(int32_t){7});
+    trs_HMapNode *node = TRS_HMAP_FIND_MUT(int32_t, m, 7);
     *TRS_HMAP_NODE_VAL_MUT_AS(int32_t, m, node) = 77;
 
     assert_has(m, 7, 77);
