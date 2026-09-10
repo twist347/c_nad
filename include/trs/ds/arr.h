@@ -128,7 +128,8 @@ trs_Status trs_arr_copy_assign(const trs_Arr *self, trs_Arr *other);
 /// moves the elems of 'self' into 'other', leaving 'self' empty
 /// @param[in,out] self the arr to move from; emptied on success and still usable, on
 ///                     its own allocator
-/// @param[in,out] other must have the same elem_size; releases what it held and keeps its own allocator. 'self' == 'other' is a no-op
+/// @param[in,out] other must have the same elem_size; releases what it held and keeps
+///                      its own allocator. 'self' == 'other' is a no-op
 /// @retval TRS_STATUS_OK on success
 /// @retval TRS_STATUS_ERR_NO_MEM when the two sit on different allocators and the block cannot be taken,
 ///         leaving both as they were

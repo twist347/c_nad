@@ -121,8 +121,8 @@ trs_Status trs_hset_copy_assign(const trs_HSet *self, trs_HSet *other);
 /// @param[in,out] other must have the same key_size; receives the hasher and the equality along
 ///                      with the keys, releases what it held and keeps its own allocator. 'self' == 'other' is a no-op
 /// @retval TRS_STATUS_OK on success
-/// @retval TRS_STATUS_ERR_NO_MEM when the two sit on different allocators and the buckets or a node cannot be allocated,
-///         leaving both as they were
+/// @retval TRS_STATUS_ERR_NO_MEM when the two sit on different allocators and the buckets
+///         or a node cannot be allocated, leaving both as they were
 /// @bigo{1} on one allocator, n on two — a node belongs to the allocator that made it,
 ///          so across two the keys are rebuilt and the borrowed nodes do not survive
 [[nodiscard]] TRS_API

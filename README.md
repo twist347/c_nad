@@ -7,7 +7,7 @@ Classic containers and algorithms, written plainly. No dependencies.
 Two rules shape the whole API:
 
 - **Memory is explicit and swappable.** Nothing allocates on its own — every container is
-  handed an `trs_Al *` and uses only that. Swapping in an arena, a pool or a logging
+  handed a `trs_Al *` and uses only that. Swapping in an arena, a pool or a logging
   allocator is a one-line change at the call site.
 - **Errors cannot be dropped.** A fallible operation returns `trs_Status` and writes its
   result through a trailing `out`; `[[nodiscard]]` makes ignoring it a warning every

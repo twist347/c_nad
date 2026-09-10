@@ -23,7 +23,6 @@ option(TRS_BUILD_BENCH "Build the benchmarks" OFF)
 
 set(TRS_WARNINGS
         $<$<C_COMPILER_ID:GNU,Clang,AppleClang>:-Wall;-Wextra;-Wpedantic>
-        $<$<C_COMPILER_ID:MSVC>:/W4> #unused for now
 )
 
 set(TRS_ALGO_SOURCES

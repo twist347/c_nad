@@ -1,4 +1,4 @@
-# trs — conventions
+# terse — conventions
 
 The rules the library is written to, and why each is what it is. C23, one namespace
 prefix: `trs_` / `TRS_`.

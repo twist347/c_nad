@@ -131,8 +131,8 @@ trs_Status trs_hmap_copy_assign(const trs_HMap *self, trs_HMap *other);
 ///                      equality along with the entries, releases what it held and keeps
 ///                      its own allocator. 'self' == 'other' is a no-op
 /// @retval TRS_STATUS_OK on success
-/// @retval TRS_STATUS_ERR_NO_MEM when the two sit on different allocators and the buckets or a node cannot be allocated,
-///         leaving both as they were
+/// @retval TRS_STATUS_ERR_NO_MEM when the two sit on different allocators and the buckets
+///         or a node cannot be allocated, leaving both as they were
 /// @bigo{1} on one allocator, n on two — a node belongs to the allocator that made it,
 ///          so across two the entries are rebuilt and the borrowed nodes do not survive
 [[nodiscard]] TRS_API
