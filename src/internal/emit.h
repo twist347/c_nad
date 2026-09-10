@@ -1,6 +1,6 @@
 #pragma once
 
-#include "terse/core/span.h"
+#include "trs/core/span.h"
 
 #include <string.h>
 

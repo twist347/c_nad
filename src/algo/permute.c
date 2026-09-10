@@ -1,6 +1,6 @@
-#include "terse/algo/permute.h"
+#include "trs/algo/permute.h"
 
-#include "terse/algo/copy.h"
+#include "trs/algo/copy.h"
 
 #include "internal/ptr.h"
 

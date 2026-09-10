@@ -1,7 +1,7 @@
-#include "terse/ds/bitset.h"
-#include "terse/alloc/arena.h"
-#include "terse/alloc/default.h"
-#include "terse/core/util.h"
+#include "trs/ds/bitset.h"
+#include "trs/alloc/arena.h"
+#include "trs/alloc/default.h"
+#include "trs/core/util.h"
 
 #include "support/arena.h"
 #include "support/probe.h"

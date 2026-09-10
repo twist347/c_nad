@@ -1,7 +1,7 @@
-#include "terse/ds/arr.h"
+#include "trs/ds/arr.h"
 
-#include "terse/algo/compare.h"
-#include "terse/core/util.h"
+#include "trs/algo/compare.h"
+#include "trs/core/util.h"
 
 #include "internal/ptr.h"
 

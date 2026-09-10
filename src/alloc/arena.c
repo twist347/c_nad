@@ -1,6 +1,6 @@
-#include "terse/alloc/arena.h"
+#include "trs/alloc/arena.h"
 
-#include "terse/core/util.h"
+#include "trs/core/util.h"
 
 #include "internal/ptr.h"
 

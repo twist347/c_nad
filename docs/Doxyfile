@@ -1,7 +1,7 @@
 # doxygen docs/Doxyfile   (from the repo root) -> build-docs/html/index.html
 
-PROJECT_NAME           = trs
-PROJECT_BRIEF          = "terse data structures and algorithms in C23"
+PROJECT_NAME           = terse
+PROJECT_BRIEF          = "data structures and algorithms in C23"
 OUTPUT_DIRECTORY       = build-docs
 
 INPUT                  = include README.md docs/conventions.md docs/modules.dox

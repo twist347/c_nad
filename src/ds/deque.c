@@ -1,4 +1,4 @@
-#include "terse/ds/deque.h"
+#include "trs/ds/deque.h"
 
 #include "internal/ptr.h"
 

@@ -1,4 +1,4 @@
-#include "terse/core/span.h"
+#include "trs/core/span.h"
 
 #include "internal/ptr.h"
 

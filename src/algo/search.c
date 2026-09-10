@@ -1,4 +1,4 @@
-#include "terse/algo/search.h"
+#include "trs/algo/search.h"
 
 #include <assert.h>
 

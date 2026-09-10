@@ -1,6 +1,6 @@
-#include "terse/ds/queue.h"
+#include "trs/ds/queue.h"
 
-#include "terse/ds/deque.h"
+#include "trs/ds/deque.h"
 
 #include <assert.h>
 

@@ -1,4 +1,4 @@
-#include "terse/alloc/alloc.h"
+#include "trs/alloc/alloc.h"
 
 #include "support/probe.h"
 

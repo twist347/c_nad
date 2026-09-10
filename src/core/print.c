@@ -1,4 +1,4 @@
-#include "terse/core/print.h"
+#include "trs/core/print.h"
 
 #include <assert.h>
 #include <ctype.h>

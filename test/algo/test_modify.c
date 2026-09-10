@@ -1,6 +1,6 @@
-#include "terse/algo/modify.h"
-#include "terse/algo/sort.h"
-#include "terse/core/util.h"
+#include "trs/algo/modify.h"
+#include "trs/algo/sort.h"
+#include "trs/core/util.h"
 
 #include "support/pair.h"
 

@@ -1,4 +1,4 @@
-#include "terse/core/rng.h"
+#include "trs/core/rng.h"
 
 #include <unity.h>
 

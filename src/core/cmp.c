@@ -1,4 +1,4 @@
-#include "terse/core/cmp.h"
+#include "trs/core/cmp.h"
 
 #include <assert.h>
 #include <math.h>

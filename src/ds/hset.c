@@ -1,4 +1,4 @@
-#include "terse/ds/hset.h"
+#include "trs/ds/hset.h"
 
 #include "internal/hmap_impl.h"
 

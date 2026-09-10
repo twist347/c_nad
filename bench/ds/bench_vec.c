@@ -1,9 +1,9 @@
 // push is where the growth policy shows: every benchmark here pushes the same elems, and
 // the pair "grows" / "reserved" says what the growing itself cost on that allocator
 
-#include "terse/alloc/arena.h"
-#include "terse/alloc/default.h"
-#include "terse/ds/vec.h"
+#include "trs/alloc/arena.h"
+#include "trs/alloc/default.h"
+#include "trs/ds/vec.h"
 
 #include <ubench.h>
 

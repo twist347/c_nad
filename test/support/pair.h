@@ -1,6 +1,6 @@
 #pragma once
 
-#include "terse/core/util.h"
+#include "trs/core/util.h"
 
 #include <stdint.h>
 

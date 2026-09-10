@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.22)
 
-project(terse-ds
+project(terse-dsa
         VERSION 0.1.0
         DESCRIPTION "Terse data structures and algorithms in C23"
         LANGUAGES C
@@ -16,7 +16,7 @@ endif ()
 
 set(TRS_C_STANDARD 23)
 
-option(TRS_BUILD_SHARED "Build trs_ds as a shared library" ${PROJECT_IS_TOP_LEVEL})
+option(TRS_BUILD_SHARED "Build trs_dsa as a shared library" ${PROJECT_IS_TOP_LEVEL})
 option(TRS_BUILD_TEST "Build unit tests" ${PROJECT_IS_TOP_LEVEL})
 option(TRS_BUILD_EXAMPLE "Build the examples the reference quotes" ${PROJECT_IS_TOP_LEVEL})
 option(TRS_BUILD_BENCH "Build the benchmarks" OFF)
@@ -85,26 +85,26 @@ else ()
     set(TRS_LIBRARY_TYPE STATIC)
 endif ()
 
-add_library(trs_ds ${TRS_LIBRARY_TYPE} ${TRS_SOURCES})
-add_library(trs::ds ALIAS trs_ds)
+add_library(trs_dsa ${TRS_LIBRARY_TYPE} ${TRS_SOURCES})
+add_library(trs::dsa ALIAS trs_dsa)
 
-target_include_directories(trs_ds
+target_include_directories(trs_dsa
         PUBLIC $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
         PRIVATE ${PROJECT_SOURCE_DIR}/src
 )
-target_compile_features(trs_ds PUBLIC c_std_${TRS_C_STANDARD})
-target_compile_options(trs_ds PRIVATE ${TRS_WARNINGS})
+target_compile_features(trs_dsa PUBLIC c_std_${TRS_C_STANDARD})
+target_compile_options(trs_dsa PRIVATE ${TRS_WARNINGS})
 
 if (UNIX)
-    target_link_libraries(trs_ds PUBLIC m)
+    target_link_libraries(trs_dsa PUBLIC m)
 endif ()
 
-target_compile_definitions(trs_ds
+target_compile_definitions(trs_dsa
         PRIVATE TRS_BUILD
         PUBLIC $<$<NOT:$<BOOL:${TRS_BUILD_SHARED}>>:TRS_STATIC>
 )
 
-set_target_properties(trs_ds PROPERTIES
+set_target_properties(trs_dsa PROPERTIES
         VERSION ${PROJECT_VERSION}
         SOVERSION ${PROJECT_VERSION_MAJOR}
         POSITION_INDEPENDENT_CODE ON
@@ -115,7 +115,7 @@ set_target_properties(trs_ds PROPERTIES
 include(CheckIPOSupported)
 check_ipo_supported(RESULT TRS_IPO_SUPPORTED OUTPUT TRS_IPO_ERROR)
 if (TRS_IPO_SUPPORTED)
-    set_target_properties(trs_ds PROPERTIES
+    set_target_properties(trs_dsa PROPERTIES
             INTERPROCEDURAL_OPTIMIZATION_RELEASE ON
             INTERPROCEDURAL_OPTIMIZATION_RELWITHDEBINFO ON
     )
@@ -146,7 +146,7 @@ endif ()
 if (PROJECT_IS_TOP_LEVEL)
     string(TOLOWER ${TRS_LIBRARY_TYPE} TRS_LIBRARY_TYPE_LOWER)
     message(STATUS "")
-    message(STATUS "terse-ds configuration:")
+    message(STATUS "terse-dsa configuration:")
     message(STATUS "  version        : ${PROJECT_VERSION}")
     message(STATUS "  build type     : ${CMAKE_BUILD_TYPE}")
     message(STATUS "  library        : ${TRS_LIBRARY_TYPE_LOWER}")

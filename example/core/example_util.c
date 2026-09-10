@@ -1,7 +1,7 @@
 // for @snippet
 
-#include "terse/core/status.h"
-#include "terse/core/util.h"
+#include "trs/core/status.h"
+#include "trs/core/util.h"
 
 #include <inttypes.h>
 #include <stdint.h>

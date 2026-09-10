@@ -1,5 +1,5 @@
-#include "terse/alloc/pool.h"
-#include "terse/alloc/default.h"
+#include "trs/alloc/pool.h"
+#include "trs/alloc/default.h"
 
 #include <unity.h>
 

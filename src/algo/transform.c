@@ -1,4 +1,4 @@
-#include "terse/algo/transform.h"
+#include "trs/algo/transform.h"
 
 #include <assert.h>
 

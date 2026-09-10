@@ -1,7 +1,7 @@
-#include "terse/ds/vec.h"
-#include "terse/alloc/arena.h"
-#include "terse/alloc/default.h"
-#include "terse/core/print.h"
+#include "trs/ds/vec.h"
+#include "trs/alloc/arena.h"
+#include "trs/alloc/default.h"
+#include "trs/core/print.h"
 
 #include "support/arena.h"
 #include "support/pair.h"

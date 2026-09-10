@@ -1,12 +1,12 @@
 // for @snippet
 
-#include "terse/algo/modify.h"
-#include "terse/algo/sort.h"
-#include "terse/alloc/arena.h"
-#include "terse/alloc/default.h"
-#include "terse/core/cmp.h"
-#include "terse/core/print.h"
-#include "terse/ds/vec.h"
+#include "trs/algo/modify.h"
+#include "trs/algo/sort.h"
+#include "trs/alloc/arena.h"
+#include "trs/alloc/default.h"
+#include "trs/core/cmp.h"
+#include "trs/core/print.h"
+#include "trs/ds/vec.h"
 
 #include <inttypes.h>
 #include <stdio.h>

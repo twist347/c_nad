@@ -1,4 +1,4 @@
-#include "terse/core/hash.h"
+#include "trs/core/hash.h"
 
 #include <assert.h>
 #include <math.h>

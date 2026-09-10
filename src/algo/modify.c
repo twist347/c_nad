@@ -1,4 +1,4 @@
-#include "terse/algo/modify.h"
+#include "trs/algo/modify.h"
 
 #include <assert.h>
 #include <string.h>

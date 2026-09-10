@@ -1,8 +1,8 @@
-#include "terse/algo/sort.h"
+#include "trs/algo/sort.h"
 
-#include "terse/algo/copy.h"
-#include "terse/algo/merge.h"
-#include "terse/core/util.h"
+#include "trs/algo/copy.h"
+#include "trs/algo/merge.h"
+#include "trs/core/util.h"
 
 #include <assert.h>
 

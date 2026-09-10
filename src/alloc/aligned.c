@@ -1,4 +1,4 @@
-#include "terse/alloc/aligned.h"
+#include "trs/alloc/aligned.h"
 
 #include "internal/ptr.h"
 

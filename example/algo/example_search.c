@@ -1,8 +1,8 @@
 // for @snippet
 
-#include "terse/algo/search.h"
-#include "terse/core/cmp.h"
-#include "terse/core/span.h"
+#include "trs/algo/search.h"
+#include "trs/core/cmp.h"
+#include "trs/core/span.h"
 
 #include <inttypes.h>
 #include <stdint.h>

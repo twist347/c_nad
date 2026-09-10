@@ -1,10 +1,10 @@
 #pragma once
 
-#include "terse/alloc/alloc.h"
-#include "terse/core/cmp.h"
-#include "terse/core/hash.h"
-#include "terse/core/status.h"
-#include "terse/ds/hmap.h"
+#include "trs/alloc/alloc.h"
+#include "trs/core/cmp.h"
+#include "trs/core/hash.h"
+#include "trs/core/status.h"
+#include "trs/ds/hmap.h"
 
 #include <stddef.h>
 

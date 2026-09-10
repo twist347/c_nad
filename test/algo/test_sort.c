@@ -1,6 +1,6 @@
-#include "terse/algo/sort.h"
-#include "terse/alloc/arena.h"
-#include "terse/alloc/default.h"
+#include "trs/algo/sort.h"
+#include "trs/alloc/arena.h"
+#include "trs/alloc/default.h"
 
 #include <unity.h>
 

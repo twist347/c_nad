@@ -1,9 +1,9 @@
 // for @snippet
 
-#include "terse/alloc/default.h"
-#include "terse/core/cmp.h"
-#include "terse/core/print.h"
-#include "terse/ds/list.h"
+#include "trs/alloc/default.h"
+#include "trs/core/cmp.h"
+#include "trs/core/print.h"
+#include "trs/ds/list.h"
 
 #include <inttypes.h>
 #include <stdint.h>

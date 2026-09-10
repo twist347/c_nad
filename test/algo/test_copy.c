@@ -1,5 +1,5 @@
-#include "terse/algo/copy.h"
-#include "terse/core/util.h"
+#include "trs/algo/copy.h"
+#include "trs/core/util.h"
 
 #include "support/pair.h"
 

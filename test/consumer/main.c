@@ -1,4 +1,4 @@
-#include "terse/ds.h"
+#include "trs/dsa.h"
 
 #include <stdio.h>
 

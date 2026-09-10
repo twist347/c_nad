@@ -1,12 +1,12 @@
 // for @snippet
 
-#include "terse/algo/search.h"
-#include "terse/alloc/default.h"
-#include "terse/core/cmp.h"
-#include "terse/core/print.h"
-#include "terse/core/span.h"
-#include "terse/ds/deque.h"
-#include "terse/ds/queue.h"
+#include "trs/algo/search.h"
+#include "trs/alloc/default.h"
+#include "trs/core/cmp.h"
+#include "trs/core/print.h"
+#include "trs/core/span.h"
+#include "trs/ds/deque.h"
+#include "trs/ds/queue.h"
 
 #include <inttypes.h>
 #include <stdint.h>

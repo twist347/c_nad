@@ -1,9 +1,9 @@
 // for @snippet
 
-#include "terse/algo/fold.h"
-#include "terse/core/print.h"
-#include "terse/core/span.h"
-#include "terse/core/util.h"
+#include "trs/algo/fold.h"
+#include "trs/core/print.h"
+#include "trs/core/span.h"
+#include "trs/core/util.h"
 
 #include <inttypes.h>
 #include <stdint.h>

@@ -1,6 +1,6 @@
-#include "terse/core/status.h"
+#include "trs/core/status.h"
 
-#include "terse/core/util.h"
+#include "trs/core/util.h"
 
 const char *trs_status_to_str(trs_Status st) {
     switch (st) {

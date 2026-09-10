@@ -1,5 +1,5 @@
-#include "terse/algo/fold.h"
-#include "terse/core/util.h"
+#include "trs/algo/fold.h"
+#include "trs/core/util.h"
 
 #include "support/pair.h"
 

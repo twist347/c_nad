@@ -1,4 +1,4 @@
-#include "terse/algo/compare.h"
+#include "trs/algo/compare.h"
 
 #include "support/pair.h"
 

@@ -1,6 +1,6 @@
-#include "terse/algo/set.h"
-#include "terse/algo/sort.h"
-#include "terse/core/cmp.h"
+#include "trs/algo/set.h"
+#include "trs/algo/sort.h"
+#include "trs/core/cmp.h"
 
 #include "support/pair.h"
 

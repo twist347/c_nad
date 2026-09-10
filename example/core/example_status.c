@@ -1,9 +1,9 @@
 // for @snippet
 
-#include "terse/alloc/default.h"
-#include "terse/core/print.h"
-#include "terse/core/status.h"
-#include "terse/ds/arr.h"
+#include "trs/alloc/default.h"
+#include "trs/core/print.h"
+#include "trs/core/status.h"
+#include "trs/ds/arr.h"
 
 #include <stdio.h>
 

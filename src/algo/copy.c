@@ -1,4 +1,4 @@
-#include "terse/algo/copy.h"
+#include "trs/algo/copy.h"
 
 #include <assert.h>
 #include <string.h>

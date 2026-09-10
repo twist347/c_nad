@@ -1,7 +1,7 @@
 function(trs_add_example target_name source_file)
     add_executable(${target_name} ${source_file})
 
-    target_link_libraries(${target_name} PRIVATE trs::ds)
+    target_link_libraries(${target_name} PRIVATE trs::dsa)
     target_compile_options(${target_name} PRIVATE ${TRS_WARNINGS})
 
     add_test(NAME ${target_name} COMMAND ${target_name})

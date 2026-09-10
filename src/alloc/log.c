@@ -1,6 +1,6 @@
-#include "terse/alloc/log.h"
+#include "trs/alloc/log.h"
 
-#include "terse/alloc/alloc.h"
+#include "trs/alloc/alloc.h"
 
 #include <assert.h>
 #include <stddef.h>

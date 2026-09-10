@@ -1,4 +1,4 @@
-#include "terse/algo/fold.h"
+#include "trs/algo/fold.h"
 
 #include <assert.h>
 #include <string.h>

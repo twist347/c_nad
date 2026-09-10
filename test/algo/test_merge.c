@@ -1,6 +1,6 @@
-#include "terse/algo/merge.h"
-#include "terse/algo/sort.h"
-#include "terse/alloc/default.h"
+#include "trs/algo/merge.h"
+#include "trs/algo/sort.h"
+#include "trs/alloc/default.h"
 
 #include "support/probe.h"
 

@@ -1,6 +1,6 @@
-#include "terse/ds/vec.h"
+#include "trs/ds/vec.h"
 
-#include "terse/algo/compare.h"
+#include "trs/algo/compare.h"
 
 #include "internal/ptr.h"
 

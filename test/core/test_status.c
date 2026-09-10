@@ -1,4 +1,4 @@
-#include "terse/core/status.h"
+#include "trs/core/status.h"
 
 #include <unity.h>
 

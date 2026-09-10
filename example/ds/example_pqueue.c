@@ -1,11 +1,11 @@
 // for @snippet
 
-#include "terse/algo/heap.h"
-#include "terse/alloc/default.h"
-#include "terse/core/cmp.h"
-#include "terse/core/print.h"
-#include "terse/ds/pqueue.h"
-#include "terse/ds/vec.h"
+#include "trs/algo/heap.h"
+#include "trs/alloc/default.h"
+#include "trs/core/cmp.h"
+#include "trs/core/print.h"
+#include "trs/ds/pqueue.h"
+#include "trs/ds/vec.h"
 
 #include <inttypes.h>
 #include <stdint.h>

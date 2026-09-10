@@ -1,8 +1,8 @@
 // for @snippet
 
-#include "terse/alloc/default.h"
-#include "terse/core/hash.h"
-#include "terse/ds/hset.h"
+#include "trs/alloc/default.h"
+#include "trs/core/hash.h"
+#include "trs/ds/hset.h"
 
 #include <stdint.h>
 #include <stdio.h>

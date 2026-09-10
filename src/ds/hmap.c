@@ -1,6 +1,6 @@
-#include "terse/ds/hmap.h"
+#include "trs/ds/hmap.h"
 
-#include "terse/core/util.h"
+#include "trs/core/util.h"
 
 #include "internal/hmap_impl.h"
 #include "internal/ptr.h"

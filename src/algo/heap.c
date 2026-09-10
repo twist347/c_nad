@@ -1,4 +1,4 @@
-#include "terse/algo/heap.h"
+#include "trs/algo/heap.h"
 
 #include <assert.h>
 

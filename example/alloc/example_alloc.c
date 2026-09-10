@@ -1,7 +1,7 @@
 // for @snippet
 
-#include "terse/alloc/alloc.h"
-#include "terse/alloc/default.h"
+#include "trs/alloc/alloc.h"
+#include "trs/alloc/default.h"
 
 #include <inttypes.h>
 #include <stdint.h>

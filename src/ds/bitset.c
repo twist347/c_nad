@@ -1,6 +1,6 @@
-#include "terse/ds/bitset.h"
+#include "trs/ds/bitset.h"
 
-#include "terse/core/util.h"
+#include "trs/core/util.h"
 
 #include <assert.h>
 #include <stdbit.h>

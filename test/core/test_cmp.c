@@ -1,6 +1,6 @@
-#include "terse/core/cmp.h"
-#include "terse/algo/search.h"
-#include "terse/algo/sort.h"
+#include "trs/core/cmp.h"
+#include "trs/algo/search.h"
+#include "trs/algo/sort.h"
 
 #include <unity.h>
 

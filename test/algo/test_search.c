@@ -1,6 +1,6 @@
-#include "terse/algo/permute.h"
-#include "terse/algo/search.h"
-#include "terse/core/util.h"
+#include "trs/algo/permute.h"
+#include "trs/algo/search.h"
+#include "trs/core/util.h"
 
 #include <unity.h>
 

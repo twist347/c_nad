@@ -1,7 +1,7 @@
 // for @snippet
 
-#include "terse/alloc/default.h"
-#include "terse/ds/bitset.h"
+#include "trs/alloc/default.h"
+#include "trs/ds/bitset.h"
 
 #include <stdio.h>
 

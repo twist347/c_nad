@@ -1,6 +1,6 @@
-#include "terse/alloc/pool.h"
+#include "trs/alloc/pool.h"
 
-#include "terse/core/util.h"
+#include "trs/core/util.h"
 
 #include "internal/ptr.h"
 

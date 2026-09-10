@@ -1,6 +1,6 @@
-# trs — terse data structures and algorithms in C23
+# terse — data structures and algorithms in C23
 
-[![CI](https://github.com/twist347/terse-ds/actions/workflows/ci.yml/badge.svg)](https://github.com/twist347/terse-ds/actions/workflows/ci.yml)
+[![CI](https://github.com/twist347/terse-dsa/actions/workflows/ci.yml/badge.svg)](https://github.com/twist347/terse-dsa/actions/workflows/ci.yml)
 
 Classic containers and algorithms, written plainly. No dependencies.
 
@@ -64,7 +64,7 @@ trs_al_arena_drop(arena);
 
 ## Layout
 
-`terse/ds.h` includes every header below at once; naming the modules a file actually
+`trs/dsa.h` includes every header below at once; naming the modules a file actually
 uses stays the better habit.
 
 **`core`** — the vocabulary the rest is written in.
@@ -148,38 +148,38 @@ doxygen docs/Doxyfile   # -> build-docs/html/index.html
 ## Use it in a project
 
 trs is consumed as a source dependency; there is no `install` step and none is planned.
-Either way the target to link is the alias `trs::ds`, which carries
+Either way the target to link is the alias `trs::dsa`, which carries
 the include path and the C23 requirement with it.
 
 With `FetchContent`:
 
 ```cmake
 include(FetchContent)
-FetchContent_Declare(terse-ds
-    GIT_REPOSITORY https://github.com/twist347/terse-ds.git
+FetchContent_Declare(terse-dsa
+    GIT_REPOSITORY https://github.com/twist347/terse-dsa.git
     GIT_TAG main
 )
-FetchContent_MakeAvailable(terse-ds)
+FetchContent_MakeAvailable(terse-dsa)
 
-target_link_libraries(app PRIVATE trs::ds)
+target_link_libraries(app PRIVATE trs::dsa)
 ```
 
 As a submodule:
 
 ```sh
-git submodule add https://github.com/twist347/terse-ds.git \
-    thirdparty/terse-ds
+git submodule add https://github.com/twist347/terse-dsa.git \
+    thirdparty/terse-dsa
 ```
 
 ```cmake
-add_subdirectory(thirdparty/terse-ds)
+add_subdirectory(thirdparty/terse-dsa)
 
-target_link_libraries(app PRIVATE trs::ds)
+target_link_libraries(app PRIVATE trs::dsa)
 ```
 
 ## License
 
-MIT — see [LICENSE](https://github.com/twist347/terse-ds/blob/main/LICENSE).
+MIT — see [LICENSE](https://github.com/twist347/terse-dsa/blob/main/LICENSE).
 
 `thirdparty/Unity-2.7.0` is Unity, the test framework, vendored as is. It is third-party
 code under its own MIT license; its copyright notice lives in

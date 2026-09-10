@@ -1,8 +1,8 @@
-#include "terse/ds/pqueue.h"
+#include "trs/ds/pqueue.h"
 
-#include "terse/algo/heap.h"
-#include "terse/core/util.h"
-#include "terse/ds/vec.h"
+#include "trs/algo/heap.h"
+#include "trs/core/util.h"
+#include "trs/ds/vec.h"
 
 #include <assert.h>
 

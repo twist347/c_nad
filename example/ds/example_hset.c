@@ -1,10 +1,10 @@
 // for @snippet
 
-#include "terse/alloc/default.h"
-#include "terse/core/cmp.h"
-#include "terse/core/hash.h"
-#include "terse/core/print.h"
-#include "terse/ds/hset.h"
+#include "trs/alloc/default.h"
+#include "trs/core/cmp.h"
+#include "trs/core/hash.h"
+#include "trs/core/print.h"
+#include "trs/ds/hset.h"
 
 #include <inttypes.h>
 #include <stdint.h>

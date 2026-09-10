@@ -1,6 +1,6 @@
-#include "terse/alloc/default.h"
+#include "trs/alloc/default.h"
 
-#include "terse/core/util.h"
+#include "trs/core/util.h"
 
 #include <stddef.h>
 #include <stdlib.h>

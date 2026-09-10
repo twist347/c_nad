@@ -1,11 +1,11 @@
 // for @snippet
 
-#include "terse/algo/permute.h"
-#include "terse/alloc/default.h"
-#include "terse/core/print.h"
-#include "terse/core/rng.h"
-#include "terse/core/span.h"
-#include "terse/core/util.h"
+#include "trs/algo/permute.h"
+#include "trs/alloc/default.h"
+#include "trs/core/print.h"
+#include "trs/core/rng.h"
+#include "trs/core/span.h"
+#include "trs/core/util.h"
 
 #include <stdint.h>
 #include <stdio.h>

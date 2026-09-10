@@ -1,7 +1,7 @@
 // for @snippet
 
-#include "terse/alloc/arena.h"
-#include "terse/alloc/default.h"
+#include "trs/alloc/arena.h"
+#include "trs/alloc/default.h"
 
 #include <stdint.h>
 #include <stdio.h>

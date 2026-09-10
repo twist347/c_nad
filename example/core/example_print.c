@@ -1,7 +1,7 @@
 // for @snippet
 
-#include "terse/core/print.h"
-#include "terse/core/span.h"
+#include "trs/core/print.h"
+#include "trs/core/span.h"
 
 #include <inttypes.h>
 #include <stdint.h>

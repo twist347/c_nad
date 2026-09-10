@@ -1,6 +1,6 @@
-#include "terse/core/print.h"
-#include "terse/core/span.h"
-#include "terse/core/util.h"
+#include "trs/core/print.h"
+#include "trs/core/span.h"
+#include "trs/core/util.h"
 
 #include "support/pair.h"
 

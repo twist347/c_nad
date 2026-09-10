@@ -9,4 +9,4 @@ add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../.. trs)
 
 add_executable(consumer_app main.c)
 
-target_link_libraries(consumer_app PRIVATE trs::ds)
+target_link_libraries(consumer_app PRIVATE trs::dsa)

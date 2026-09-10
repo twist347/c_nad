@@ -3,7 +3,7 @@ set(TRS_TEST_ROOT ${CMAKE_CURRENT_SOURCE_DIR})
 function(trs_add_test target_name source_file)
     add_executable(${target_name} ${source_file})
 
-    target_link_libraries(${target_name} PRIVATE trs::ds unity::framework)
+    target_link_libraries(${target_name} PRIVATE trs::dsa unity::framework)
 
     # test/support is header-only; this makes #include "support/..." work
     target_include_directories(${target_name} PRIVATE ${TRS_TEST_ROOT})
@@ -17,7 +17,7 @@ function(trs_add_test target_name source_file)
         ENVIRONMENT "ASAN_OPTIONS=allocator_may_return_null=1")
 endfunction()
 
-trs_add_test(test_terse test_terse.c)
+trs_add_test(test_dsa test_dsa.c)
 
 add_subdirectory(algo)
 add_subdirectory(alloc)

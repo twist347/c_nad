@@ -1,6 +1,6 @@
-#include "terse/algo/heap.h"
-#include "terse/algo/permute.h"
-#include "terse/algo/sort.h"
+#include "trs/algo/heap.h"
+#include "trs/algo/permute.h"
+#include "trs/algo/sort.h"
 
 #include "support/pair.h"
 

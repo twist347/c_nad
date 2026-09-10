@@ -1,6 +1,6 @@
-#include "terse/ds/stack.h"
+#include "trs/ds/stack.h"
 
-#include "terse/ds/vec.h"
+#include "trs/ds/vec.h"
 
 #include <assert.h>
 

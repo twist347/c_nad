@@ -1,6 +1,6 @@
-#include "terse/ds/list.h"
+#include "trs/ds/list.h"
 
-#include "terse/core/util.h"
+#include "trs/core/util.h"
 
 #include "internal/ptr.h"
 

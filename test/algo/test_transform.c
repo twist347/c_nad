@@ -1,5 +1,5 @@
-#include "terse/algo/transform.h"
-#include "terse/core/util.h"
+#include "trs/algo/transform.h"
+#include "trs/core/util.h"
 
 #include "support/pair.h"
 

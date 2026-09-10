@@ -1,6 +1,6 @@
-#include "terse/alloc/aligned.h"
-#include "terse/alloc/arena.h"
-#include "terse/alloc/default.h"
+#include "trs/alloc/aligned.h"
+#include "trs/alloc/arena.h"
+#include "trs/alloc/default.h"
 
 #include "support/probe.h"
 
