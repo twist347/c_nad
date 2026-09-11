@@ -1,4 +1,4 @@
-#include "trs/core/span.h"
+#include "tda/core/span.h"
 
 #include "internal/ptr.h"
 
@@ -7,22 +7,22 @@
 
 /* ========== construction ========== */
 
-trs_Span trs_span_from_data(const void *data, size_t len, size_t elem_size) {
+tda_Span tda_span_from_data(const void *data, size_t len, size_t elem_size) {
     assert(data || len == 0);
     assert(elem_size > 0);
 
-    return (trs_Span){
+    return (tda_Span){
         .data = data,
         .len = len,
         .elem_size = elem_size
     };
 }
 
-trs_SpanMut trs_span_from_data_mut(void *data, size_t len, size_t elem_size) {
+tda_SpanMut tda_span_from_data_mut(void *data, size_t len, size_t elem_size) {
     assert(data || len == 0);
     assert(elem_size > 0);
 
-    return (trs_SpanMut){
+    return (tda_SpanMut){
         .data = data,
         .len = len,
         .elem_size = elem_size
@@ -31,10 +31,10 @@ trs_SpanMut trs_span_from_data_mut(void *data, size_t len, size_t elem_size) {
 
 /* ========== to span ========== */
 
-trs_Span trs_span_mut_to_span(trs_SpanMut s) {
-    TRS_SPAN_ASSERT(s);
+tda_Span tda_span_mut_to_span(tda_SpanMut s) {
+    TDA_SPAN_ASSERT(s);
 
-    return (trs_Span){
+    return (tda_Span){
         .data = s.data,
         .len = s.len,
         .elem_size = s.elem_size
@@ -43,25 +43,25 @@ trs_Span trs_span_mut_to_span(trs_SpanMut s) {
 
 /* ========== subspan ========== */
 
-trs_Span trs_span_sub(trs_Span self, size_t idx, size_t count) {
-    TRS_SPAN_ASSERT(self);
+tda_Span tda_span_sub(tda_Span self, size_t idx, size_t count) {
+    TDA_SPAN_ASSERT(self);
     assert(idx <= self.len);
     assert(count <= self.len - idx);
 
-    return (trs_Span){
-        .data = self.data ? trs_byte_offset(self.data, self.elem_size, idx) : nullptr,
+    return (tda_Span){
+        .data = self.data ? tda_byte_offset(self.data, self.elem_size, idx) : nullptr,
         .len = count,
         .elem_size = self.elem_size
     };
 }
 
-trs_SpanMut trs_span_sub_mut(trs_SpanMut self, size_t idx, size_t count) {
-    TRS_SPAN_ASSERT(self);
+tda_SpanMut tda_span_sub_mut(tda_SpanMut self, size_t idx, size_t count) {
+    TDA_SPAN_ASSERT(self);
     assert(idx <= self.len);
     assert(count <= self.len - idx);
 
-    return (trs_SpanMut){
-        .data = self.data ? trs_byte_offset_mut(self.data, self.elem_size, idx) : nullptr,
+    return (tda_SpanMut){
+        .data = self.data ? tda_byte_offset_mut(self.data, self.elem_size, idx) : nullptr,
         .len = count,
         .elem_size = self.elem_size
     };
@@ -69,40 +69,40 @@ trs_SpanMut trs_span_sub_mut(trs_SpanMut self, size_t idx, size_t count) {
 
 /* ========== info ========== */
 
-size_t trs_span_bytes(trs_Span self) {
-    TRS_SPAN_ASSERT(self);
+size_t tda_span_bytes(tda_Span self) {
+    TDA_SPAN_ASSERT(self);
 
     return self.len * self.elem_size;
 }
 
 /* ========== access ========== */
 
-const void *trs_span_get(trs_Span self, size_t idx) {
-    TRS_SPAN_ASSERT(self);
+const void *tda_span_get(tda_Span self, size_t idx) {
+    TDA_SPAN_ASSERT(self);
     assert(idx < self.len);
 
-    return trs_byte_offset(self.data, self.elem_size, idx);
+    return tda_byte_offset(self.data, self.elem_size, idx);
 }
 
-void *trs_span_get_mut(trs_SpanMut self, size_t idx) {
-    TRS_SPAN_ASSERT(self);
+void *tda_span_get_mut(tda_SpanMut self, size_t idx) {
+    TDA_SPAN_ASSERT(self);
     assert(idx < self.len);
 
-    return trs_byte_offset_mut(self.data, self.elem_size, idx);
+    return tda_byte_offset_mut(self.data, self.elem_size, idx);
 }
 
-void trs_span_set(trs_SpanMut self, size_t idx, const void *val) {
-    TRS_SPAN_ASSERT(self);
+void tda_span_set(tda_SpanMut self, size_t idx, const void *val) {
+    TDA_SPAN_ASSERT(self);
     assert(idx < self.len);
     assert(val);
 
-    memcpy(trs_byte_offset_mut(self.data, self.elem_size, idx), val, self.elem_size);
+    memcpy(tda_byte_offset_mut(self.data, self.elem_size, idx), val, self.elem_size);
 }
 
 /* ========== mods ========== */
 
-void trs_span_swap_elems(trs_SpanMut self, size_t i, size_t j) {
-    TRS_SPAN_ASSERT(self);
+void tda_span_swap_elems(tda_SpanMut self, size_t i, size_t j) {
+    TDA_SPAN_ASSERT(self);
     assert(i < self.len);
     assert(j < self.len);
 
@@ -110,17 +110,17 @@ void trs_span_swap_elems(trs_SpanMut self, size_t i, size_t j) {
         return;
     }
 
-    trs_bytes_swap(
-        trs_byte_offset_mut(self.data, self.elem_size, i),
-        trs_byte_offset_mut(self.data, self.elem_size, j),
+    tda_bytes_swap(
+        tda_byte_offset_mut(self.data, self.elem_size, i),
+        tda_byte_offset_mut(self.data, self.elem_size, j),
         self.elem_size
     );
 }
 
 /* ========== print ========== */
 
-void trs_span_fprint(trs_Span self, FILE *stream, trs_FPrint fprint) {
-    TRS_SPAN_ASSERT(self);
+void tda_span_fprint(tda_Span self, FILE *stream, tda_FPrint fprint) {
+    TDA_SPAN_ASSERT(self);
     assert(stream);
     assert(fprint);
 
@@ -129,29 +129,29 @@ void trs_span_fprint(trs_Span self, FILE *stream, trs_FPrint fprint) {
         if (i > 0) {
             fputs(", ", stream);
         }
-        fprint(stream, trs_span_get(self, i));
+        fprint(stream, tda_span_get(self, i));
     }
     fputs("]\n", stream);
 }
 
-void trs_span_mut_fprint(trs_SpanMut self, FILE *stream, trs_FPrint fprint) {
-    TRS_SPAN_ASSERT(self);
+void tda_span_mut_fprint(tda_SpanMut self, FILE *stream, tda_FPrint fprint) {
+    TDA_SPAN_ASSERT(self);
     assert(stream);
     assert(fprint);
 
-    trs_span_fprint(trs_span_mut_to_span(self), stream, fprint);
+    tda_span_fprint(tda_span_mut_to_span(self), stream, fprint);
 }
 
-void trs_span_print(trs_Span self, trs_FPrint fprint) {
-    TRS_SPAN_ASSERT(self);
+void tda_span_print(tda_Span self, tda_FPrint fprint) {
+    TDA_SPAN_ASSERT(self);
     assert(fprint);
 
-    trs_span_fprint(self, stdout, fprint);
+    tda_span_fprint(self, stdout, fprint);
 }
 
-void trs_span_mut_print(trs_SpanMut self, trs_FPrint fprint) {
-    TRS_SPAN_ASSERT(self);
+void tda_span_mut_print(tda_SpanMut self, tda_FPrint fprint) {
+    TDA_SPAN_ASSERT(self);
     assert(fprint);
 
-    trs_span_fprint(trs_span_mut_to_span(self), stdout, fprint);
+    tda_span_fprint(tda_span_mut_to_span(self), stdout, fprint);
 }

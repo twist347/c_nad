@@ -1,0 +1,45 @@
+#pragma once
+
+/// @file
+/// umbrella header
+
+#include "tda/core/cmp.h"
+#include "tda/core/export.h"
+#include "tda/core/hash.h"
+#include "tda/core/print.h"
+#include "tda/core/rng.h"
+#include "tda/core/span.h"
+#include "tda/core/status.h"
+#include "tda/core/util.h"
+
+#include "tda/alloc/aligned.h"
+#include "tda/alloc/alloc.h"
+#include "tda/alloc/arena.h"
+#include "tda/alloc/default.h"
+#include "tda/alloc/log.h"
+#include "tda/alloc/pool.h"
+
+#include "tda/algo/compare.h"
+#include "tda/algo/copy.h"
+#include "tda/algo/fill.h"
+#include "tda/algo/fn.h"
+#include "tda/algo/fold.h"
+#include "tda/algo/heap.h"
+#include "tda/algo/merge.h"
+#include "tda/algo/modify.h"
+#include "tda/algo/permute.h"
+#include "tda/algo/search.h"
+#include "tda/algo/set.h"
+#include "tda/algo/sort.h"
+#include "tda/algo/transform.h"
+
+#include "tda/ds/arr.h"
+#include "tda/ds/bitset.h"
+#include "tda/ds/deque.h"
+#include "tda/ds/hmap.h"
+#include "tda/ds/hset.h"
+#include "tda/ds/list.h"
+#include "tda/ds/pqueue.h"
+#include "tda/ds/queue.h"
+#include "tda/ds/stack.h"
+#include "tda/ds/vec.h"

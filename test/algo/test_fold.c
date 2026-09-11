@@ -1,5 +1,5 @@
-#include "trs/algo/fold.h"
-#include "trs/core/util.h"
+#include "tda/algo/fold.h"
+#include "tda/core/util.h"
 
 #include "support/pair.h"
 
@@ -16,13 +16,13 @@ void tearDown() {
 
 // the accumulator is wider than the elems — the reason it belongs to the caller
 static void sum_i32_into_i64(void *acc, const void *elem, void *ctx) {
-    TRS_UNUSED(ctx);
+    TDA_UNUSED(ctx);
 
     *(int64_t *) acc += *(const int32_t *) elem;
 }
 
 static void product_i32(void *acc, const void *elem, void *ctx) {
-    TRS_UNUSED(ctx);
+    TDA_UNUSED(ctx);
 
     *(int32_t *) acc *= *(const int32_t *) elem;
 }
@@ -32,14 +32,14 @@ static void product_i32(void *acc, const void *elem, void *ctx) {
 // subtraction would NOT do: taking every elem away lands on the same
 // value whatever the order
 static void horner_i32(void *acc, const void *elem, void *ctx) {
-    TRS_UNUSED(ctx);
+    TDA_UNUSED(ctx);
 
     *(int32_t *) acc = *(int32_t *) acc * 10 + *(const int32_t *) elem;
 }
 
 // records the order elems arrive in
 static void append_digit(void *acc, const void *elem, void *ctx) {
-    TRS_UNUSED(ctx);
+    TDA_UNUSED(ctx);
 
     char *out = acc;
     const size_t n = strlen(out);
@@ -55,19 +55,19 @@ static void count_above(void *acc, const void *elem, void *ctx) {
 }
 
 static void sum_pair_a(void *acc, const void *elem, void *ctx) {
-    TRS_UNUSED(ctx);
+    TDA_UNUSED(ctx);
 
     *(int64_t *) acc += ((const Pair *) elem)->a;
 }
 
 static void add_i32(void *dst, const void *a, const void *b, void *ctx) {
-    TRS_UNUSED(ctx);
+    TDA_UNUSED(ctx);
 
     *(int32_t *) dst = *(const int32_t *) a + *(const int32_t *) b;
 }
 
 static void sub_i32(void *dst, const void *a, const void *b, void *ctx) {
-    TRS_UNUSED(ctx);
+    TDA_UNUSED(ctx);
 
     *(int32_t *) dst = *(const int32_t *) a - *(const int32_t *) b;
 }
@@ -81,7 +81,7 @@ static void add_capped(void *dst, const void *a, const void *b, void *ctx) {
 }
 
 static void add_pairs(void *dst, const void *a, const void *b, void *ctx) {
-    TRS_UNUSED(ctx);
+    TDA_UNUSED(ctx);
 
     ((Pair *) dst)->a = ((const Pair *) a)->a + ((const Pair *) b)->a;
     ((Pair *) dst)->b = ((const Pair *) a)->b + ((const Pair *) b)->b;
@@ -93,7 +93,7 @@ static void test_fold_sums_into_a_wider_accumulator() {
     constexpr int32_t buf[4] = {1, 2, 3, 4};
     int64_t acc = 0;
 
-    trs_span_fold(TRS_SPAN_FROM_DATA(int32_t, buf, 4), &acc, sum_i32_into_i64, nullptr);
+    tda_span_fold(TDA_SPAN_FROM_DATA(int32_t, buf, 4), &acc, sum_i32_into_i64, nullptr);
 
     TEST_ASSERT_EQUAL_INT64(10, acc);
 }
@@ -103,7 +103,7 @@ static void test_fold_accumulator_type_is_the_callers() {
     constexpr int32_t buf[3] = {2000000000, 2000000000, 2000000000};
     int64_t acc = 0;
 
-    trs_span_fold(TRS_SPAN_FROM_DATA(int32_t, buf, 3), &acc, sum_i32_into_i64, nullptr);
+    tda_span_fold(TDA_SPAN_FROM_DATA(int32_t, buf, 3), &acc, sum_i32_into_i64, nullptr);
 
     TEST_ASSERT_EQUAL_INT64(6000000000LL, acc);
 }
@@ -114,8 +114,8 @@ static void test_fold_of_an_empty_span_keeps_the_seed() {
     int64_t sum = 42;
     int32_t product = 7;
 
-    trs_span_fold(TRS_SPAN_FROM_DATA(int32_t, nullptr, 0), &sum, sum_i32_into_i64, nullptr);
-    trs_span_fold(TRS_SPAN_FROM_DATA(int32_t, nullptr, 0), &product, product_i32, nullptr);
+    tda_span_fold(TDA_SPAN_FROM_DATA(int32_t, nullptr, 0), &sum, sum_i32_into_i64, nullptr);
+    tda_span_fold(TDA_SPAN_FROM_DATA(int32_t, nullptr, 0), &product, product_i32, nullptr);
 
     TEST_ASSERT_EQUAL_INT64(42, sum);
     TEST_ASSERT_EQUAL_INT32(7, product);
@@ -125,7 +125,7 @@ static void test_fold_starts_from_the_seed() {
     constexpr int32_t buf[3] = {1, 2, 3};
     int64_t acc = 100;
 
-    trs_span_fold(TRS_SPAN_FROM_DATA(int32_t, buf, 3), &acc, sum_i32_into_i64, nullptr);
+    tda_span_fold(TDA_SPAN_FROM_DATA(int32_t, buf, 3), &acc, sum_i32_into_i64, nullptr);
 
     TEST_ASSERT_EQUAL_INT64(106, acc);
 }
@@ -134,7 +134,7 @@ static void test_fold_walks_front_to_back() {
     constexpr int32_t buf[4] = {1, 2, 3, 4};
     char acc[8] = "";
 
-    trs_span_fold(TRS_SPAN_FROM_DATA(int32_t, buf, 4), acc, append_digit, nullptr);
+    tda_span_fold(TDA_SPAN_FROM_DATA(int32_t, buf, 4), acc, append_digit, nullptr);
 
     TEST_ASSERT_EQUAL_STRING("1234", acc);
 }
@@ -144,7 +144,7 @@ static void test_fold_passes_the_ctx_through() {
     int32_t bound = 2;
     size_t acc = 0;
 
-    trs_span_fold(TRS_SPAN_FROM_DATA(int32_t, buf, 5), &acc, count_above, &bound);
+    tda_span_fold(TDA_SPAN_FROM_DATA(int32_t, buf, 5), &acc, count_above, &bound);
 
     TEST_ASSERT_EQUAL_size_t(3, acc);
 }
@@ -153,7 +153,7 @@ static void test_fold_sees_whole_elems() {
     constexpr Pair buf[3] = {{1, 100}, {2, 200}, {3, 300}};
     int64_t acc = 0;
 
-    trs_span_fold(TRS_SPAN_FROM_DATA(Pair, buf, 3), &acc, sum_pair_a, nullptr);
+    tda_span_fold(TDA_SPAN_FROM_DATA(Pair, buf, 3), &acc, sum_pair_a, nullptr);
 
     TEST_ASSERT_EQUAL_INT64(6, acc);
 }
@@ -164,7 +164,7 @@ static void test_fold_back_walks_back_to_front() {
     constexpr int32_t buf[4] = {1, 2, 3, 4};
     char acc[8] = "";
 
-    trs_span_fold_back(TRS_SPAN_FROM_DATA(int32_t, buf, 4), acc, append_digit, nullptr);
+    tda_span_fold_back(TDA_SPAN_FROM_DATA(int32_t, buf, 4), acc, append_digit, nullptr);
 
     TEST_ASSERT_EQUAL_STRING("4321", acc);
 }
@@ -175,8 +175,8 @@ static void test_fold_back_agrees_with_fold_when_associative() {
     int64_t left = 0;
     int64_t right = 0;
 
-    trs_span_fold(TRS_SPAN_FROM_DATA(int32_t, buf, 4), &left, sum_i32_into_i64, nullptr);
-    trs_span_fold_back(TRS_SPAN_FROM_DATA(int32_t, buf, 4), &right, sum_i32_into_i64, nullptr);
+    tda_span_fold(TDA_SPAN_FROM_DATA(int32_t, buf, 4), &left, sum_i32_into_i64, nullptr);
+    tda_span_fold_back(TDA_SPAN_FROM_DATA(int32_t, buf, 4), &right, sum_i32_into_i64, nullptr);
 
     TEST_ASSERT_EQUAL_INT64(left, right);
 }
@@ -187,8 +187,8 @@ static void test_fold_back_differs_from_fold_when_order_matters() {
     int32_t left = 0;
     int32_t right = 0;
 
-    trs_span_fold(TRS_SPAN_FROM_DATA(int32_t, buf, 4), &left, horner_i32, nullptr);
-    trs_span_fold_back(TRS_SPAN_FROM_DATA(int32_t, buf, 4), &right, horner_i32, nullptr);
+    tda_span_fold(TDA_SPAN_FROM_DATA(int32_t, buf, 4), &left, horner_i32, nullptr);
+    tda_span_fold_back(TDA_SPAN_FROM_DATA(int32_t, buf, 4), &right, horner_i32, nullptr);
 
     TEST_ASSERT_EQUAL_INT32(1234, left);
     TEST_ASSERT_EQUAL_INT32(4321, right);
@@ -197,7 +197,7 @@ static void test_fold_back_differs_from_fold_when_order_matters() {
 static void test_fold_back_of_an_empty_span_keeps_the_seed() {
     int64_t acc = 5;
 
-    trs_span_fold_back(TRS_SPAN_FROM_DATA(int32_t, nullptr, 0), &acc, sum_i32_into_i64, nullptr);
+    tda_span_fold_back(TDA_SPAN_FROM_DATA(int32_t, nullptr, 0), &acc, sum_i32_into_i64, nullptr);
 
     TEST_ASSERT_EQUAL_INT64(5, acc);
 }
@@ -208,9 +208,9 @@ static void test_partial_sum_keeps_running_totals() {
     constexpr int32_t src[5] = {1, 2, 3, 4, 5};
     int32_t dst[5] = {0};
 
-    trs_span_partial_sum(
-        TRS_SPAN_FROM_DATA_MUT(int32_t, dst, 5),
-        TRS_SPAN_FROM_DATA(int32_t, src, 5),
+    tda_span_partial_sum(
+        TDA_SPAN_FROM_DATA_MUT(int32_t, dst, 5),
+        TDA_SPAN_FROM_DATA(int32_t, src, 5),
         add_i32,
         nullptr
     );
@@ -224,9 +224,9 @@ static void test_partial_sum_copies_the_first_elem() {
     constexpr int32_t src[1] = {7};
     int32_t dst[1] = {0};
 
-    trs_span_partial_sum(
-        TRS_SPAN_FROM_DATA_MUT(int32_t, dst, 1),
-        TRS_SPAN_FROM_DATA(int32_t, src, 1),
+    tda_span_partial_sum(
+        TDA_SPAN_FROM_DATA_MUT(int32_t, dst, 1),
+        TDA_SPAN_FROM_DATA(int32_t, src, 1),
         add_i32,
         nullptr
     );
@@ -235,9 +235,9 @@ static void test_partial_sum_copies_the_first_elem() {
 }
 
 static void test_partial_sum_of_an_empty_span_writes_nothing() {
-    trs_span_partial_sum(
-        TRS_SPAN_FROM_DATA_MUT(int32_t, nullptr, 0),
-        TRS_SPAN_FROM_DATA(int32_t, nullptr, 0),
+    tda_span_partial_sum(
+        TDA_SPAN_FROM_DATA_MUT(int32_t, nullptr, 0),
+        TDA_SPAN_FROM_DATA(int32_t, nullptr, 0),
         add_i32,
         nullptr
     );
@@ -248,9 +248,9 @@ static void test_partial_sum_passes_the_ctx_through() {
     int32_t dst[5] = {0};
     int32_t cap = 7;
 
-    trs_span_partial_sum(
-        TRS_SPAN_FROM_DATA_MUT(int32_t, dst, 5),
-        TRS_SPAN_FROM_DATA(int32_t, src, 5),
+    tda_span_partial_sum(
+        TDA_SPAN_FROM_DATA_MUT(int32_t, dst, 5),
+        TDA_SPAN_FROM_DATA(int32_t, src, 5),
         add_capped,
         &cap
     );
@@ -264,9 +264,9 @@ static void test_partial_sum_feeds_on_its_own_output() {
     constexpr int32_t src[4] = {1, 1, 1, 1};
     int32_t dst[4] = {0};
 
-    trs_span_partial_sum(
-        TRS_SPAN_FROM_DATA_MUT(int32_t, dst, 4),
-        TRS_SPAN_FROM_DATA(int32_t, src, 4),
+    tda_span_partial_sum(
+        TDA_SPAN_FROM_DATA_MUT(int32_t, dst, 4),
+        TDA_SPAN_FROM_DATA(int32_t, src, 4),
         add_i32,
         nullptr
     );
@@ -279,7 +279,7 @@ static void test_partial_sum_combines_whole_elems() {
     constexpr Pair src[3] = {{1, 10}, {2, 20}, {3, 30}};
     Pair dst[3] = {0};
 
-    trs_span_partial_sum(TRS_SPAN_FROM_DATA_MUT(Pair, dst, 3), TRS_SPAN_FROM_DATA(Pair, src, 3), add_pairs, nullptr);
+    tda_span_partial_sum(TDA_SPAN_FROM_DATA_MUT(Pair, dst, 3), TDA_SPAN_FROM_DATA(Pair, src, 3), add_pairs, nullptr);
 
     TEST_ASSERT_EQUAL_INT64(6, dst[2].a);
     TEST_ASSERT_EQUAL_INT64(60, dst[2].b);
@@ -291,9 +291,9 @@ static void test_adjacent_difference_reports_the_steps() {
     constexpr int32_t src[5] = {1, 3, 6, 10, 15};
     int32_t dst[5] = {0};
 
-    trs_span_adjacent_difference(
-        TRS_SPAN_FROM_DATA_MUT(int32_t, dst, 5),
-        TRS_SPAN_FROM_DATA(int32_t, src, 5),
+    tda_span_adjacent_difference(
+        TDA_SPAN_FROM_DATA_MUT(int32_t, dst, 5),
+        TDA_SPAN_FROM_DATA(int32_t, src, 5),
         sub_i32,
         nullptr
     );
@@ -307,9 +307,9 @@ static void test_adjacent_difference_reads_only_the_source() {
     constexpr int32_t src[4] = {5, 5, 5, 5};
     int32_t dst[4] = {9, 9, 9, 9};
 
-    trs_span_adjacent_difference(
-        TRS_SPAN_FROM_DATA_MUT(int32_t, dst, 4),
-        TRS_SPAN_FROM_DATA(int32_t, src, 4),
+    tda_span_adjacent_difference(
+        TDA_SPAN_FROM_DATA_MUT(int32_t, dst, 4),
+        TDA_SPAN_FROM_DATA(int32_t, src, 4),
         sub_i32,
         nullptr
     );
@@ -322,17 +322,17 @@ static void test_adjacent_difference_of_short_spans() {
     constexpr int32_t src[1] = {7};
     int32_t dst[1] = {0};
 
-    trs_span_adjacent_difference(
-        TRS_SPAN_FROM_DATA_MUT(int32_t, dst, 1),
-        TRS_SPAN_FROM_DATA(int32_t, src, 1),
+    tda_span_adjacent_difference(
+        TDA_SPAN_FROM_DATA_MUT(int32_t, dst, 1),
+        TDA_SPAN_FROM_DATA(int32_t, src, 1),
         sub_i32,
         nullptr
     );
     TEST_ASSERT_EQUAL_INT32(7, dst[0]);
 
-    trs_span_adjacent_difference(
-        TRS_SPAN_FROM_DATA_MUT(int32_t, nullptr, 0),
-        TRS_SPAN_FROM_DATA(int32_t, nullptr, 0),
+    tda_span_adjacent_difference(
+        TDA_SPAN_FROM_DATA_MUT(int32_t, nullptr, 0),
+        TDA_SPAN_FROM_DATA(int32_t, nullptr, 0),
         sub_i32,
         nullptr
     );
@@ -344,15 +344,15 @@ static void test_adjacent_difference_undoes_partial_sum() {
     int32_t scanned[6] = {0};
     int32_t back[6] = {0};
 
-    trs_span_partial_sum(
-        TRS_SPAN_FROM_DATA_MUT(int32_t, scanned, 6),
-        TRS_SPAN_FROM_DATA(int32_t, src, 6),
+    tda_span_partial_sum(
+        TDA_SPAN_FROM_DATA_MUT(int32_t, scanned, 6),
+        TDA_SPAN_FROM_DATA(int32_t, src, 6),
         add_i32,
         nullptr
     );
-    trs_span_adjacent_difference(
-        TRS_SPAN_FROM_DATA_MUT(int32_t, back, 6),
-        TRS_SPAN_FROM_DATA(int32_t, scanned, 6),
+    tda_span_adjacent_difference(
+        TDA_SPAN_FROM_DATA_MUT(int32_t, back, 6),
+        TDA_SPAN_FROM_DATA(int32_t, scanned, 6),
         sub_i32,
         nullptr
     );

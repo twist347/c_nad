@@ -1,5 +1,5 @@
-#include "trs/alloc/pool.h"
-#include "trs/alloc/default.h"
+#include "tda/alloc/pool.h"
+#include "tda/alloc/default.h"
 
 #include <unity.h>
 
@@ -56,8 +56,8 @@ static void probe_dealloc(void *ctx, void *ptr, size_t size) {
     free(ptr);
 }
 
-static trs_Al probe_al() {
-    return (trs_Al){
+static tda_Al probe_al() {
+    return (tda_Al){
         .ctx = &probe,
         .alloc = probe_alloc,
         .calloc = nullptr,
@@ -76,48 +76,48 @@ void tearDown() {
 /* ========== lifetime ========== */
 
 static void test_new_starts_with_every_block_free() {
-    trs_Al *pool = trs_al_pool_new(trs_al_default(), 32, 4);
+    tda_Al *pool = tda_al_pool_new(tda_al_default(), 32, 4);
     TEST_ASSERT_NOT_NULL(pool);
 
-    const trs_AlPoolStats st = trs_al_pool_stats(pool);
+    const tda_AlPoolStats st = tda_al_pool_stats(pool);
     TEST_ASSERT_EQUAL_size_t(32, st.block_size);
     TEST_ASSERT_EQUAL_size_t(4, st.block_count);
     TEST_ASSERT_EQUAL_size_t(0, st.used);
     TEST_ASSERT_EQUAL_size_t(4, st.free);
 
-    trs_al_pool_drop(pool);
+    tda_al_pool_drop(pool);
 }
 
 // a block too small to hold the free-list pointer is grown, then aligned up
 static void test_new_raises_a_tiny_block_size() {
-    trs_Al *pool = trs_al_pool_new(trs_al_default(), 1, 4);
+    tda_Al *pool = tda_al_pool_new(tda_al_default(), 1, 4);
     TEST_ASSERT_NOT_NULL(pool);
 
-    const trs_AlPoolStats st = trs_al_pool_stats(pool);
+    const tda_AlPoolStats st = tda_al_pool_stats(pool);
     TEST_ASSERT_EQUAL_size_t(aligned(1), st.block_size);
     TEST_ASSERT_TRUE(st.block_size >= sizeof(void *));
 
-    trs_al_pool_drop(pool);
+    tda_al_pool_drop(pool);
 }
 
 static void test_new_rounds_the_block_size_up() {
-    trs_Al *pool = trs_al_pool_new(trs_al_default(), ALIGNMENT + 1, 2);
+    tda_Al *pool = tda_al_pool_new(tda_al_default(), ALIGNMENT + 1, 2);
     TEST_ASSERT_NOT_NULL(pool);
 
-    TEST_ASSERT_EQUAL_size_t(2 * ALIGNMENT, trs_al_pool_stats(pool).block_size);
+    TEST_ASSERT_EQUAL_size_t(2 * ALIGNMENT, tda_al_pool_stats(pool).block_size);
 
-    trs_al_pool_drop(pool);
+    tda_al_pool_drop(pool);
 }
 
 // the pool borrows its parent: everything it took must go back on drop
 static void test_drop_returns_everything_to_the_parent() {
-    trs_Al parent = probe_al();
+    tda_Al parent = probe_al();
 
-    trs_Al *pool = trs_al_pool_new(&parent, 32, 4);
+    tda_Al *pool = tda_al_pool_new(&parent, 32, 4);
     TEST_ASSERT_NOT_NULL(pool);
-    TEST_ASSERT_EQUAL_size_t(3, probe.live); // context, buffer, the trs_Al itself
+    TEST_ASSERT_EQUAL_size_t(3, probe.live); // context, buffer, the tda_Al itself
 
-    trs_al_pool_drop(pool);
+    tda_al_pool_drop(pool);
     TEST_ASSERT_EQUAL_size_t(0, probe.live);
 }
 
@@ -125,97 +125,97 @@ static void test_drop_returns_everything_to_the_parent() {
 static void test_new_cleans_up_after_a_failing_parent() {
     for (size_t fail_at = 0; fail_at < 3; ++fail_at) {
         probe = (Probe){.fail_after = fail_at};
-        trs_Al parent = probe_al();
+        tda_Al parent = probe_al();
 
-        TEST_ASSERT_NULL(trs_al_pool_new(&parent, 32, 4));
+        TEST_ASSERT_NULL(tda_al_pool_new(&parent, 32, 4));
         TEST_ASSERT_EQUAL_size_t(0, probe.live);
     }
 }
 
 static void test_drop_null_is_noop() {
-    trs_al_pool_drop(nullptr);
+    tda_al_pool_drop(nullptr);
 }
 
 /* ========== alloc ========== */
 
 static void test_alloc_takes_one_block() {
-    trs_Al *pool = trs_al_pool_new(trs_al_default(), 32, 4);
+    tda_Al *pool = tda_al_pool_new(tda_al_default(), 32, 4);
 
-    TEST_ASSERT_NOT_NULL(trs_alloc(pool, 32));
+    TEST_ASSERT_NOT_NULL(tda_alloc(pool, 32));
 
-    const trs_AlPoolStats st = trs_al_pool_stats(pool);
+    const tda_AlPoolStats st = tda_al_pool_stats(pool);
     TEST_ASSERT_EQUAL_size_t(1, st.used);
     TEST_ASSERT_EQUAL_size_t(3, st.free);
 
-    trs_al_pool_drop(pool);
+    tda_al_pool_drop(pool);
 }
 
 // a request smaller than a block still consumes a whole block
 static void test_alloc_of_a_partial_block_still_costs_one() {
-    trs_Al *pool = trs_al_pool_new(trs_al_default(), 64, 2);
+    tda_Al *pool = tda_al_pool_new(tda_al_default(), 64, 2);
 
-    TEST_ASSERT_NOT_NULL(trs_alloc(pool, 1));
-    TEST_ASSERT_EQUAL_size_t(1, trs_al_pool_stats(pool).used);
+    TEST_ASSERT_NOT_NULL(tda_alloc(pool, 1));
+    TEST_ASSERT_EQUAL_size_t(1, tda_al_pool_stats(pool).used);
 
-    trs_al_pool_drop(pool);
+    tda_al_pool_drop(pool);
 }
 
 // the pool hands out fixed slots — anything larger cannot be served
 static void test_alloc_larger_than_a_block_fails() {
-    trs_Al *pool = trs_al_pool_new(trs_al_default(), 32, 4);
+    tda_Al *pool = tda_al_pool_new(tda_al_default(), 32, 4);
 
-    TEST_ASSERT_NULL(trs_alloc(pool, 33));
-    TEST_ASSERT_EQUAL_size_t(0, trs_al_pool_stats(pool).used);
+    TEST_ASSERT_NULL(tda_alloc(pool, 33));
+    TEST_ASSERT_EQUAL_size_t(0, tda_al_pool_stats(pool).used);
 
-    trs_al_pool_drop(pool);
+    tda_al_pool_drop(pool);
 }
 
 static void test_alloc_zero_is_null_and_costs_nothing() {
-    trs_Al *pool = trs_al_pool_new(trs_al_default(), 32, 4);
+    tda_Al *pool = tda_al_pool_new(tda_al_default(), 32, 4);
 
-    TEST_ASSERT_NULL(trs_alloc(pool, 0));
-    TEST_ASSERT_EQUAL_size_t(0, trs_al_pool_stats(pool).used);
+    TEST_ASSERT_NULL(tda_alloc(pool, 0));
+    TEST_ASSERT_EQUAL_size_t(0, tda_al_pool_stats(pool).used);
 
-    trs_al_pool_drop(pool);
+    tda_al_pool_drop(pool);
 }
 
 static void test_exhaustion_returns_null() {
-    trs_Al *pool = trs_al_pool_new(trs_al_default(), 32, 3);
+    tda_Al *pool = tda_al_pool_new(tda_al_default(), 32, 3);
 
     for (size_t i = 0; i < 3; ++i) {
-        TEST_ASSERT_NOT_NULL(trs_alloc(pool, 32));
+        TEST_ASSERT_NOT_NULL(tda_alloc(pool, 32));
     }
 
-    const trs_AlPoolStats st = trs_al_pool_stats(pool);
+    const tda_AlPoolStats st = tda_al_pool_stats(pool);
     TEST_ASSERT_EQUAL_size_t(3, st.used);
     TEST_ASSERT_EQUAL_size_t(0, st.free);
 
-    TEST_ASSERT_NULL(trs_alloc(pool, 32));
-    TEST_ASSERT_EQUAL_size_t(3, trs_al_pool_stats(pool).used);
+    TEST_ASSERT_NULL(tda_alloc(pool, 32));
+    TEST_ASSERT_EQUAL_size_t(3, tda_al_pool_stats(pool).used);
 
-    trs_al_pool_drop(pool);
+    tda_al_pool_drop(pool);
 }
 
 static void test_every_block_is_aligned() {
-    trs_Al *pool = trs_al_pool_new(trs_al_default(), 24, 4);
+    tda_Al *pool = tda_al_pool_new(tda_al_default(), 24, 4);
 
     for (size_t i = 0; i < 4; ++i) {
-        void *p = trs_alloc(pool, 24);
+        void *p = tda_alloc(pool, 24);
         TEST_ASSERT_NOT_NULL(p);
         TEST_ASSERT_EQUAL_size_t(0, (uintptr_t) p % ALIGNMENT);
     }
 
-    trs_al_pool_drop(pool);
+    tda_al_pool_drop(pool);
 }
 
 // every block must be a distinct, non-overlapping region of the backing buffer
 static void test_blocks_do_not_overlap() {
     constexpr size_t COUNT = 4;
-    trs_Al *pool = trs_al_pool_new(trs_al_default(), 32, COUNT);
+    tda_Al *pool = tda_al_pool_new(tda_al_default(), 32, COUNT);
 
     unsigned char *blocks[COUNT];
     for (size_t i = 0; i < COUNT; ++i) {
-        blocks[i] = trs_alloc(pool, 32);
+        blocks[i] = tda_alloc(pool, 32);
         TEST_ASSERT_NOT_NULL(blocks[i]);
         memset(blocks[i], (int) (i + 1), 32);
     }
@@ -226,113 +226,113 @@ static void test_blocks_do_not_overlap() {
         TEST_ASSERT_EQUAL_UINT8((unsigned char) (i + 1), blocks[i][31]);
     }
 
-    trs_al_pool_drop(pool);
+    tda_al_pool_drop(pool);
 }
 
 /* ========== dealloc ========== */
 
 static void test_dealloc_returns_the_block() {
-    trs_Al *pool = trs_al_pool_new(trs_al_default(), 32, 2);
+    tda_Al *pool = tda_al_pool_new(tda_al_default(), 32, 2);
 
-    void *p = trs_alloc(pool, 32);
-    TEST_ASSERT_EQUAL_size_t(1, trs_al_pool_stats(pool).used);
+    void *p = tda_alloc(pool, 32);
+    TEST_ASSERT_EQUAL_size_t(1, tda_al_pool_stats(pool).used);
 
-    trs_dealloc(pool, p, 32);
+    tda_dealloc(pool, p, 32);
 
-    const trs_AlPoolStats st = trs_al_pool_stats(pool);
+    const tda_AlPoolStats st = tda_al_pool_stats(pool);
     TEST_ASSERT_EQUAL_size_t(0, st.used);
     TEST_ASSERT_EQUAL_size_t(2, st.free);
 
-    trs_al_pool_drop(pool);
+    tda_al_pool_drop(pool);
 }
 
 // the free list is LIFO: the block just returned is the next one handed out
 static void test_freed_block_is_reused_first() {
-    trs_Al *pool = trs_al_pool_new(trs_al_default(), 32, 3);
+    tda_Al *pool = tda_al_pool_new(tda_al_default(), 32, 3);
 
-    void *a = trs_alloc(pool, 32);
-    void *b = trs_alloc(pool, 32);
+    void *a = tda_alloc(pool, 32);
+    void *b = tda_alloc(pool, 32);
     TEST_ASSERT_NOT_NULL(a);
     TEST_ASSERT_NOT_NULL(b);
 
-    trs_dealloc(pool, b, 32);
-    TEST_ASSERT_EQUAL_PTR(b, trs_alloc(pool, 32));
+    tda_dealloc(pool, b, 32);
+    TEST_ASSERT_EQUAL_PTR(b, tda_alloc(pool, 32));
 
-    trs_al_pool_drop(pool);
+    tda_al_pool_drop(pool);
 }
 
 // a fully drained pool becomes usable again once blocks come back
 static void test_exhausted_pool_recovers_after_a_free() {
-    trs_Al *pool = trs_al_pool_new(trs_al_default(), 32, 2);
+    tda_Al *pool = tda_al_pool_new(tda_al_default(), 32, 2);
 
-    void *a = trs_alloc(pool, 32);
-    TEST_ASSERT_NOT_NULL(trs_alloc(pool, 32));
-    TEST_ASSERT_NULL(trs_alloc(pool, 32));
+    void *a = tda_alloc(pool, 32);
+    TEST_ASSERT_NOT_NULL(tda_alloc(pool, 32));
+    TEST_ASSERT_NULL(tda_alloc(pool, 32));
 
-    trs_dealloc(pool, a, 32);
-    TEST_ASSERT_EQUAL_PTR(a, trs_alloc(pool, 32));
+    tda_dealloc(pool, a, 32);
+    TEST_ASSERT_EQUAL_PTR(a, tda_alloc(pool, 32));
 
-    trs_al_pool_drop(pool);
+    tda_al_pool_drop(pool);
 }
 
 static void test_dealloc_null_is_noop() {
-    trs_Al *pool = trs_al_pool_new(trs_al_default(), 32, 2);
+    tda_Al *pool = tda_al_pool_new(tda_al_default(), 32, 2);
 
-    TEST_ASSERT_NOT_NULL(trs_alloc(pool, 32));
-    trs_dealloc(pool, nullptr, 32);
-    TEST_ASSERT_EQUAL_size_t(1, trs_al_pool_stats(pool).used);
+    TEST_ASSERT_NOT_NULL(tda_alloc(pool, 32));
+    tda_dealloc(pool, nullptr, 32);
+    TEST_ASSERT_EQUAL_size_t(1, tda_al_pool_stats(pool).used);
 
-    trs_al_pool_drop(pool);
+    tda_al_pool_drop(pool);
 }
 
 /* ========== calloc ========== */
 
 static void test_calloc_zeroes_the_block() {
-    trs_Al *pool = trs_al_pool_new(trs_al_default(), 32, 2);
+    tda_Al *pool = tda_al_pool_new(tda_al_default(), 32, 2);
 
-    const unsigned char *p = trs_calloc(pool, 8, 4);
+    const unsigned char *p = tda_calloc(pool, 8, 4);
     TEST_ASSERT_NOT_NULL(p);
     for (size_t i = 0; i < 32; ++i) {
         TEST_ASSERT_EQUAL_UINT8(0, p[i]);
     }
 
-    trs_al_pool_drop(pool);
+    tda_al_pool_drop(pool);
 }
 
 // a recycled block must not leak the previous tenant's bytes through calloc
 static void test_calloc_zeroes_a_recycled_block() {
-    trs_Al *pool = trs_al_pool_new(trs_al_default(), 32, 2);
+    tda_Al *pool = tda_al_pool_new(tda_al_default(), 32, 2);
 
-    unsigned char *first = trs_alloc(pool, 32);
+    unsigned char *first = tda_alloc(pool, 32);
     TEST_ASSERT_NOT_NULL(first);
     memset(first, 0xFF, 32);
-    trs_dealloc(pool, first, 32);
+    tda_dealloc(pool, first, 32);
 
-    const unsigned char *second = trs_calloc(pool, 8, 4);
+    const unsigned char *second = tda_calloc(pool, 8, 4);
     TEST_ASSERT_EQUAL_PTR(first, second);
     for (size_t i = 0; i < 32; ++i) {
         TEST_ASSERT_EQUAL_UINT8(0, second[i]);
     }
 
-    trs_al_pool_drop(pool);
+    tda_al_pool_drop(pool);
 }
 
 static void test_calloc_larger_than_a_block_fails() {
-    trs_Al *pool = trs_al_pool_new(trs_al_default(), 32, 2);
+    tda_Al *pool = tda_al_pool_new(tda_al_default(), 32, 2);
 
-    TEST_ASSERT_NULL(trs_calloc(pool, 8, 8));
-    TEST_ASSERT_EQUAL_size_t(0, trs_al_pool_stats(pool).used);
+    TEST_ASSERT_NULL(tda_calloc(pool, 8, 8));
+    TEST_ASSERT_EQUAL_size_t(0, tda_al_pool_stats(pool).used);
 
-    trs_al_pool_drop(pool);
+    tda_al_pool_drop(pool);
 }
 
 static void test_calloc_rejects_overflow() {
-    trs_Al *pool = trs_al_pool_new(trs_al_default(), 32, 2);
+    tda_Al *pool = tda_al_pool_new(tda_al_default(), 32, 2);
 
-    TEST_ASSERT_NULL(trs_calloc(pool, SIZE_MAX, 2));
-    TEST_ASSERT_EQUAL_size_t(0, trs_al_pool_stats(pool).used);
+    TEST_ASSERT_NULL(tda_calloc(pool, SIZE_MAX, 2));
+    TEST_ASSERT_EQUAL_size_t(0, tda_al_pool_stats(pool).used);
 
-    trs_al_pool_drop(pool);
+    tda_al_pool_drop(pool);
 }
 
 /* ========== realloc ========== */
@@ -340,85 +340,85 @@ static void test_calloc_rejects_overflow() {
 // the pool has no realloc hook; the fallback copies into a fresh block and
 // returns the old one, so the net block count is unchanged
 static void test_realloc_falls_back_to_a_fresh_block() {
-    trs_Al *pool = trs_al_pool_new(trs_al_default(), 32, 3);
+    tda_Al *pool = tda_al_pool_new(tda_al_default(), 32, 3);
 
-    unsigned char *p = trs_alloc(pool, 16);
+    unsigned char *p = tda_alloc(pool, 16);
     TEST_ASSERT_NOT_NULL(p);
     for (size_t i = 0; i < 16; ++i) {
         p[i] = (unsigned char) (i + 1);
     }
 
-    unsigned char *q = trs_realloc(pool, p, 16, 32);
+    unsigned char *q = tda_realloc(pool, p, 16, 32);
     TEST_ASSERT_NOT_NULL(q);
     for (size_t i = 0; i < 16; ++i) {
         TEST_ASSERT_EQUAL_UINT8((unsigned char) (i + 1), q[i]);
     }
-    TEST_ASSERT_EQUAL_size_t(1, trs_al_pool_stats(pool).used);
+    TEST_ASSERT_EQUAL_size_t(1, tda_al_pool_stats(pool).used);
 
-    trs_al_pool_drop(pool);
+    tda_al_pool_drop(pool);
 }
 
 /* ========== reset ========== */
 
 static void test_reset_frees_every_block() {
-    trs_Al *pool = trs_al_pool_new(trs_al_default(), 32, 3);
+    tda_Al *pool = tda_al_pool_new(tda_al_default(), 32, 3);
 
-    void *first = trs_alloc(pool, 32);
-    TEST_ASSERT_NOT_NULL(trs_alloc(pool, 32));
-    TEST_ASSERT_NOT_NULL(trs_alloc(pool, 32));
+    void *first = tda_alloc(pool, 32);
+    TEST_ASSERT_NOT_NULL(tda_alloc(pool, 32));
+    TEST_ASSERT_NOT_NULL(tda_alloc(pool, 32));
 
-    trs_al_pool_reset(pool);
+    tda_al_pool_reset(pool);
 
-    const trs_AlPoolStats st = trs_al_pool_stats(pool);
+    const tda_AlPoolStats st = tda_al_pool_stats(pool);
     TEST_ASSERT_EQUAL_size_t(0, st.used);
     TEST_ASSERT_EQUAL_size_t(3, st.free);
 
     // the free list is rebuilt in order, so the first block comes back first
-    TEST_ASSERT_EQUAL_PTR(first, trs_alloc(pool, 32));
+    TEST_ASSERT_EQUAL_PTR(first, tda_alloc(pool, 32));
 
-    trs_al_pool_drop(pool);
+    tda_al_pool_drop(pool);
 }
 
 // reset after partial frees must rebuild the list, not append to a stale one
 static void test_reset_recovers_from_a_scrambled_free_list() {
-    trs_Al *pool = trs_al_pool_new(trs_al_default(), 32, 3);
+    tda_Al *pool = tda_al_pool_new(tda_al_default(), 32, 3);
 
-    void *a = trs_alloc(pool, 32);
-    void *b = trs_alloc(pool, 32);
-    trs_dealloc(pool, a, 32);
-    trs_dealloc(pool, b, 32);
+    void *a = tda_alloc(pool, 32);
+    void *b = tda_alloc(pool, 32);
+    tda_dealloc(pool, a, 32);
+    tda_dealloc(pool, b, 32);
 
-    trs_al_pool_reset(pool);
-    TEST_ASSERT_EQUAL_size_t(3, trs_al_pool_stats(pool).free);
+    tda_al_pool_reset(pool);
+    TEST_ASSERT_EQUAL_size_t(3, tda_al_pool_stats(pool).free);
 
     // all three blocks must still be reachable, and all distinct
     void *got[3];
     for (size_t i = 0; i < 3; ++i) {
-        got[i] = trs_alloc(pool, 32);
+        got[i] = tda_alloc(pool, 32);
         TEST_ASSERT_NOT_NULL(got[i]);
     }
     TEST_ASSERT_TRUE(got[0] != got[1]);
     TEST_ASSERT_TRUE(got[1] != got[2]);
     TEST_ASSERT_TRUE(got[0] != got[2]);
 
-    trs_al_pool_drop(pool);
+    tda_al_pool_drop(pool);
 }
 
 /* ========== composition ========== */
 
 // a pool is an ordinary allocator, so an arena can back it
 static void test_pool_can_live_in_another_allocator() {
-    trs_Al parent = probe_al();
+    tda_Al parent = probe_al();
 
-    trs_Al *pool = trs_al_pool_new(&parent, 32, 2);
+    tda_Al *pool = tda_al_pool_new(&parent, 32, 2);
     TEST_ASSERT_NOT_NULL(pool);
 
-    unsigned char *p = trs_alloc(pool, 32);
+    unsigned char *p = tda_alloc(pool, 32);
     TEST_ASSERT_NOT_NULL(p);
     memset(p, 0x3C, 32);
     TEST_ASSERT_EQUAL_UINT8(0x3C, p[31]);
 
-    trs_al_pool_drop(pool);
+    tda_al_pool_drop(pool);
     TEST_ASSERT_EQUAL_size_t(0, probe.live);
 }
 

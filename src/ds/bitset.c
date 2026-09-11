@@ -1,6 +1,6 @@
-#include "trs/ds/bitset.h"
+#include "tda/ds/bitset.h"
 
-#include "trs/core/util.h"
+#include "tda/core/util.h"
 
 #include <assert.h>
 #include <stdbit.h>
@@ -24,11 +24,11 @@ static constexpr size_t WORD_BITS = 64;
     assert((b)->nwords == 0 || ((b)->words[(b)->nwords - 1] & ~tail_mask((b)->nbits)) == 0), \
     assert((b)->al))
 
-struct trs_BitSet {
+struct tda_BitSet {
     uint64_t *words;
     size_t nbits;
     size_t nwords;
-    trs_Al *al;
+    tda_Al *al;
 };
 
 [[nodiscard]]
@@ -36,10 +36,10 @@ static size_t words_for(size_t nbits);
 
 /// how many bytes the words take, the size the block was asked for
 [[nodiscard]]
-static size_t words_bytes(const trs_BitSet *self);
+static size_t words_bytes(const tda_BitSet *self);
 
 /// hands the words back and leaves an empty universe on the same allocator
-static void release_words(trs_BitSet *self);
+static void release_words(tda_BitSet *self);
 
 [[nodiscard]]
 static size_t word_of(size_t idx);
@@ -51,7 +51,7 @@ static uint64_t bit_of(size_t idx);
 [[nodiscard]]
 static uint64_t tail_mask(size_t nbits);
 
-static void clear_tail(trs_BitSet *self);
+static void clear_tail(tda_BitSet *self);
 
 /// the word with the bits below 'from' masked off; 'from' must be inside the set
 [[nodiscard]]
@@ -63,23 +63,23 @@ static size_t idx_of_first_one(size_t w, uint64_t word);
 
 /* ========== lifetime ========== */
 
-trs_Status trs_bitset_new(size_t nbits, trs_Al *al, trs_BitSet **out) {
+tda_Status tda_bitset_new(size_t nbits, tda_Al *al, tda_BitSet **out) {
     assert(al);
     assert(out);
 
-    trs_BitSet *obj = trs_alloc(al, sizeof(trs_BitSet));
+    tda_BitSet *obj = tda_alloc(al, sizeof(tda_BitSet));
     if (!obj) {
-        return TRS_STATUS_ERR_NO_MEM;
+        return TDA_STATUS_ERR_NO_MEM;
     }
 
     const size_t nwords = words_for(nbits);
     uint64_t *words = nullptr;
 
     if (nwords > 0) {
-        words = trs_calloc(al, nwords, sizeof(uint64_t));
+        words = tda_calloc(al, nwords, sizeof(uint64_t));
         if (!words) {
-            trs_dealloc(al, obj, sizeof(trs_BitSet));
-            return TRS_STATUS_ERR_NO_MEM;
+            tda_dealloc(al, obj, sizeof(tda_BitSet));
+            return TDA_STATUS_ERR_NO_MEM;
         }
     }
 
@@ -92,37 +92,37 @@ trs_Status trs_bitset_new(size_t nbits, trs_Al *al, trs_BitSet **out) {
 
     *out = obj;
 
-    return TRS_STATUS_OK;
+    return TDA_STATUS_OK;
 }
 
-void trs_bitset_drop(trs_BitSet *self) {
+void tda_bitset_drop(tda_BitSet *self) {
     if (!self) {
         return;
     }
 
     ASSERT_BITSET(self);
 
-    trs_Al *al_copy = self->al;
-    trs_dealloc(al_copy, self->words, words_bytes(self));
-    trs_dealloc(al_copy, self, sizeof(trs_BitSet));
+    tda_Al *al_copy = self->al;
+    tda_dealloc(al_copy, self->words, words_bytes(self));
+    tda_dealloc(al_copy, self, sizeof(tda_BitSet));
 }
 
 /* ========== copy ========== */
 
-trs_Status trs_bitset_copy(const trs_BitSet *self, trs_BitSet **out) {
+tda_Status tda_bitset_copy(const tda_BitSet *self, tda_BitSet **out) {
     ASSERT_BITSET(self);
 
-    return trs_bitset_copy_with(self, self->al, out);
+    return tda_bitset_copy_with(self, self->al, out);
 }
 
-trs_Status trs_bitset_copy_with(const trs_BitSet *self, trs_Al *al, trs_BitSet **out) {
+tda_Status tda_bitset_copy_with(const tda_BitSet *self, tda_Al *al, tda_BitSet **out) {
     ASSERT_BITSET(self);
     assert(al);
     assert(out);
 
-    trs_BitSet *copy;
-    const trs_Status st = trs_bitset_new(self->nbits, al, &copy);
-    if (TRS_STATUS_IS_ERR(st)) {
+    tda_BitSet *copy;
+    const tda_Status st = tda_bitset_new(self->nbits, al, &copy);
+    if (TDA_STATUS_IS_ERR(st)) {
         return st;
     }
 
@@ -132,19 +132,19 @@ trs_Status trs_bitset_copy_with(const trs_BitSet *self, trs_Al *al, trs_BitSet *
 
     *out = copy;
 
-    return TRS_STATUS_OK;
+    return TDA_STATUS_OK;
 }
 
-trs_Status trs_bitset_copy_assign(const trs_BitSet *self, trs_BitSet *other) {
+tda_Status tda_bitset_copy_assign(const tda_BitSet *self, tda_BitSet *other) {
     ASSERT_BITSET(self);
     ASSERT_BITSET(other);
 
     if (self == other) {
-        return TRS_STATUS_OK;
+        return TDA_STATUS_OK;
     }
 
     if (self->nwords != other->nwords) {
-        uint64_t *new_words = trs_realloc(
+        uint64_t *new_words = tda_realloc(
             other->al,
             other->words,
             words_bytes(other),
@@ -152,7 +152,7 @@ trs_Status trs_bitset_copy_assign(const trs_BitSet *self, trs_BitSet *other) {
         );
         // a new_size of 0 hands the block back and answers null, which is not a failure
         if (self->nwords > 0 && !new_words) {
-            return TRS_STATUS_ERR_NO_MEM;
+            return TDA_STATUS_ERR_NO_MEM;
         }
 
         other->words = new_words;
@@ -167,48 +167,48 @@ trs_Status trs_bitset_copy_assign(const trs_BitSet *self, trs_BitSet *other) {
 
     ASSERT_BITSET(other);
 
-    return TRS_STATUS_OK;
+    return TDA_STATUS_OK;
 }
 
-trs_Status trs_bitset_move_assign(trs_BitSet *self, trs_BitSet *other) {
+tda_Status tda_bitset_move_assign(tda_BitSet *self, tda_BitSet *other) {
     ASSERT_BITSET(self);
     ASSERT_BITSET(other);
 
     if (self == other) {
-        return TRS_STATUS_OK;
+        return TDA_STATUS_OK;
     }
 
     // one allocator: the words are handed over, universe and all. What 'other' held ends up in 'self' and is released
     // there, through the very allocator that made it
     if (self->al == other->al) {
-        TRS_SWAP(*self, *other);
+        TDA_SWAP(*self, *other);
         release_words(self);
 
         ASSERT_BITSET(self);
         ASSERT_BITSET(other);
 
-        return TRS_STATUS_OK;
+        return TDA_STATUS_OK;
     }
 
     // two allocators: the whole copy is built on the target's before anything of it is
     // touched, so a refusal leaves both as they were
-    trs_BitSet *obj;
-    const trs_Status st = trs_bitset_copy_with(self, other->al, &obj);
-    if (TRS_STATUS_IS_ERR(st)) {
+    tda_BitSet *obj;
+    const tda_Status st = tda_bitset_copy_with(self, other->al, &obj);
+    if (TDA_STATUS_IS_ERR(st)) {
         return st;
     }
 
-    TRS_SWAP(*other, *obj);
-    trs_bitset_drop(obj);
+    TDA_SWAP(*other, *obj);
+    tda_bitset_drop(obj);
     release_words(self);
 
     ASSERT_BITSET(self);
     ASSERT_BITSET(other);
 
-    return TRS_STATUS_OK;
+    return TDA_STATUS_OK;
 }
 
-void trs_bitset_swap(trs_BitSet *self, trs_BitSet *other) {
+void tda_bitset_swap(tda_BitSet *self, tda_BitSet *other) {
     ASSERT_BITSET(self);
     ASSERT_BITSET(other);
     assert(self->al == other->al);
@@ -217,7 +217,7 @@ void trs_bitset_swap(trs_BitSet *self, trs_BitSet *other) {
         return;
     }
 
-    TRS_SWAP(*self, *other);
+    TDA_SWAP(*self, *other);
 
     ASSERT_BITSET(self);
     ASSERT_BITSET(other);
@@ -225,45 +225,45 @@ void trs_bitset_swap(trs_BitSet *self, trs_BitSet *other) {
 
 /* ========== one bit ========== */
 
-bool trs_bitset_test(const trs_BitSet *self, size_t idx) {
+bool tda_bitset_test(const tda_BitSet *self, size_t idx) {
     ASSERT_BITSET(self);
     assert(idx < self->nbits);
 
     return (self->words[word_of(idx)] & bit_of(idx)) != 0;
 }
 
-void trs_bitset_set(trs_BitSet *self, size_t idx) {
+void tda_bitset_set(tda_BitSet *self, size_t idx) {
     ASSERT_BITSET(self);
     assert(idx < self->nbits);
 
     self->words[word_of(idx)] |= bit_of(idx);
 }
 
-void trs_bitset_clear(trs_BitSet *self, size_t idx) {
+void tda_bitset_clear(tda_BitSet *self, size_t idx) {
     ASSERT_BITSET(self);
     assert(idx < self->nbits);
 
     self->words[word_of(idx)] &= ~bit_of(idx);
 }
 
-void trs_bitset_flip(trs_BitSet *self, size_t idx) {
+void tda_bitset_flip(tda_BitSet *self, size_t idx) {
     ASSERT_BITSET(self);
     assert(idx < self->nbits);
 
     self->words[word_of(idx)] ^= bit_of(idx);
 }
 
-void trs_bitset_set_to(trs_BitSet *self, size_t idx, bool val) {
+void tda_bitset_set_to(tda_BitSet *self, size_t idx, bool val) {
     if (val) {
-        trs_bitset_set(self, idx);
+        tda_bitset_set(self, idx);
     } else {
-        trs_bitset_clear(self, idx);
+        tda_bitset_clear(self, idx);
     }
 }
 
 /* ========== all bits ========== */
 
-void trs_bitset_set_all(trs_BitSet *self) {
+void tda_bitset_set_all(tda_BitSet *self) {
     ASSERT_BITSET(self);
 
     // a byte of ones is a word of ones, and memset over no bytes wants a real pointer
@@ -274,7 +274,7 @@ void trs_bitset_set_all(trs_BitSet *self) {
     clear_tail(self);
 }
 
-void trs_bitset_clear_all(trs_BitSet *self) {
+void tda_bitset_clear_all(tda_BitSet *self) {
     ASSERT_BITSET(self);
 
     if (self->nwords > 0) {
@@ -282,7 +282,7 @@ void trs_bitset_clear_all(trs_BitSet *self) {
     }
 }
 
-void trs_bitset_flip_all(trs_BitSet *self) {
+void tda_bitset_flip_all(tda_BitSet *self) {
     ASSERT_BITSET(self);
 
     for (size_t w = 0; w < self->nwords; ++w) {
@@ -294,7 +294,7 @@ void trs_bitset_flip_all(trs_BitSet *self) {
 
 /* ========== info ========== */
 
-size_t trs_bitset_count(const trs_BitSet *self) {
+size_t tda_bitset_count(const tda_BitSet *self) {
     ASSERT_BITSET(self);
 
     size_t count = 0;
@@ -305,7 +305,7 @@ size_t trs_bitset_count(const trs_BitSet *self) {
     return count;
 }
 
-bool trs_bitset_any(const trs_BitSet *self) {
+bool tda_bitset_any(const tda_BitSet *self) {
     ASSERT_BITSET(self);
 
     for (size_t w = 0; w < self->nwords; ++w) {
@@ -317,7 +317,7 @@ bool trs_bitset_any(const trs_BitSet *self) {
     return false;
 }
 
-bool trs_bitset_all(const trs_BitSet *self) {
+bool tda_bitset_all(const tda_BitSet *self) {
     ASSERT_BITSET(self);
 
     for (size_t w = 0; w < self->nwords; ++w) {
@@ -330,19 +330,19 @@ bool trs_bitset_all(const trs_BitSet *self) {
     return true;
 }
 
-bool trs_bitset_none(const trs_BitSet *self) {
+bool tda_bitset_none(const tda_BitSet *self) {
     ASSERT_BITSET(self);
 
-    return !trs_bitset_any(self);
+    return !tda_bitset_any(self);
 }
 
-size_t trs_bitset_len(const trs_BitSet *self) {
+size_t tda_bitset_len(const tda_BitSet *self) {
     ASSERT_BITSET(self);
 
     return self->nbits;
 }
 
-trs_Al *trs_bitset_al(const trs_BitSet *self) {
+tda_Al *tda_bitset_al(const tda_BitSet *self) {
     ASSERT_BITSET(self);
 
     return self->al;
@@ -350,7 +350,7 @@ trs_Al *trs_bitset_al(const trs_BitSet *self) {
 
 /* ========== scan ========== */
 
-bool trs_bitset_find_next(const trs_BitSet *self, size_t from, size_t *out_idx) {
+bool tda_bitset_find_next(const tda_BitSet *self, size_t from, size_t *out_idx) {
     ASSERT_BITSET(self);
     assert(out_idx);
 
@@ -375,7 +375,7 @@ bool trs_bitset_find_next(const trs_BitSet *self, size_t from, size_t *out_idx) 
     }
 }
 
-bool trs_bitset_find_next_clear(const trs_BitSet *self, size_t from, size_t *out_idx) {
+bool tda_bitset_find_next_clear(const tda_BitSet *self, size_t from, size_t *out_idx) {
     ASSERT_BITSET(self);
     assert(out_idx);
 
@@ -409,7 +409,7 @@ bool trs_bitset_find_next_clear(const trs_BitSet *self, size_t from, size_t *out
 
 /* ========== set ops ========== */
 
-bool trs_bitset_eq(const trs_BitSet *a, const trs_BitSet *b) {
+bool tda_bitset_eq(const tda_BitSet *a, const tda_BitSet *b) {
     ASSERT_BITSET(a);
     ASSERT_BITSET(b);
 
@@ -424,7 +424,7 @@ bool trs_bitset_eq(const trs_BitSet *a, const trs_BitSet *b) {
     return a->nwords == 0 || memcmp(a->words, b->words, words_bytes(a)) == 0;
 }
 
-void trs_bitset_union(trs_BitSet *self, const trs_BitSet *other) {
+void tda_bitset_union(tda_BitSet *self, const tda_BitSet *other) {
     ASSERT_BITSET(self);
     ASSERT_BITSET(other);
     assert(self->nbits == other->nbits);
@@ -434,7 +434,7 @@ void trs_bitset_union(trs_BitSet *self, const trs_BitSet *other) {
     }
 }
 
-void trs_bitset_intersect(trs_BitSet *self, const trs_BitSet *other) {
+void tda_bitset_intersect(tda_BitSet *self, const tda_BitSet *other) {
     ASSERT_BITSET(self);
     ASSERT_BITSET(other);
     assert(self->nbits == other->nbits);
@@ -444,7 +444,7 @@ void trs_bitset_intersect(trs_BitSet *self, const trs_BitSet *other) {
     }
 }
 
-void trs_bitset_difference(trs_BitSet *self, const trs_BitSet *other) {
+void tda_bitset_difference(tda_BitSet *self, const tda_BitSet *other) {
     ASSERT_BITSET(self);
     ASSERT_BITSET(other);
     assert(self->nbits == other->nbits);
@@ -454,7 +454,7 @@ void trs_bitset_difference(trs_BitSet *self, const trs_BitSet *other) {
     }
 }
 
-void trs_bitset_symmetric_difference(trs_BitSet *self, const trs_BitSet *other) {
+void tda_bitset_symmetric_difference(tda_BitSet *self, const tda_BitSet *other) {
     ASSERT_BITSET(self);
     ASSERT_BITSET(other);
     assert(self->nbits == other->nbits);
@@ -464,7 +464,7 @@ void trs_bitset_symmetric_difference(trs_BitSet *self, const trs_BitSet *other) 
     }
 }
 
-bool trs_bitset_is_subset(const trs_BitSet *self, const trs_BitSet *other) {
+bool tda_bitset_is_subset(const tda_BitSet *self, const tda_BitSet *other) {
     ASSERT_BITSET(self);
     ASSERT_BITSET(other);
     assert(self->nbits == other->nbits);
@@ -478,7 +478,7 @@ bool trs_bitset_is_subset(const trs_BitSet *self, const trs_BitSet *other) {
     return true;
 }
 
-bool trs_bitset_intersects(const trs_BitSet *self, const trs_BitSet *other) {
+bool tda_bitset_intersects(const tda_BitSet *self, const tda_BitSet *other) {
     ASSERT_BITSET(self);
     ASSERT_BITSET(other);
     assert(self->nbits == other->nbits);
@@ -494,7 +494,7 @@ bool trs_bitset_intersects(const trs_BitSet *self, const trs_BitSet *other) {
 
 /* ========== print ========== */
 
-void trs_bitset_fprint(const trs_BitSet *self, FILE *stream) {
+void tda_bitset_fprint(const tda_BitSet *self, FILE *stream) {
     ASSERT_BITSET(self);
     assert(stream);
 
@@ -502,7 +502,7 @@ void trs_bitset_fprint(const trs_BitSet *self, FILE *stream) {
 
     bool first = true;
     size_t idx;
-    for (size_t from = 0; trs_bitset_find_next(self, from, &idx); from = idx + 1) {
+    for (size_t from = 0; tda_bitset_find_next(self, from, &idx); from = idx + 1) {
         if (!first) {
             fputs(", ", stream);
         }
@@ -513,8 +513,8 @@ void trs_bitset_fprint(const trs_BitSet *self, FILE *stream) {
     fputs("}\n", stream);
 }
 
-void trs_bitset_print(const trs_BitSet *self) {
-    trs_bitset_fprint(self, stdout);
+void tda_bitset_print(const tda_BitSet *self) {
+    tda_bitset_fprint(self, stdout);
 }
 
 /* ========== internals ========== */
@@ -524,14 +524,14 @@ static size_t words_for(size_t nbits) {
     return nbits / WORD_BITS + (nbits % WORD_BITS != 0);
 }
 
-static void release_words(trs_BitSet *self) {
-    trs_dealloc(self->al, self->words, words_bytes(self));
+static void release_words(tda_BitSet *self) {
+    tda_dealloc(self->al, self->words, words_bytes(self));
     self->words = nullptr;
     self->nbits = 0;
     self->nwords = 0;
 }
 
-static size_t words_bytes(const trs_BitSet *self) {
+static size_t words_bytes(const tda_BitSet *self) {
     assert(self);
 
     return self->nwords * sizeof(uint64_t);
@@ -552,7 +552,7 @@ static uint64_t tail_mask(size_t nbits) {
     return rem == 0 ? ~UINT64_C(0) : (UINT64_C(1) << rem) - 1;
 }
 
-static void clear_tail(trs_BitSet *self) {
+static void clear_tail(tda_BitSet *self) {
     assert(self);
 
     if (self->nwords > 0) {

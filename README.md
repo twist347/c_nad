@@ -7,9 +7,9 @@ Classic containers and algorithms, written plainly. No dependencies.
 Two rules shape the whole API:
 
 - **Memory is explicit and swappable.** Nothing allocates on its own — every container is
-  handed a `trs_Al *` and uses only that. Swapping in an arena, a pool or a logging
+  handed a `tda_Al *` and uses only that. Swapping in an arena, a pool or a logging
   allocator is a one-line change at the call site.
-- **Errors cannot be dropped.** A fallible operation returns `trs_Status` and writes its
+- **Errors cannot be dropped.** A fallible operation returns `tda_Status` and writes its
   result through a trailing `out`; `[[nodiscard]]` makes ignoring it a warning every
   compiler raises unasked, and a compile error under `-Werror`. Broken preconditions are
   `assert`, not status — those are bugs, not runtime states.
@@ -21,18 +21,18 @@ reason it is what it is.
 ## What it does not do
 
 - **Elems are bytes.** A container copies `elem_size` bytes in and out, and drops them by
-  releasing the block — it never calls anything of yours. A `trs_Vec` of `strdup`ed
+  releasing the block — it never calls anything of yours. A `tda_Vec` of `strdup`ed
   `char *` leaks unless the caller frees them first.
 - **Nothing is thread-safe.** No container takes a lock; sharing one across threads is the
   caller's problem.
 
 ## Allocators, in three rules
 
-A container is built on one `trs_Al *` and never touches another:
+A container is built on one `tda_Al *` and never touches another:
 
-- **A copy is born on its source's allocator** — `trs_vec_copy_with` names another one.
+- **A copy is born on its source's allocator** — `tda_vec_copy_with` names another one.
 - **An assignment keeps the target's.** On one allocator a move hands the block over and
-  cannot fail; across two it costs `n` and may return `TRS_STATUS_ERR_NO_MEM`, leaving
+  cannot fail; across two it costs `n` and may return `TDA_STATUS_ERR_NO_MEM`, leaving
   both sides as they were.
 - **`swap` wants both sides on one allocator** — it is O(1) and returns nothing, so a
   mismatch is an `assert`, exactly as C++ leaves it undefined when
@@ -42,50 +42,50 @@ A container is built on one `trs_Al *` and never touches another:
 ## Example
 
 ```c
-trs_Al *arena = trs_al_arena_new(trs_al_default(), 1024);
+tda_Al *arena = tda_al_arena_new(tda_al_default(), 1024);
 if (!arena) {
     return 1;
 }
 
-trs_Vec *vec = nullptr;
-if (TRS_STATUS_IS_ERR(TRS_VEC_OF(int32_t, arena, &vec, 5, 3, 1, 4, 2))) {
+tda_Vec *vec = nullptr;
+if (TDA_STATUS_IS_ERR(TDA_VEC_OF(int32_t, arena, &vec, 5, 3, 1, 4, 2))) {
     return 1;
 }
 
-trs_span_sort(trs_vec_to_span_mut(vec), trs_cmp_i32);
+tda_span_sort(tda_vec_to_span_mut(vec), tda_cmp_i32);
 
 size_t idx;
-if (trs_span_binary_search(trs_vec_to_span(vec), &(int32_t){4}, trs_cmp_i32, &idx)) {
+if (tda_span_binary_search(tda_vec_to_span(vec), &(int32_t){4}, tda_cmp_i32, &idx)) {
     printf("4 is at %zu\n", idx); // 4 is at 3
 }
 
-trs_vec_drop(vec);
-trs_al_arena_drop(arena);
+tda_vec_drop(vec);
+tda_al_arena_drop(arena);
 ```
 
 ## Layout
 
-`trs/dsa.h` includes every header below at once; naming the modules a file actually
+`tda/tda.h` includes every header below at once; naming the modules a file actually
 uses stays the better habit.
 
 **`core`** — the vocabulary the rest is written in.
 
 | | |
 |---|---|
-| `status.h` | `trs_Status`, what every fallible operation returns |
-| `span.h` | `trs_Span` / `trs_SpanMut`, a non-owning view over contiguous elems |
-| `cmp.h` | `trs_Cmp` and `trs_Eq`, plus ready-made ones for the built-in types |
-| `hash.h` | `trs_Hasher`, `trs_Hash`, hashers for the built-in types and `trs_hash_combine` |
-| `rng.h` | `trs_Rng` — a seeded generator, and uniform ints, floats and bools drawn from one |
-| `print.h` | `trs_FPrint`, the printer a container is handed to show itself, plus ready-made ones for the built-in types |
-| `util.h` | `TRS_SWAP`, `TRS_UNUSED`, `TRS_STRINGIFY` |
-| `export.h` | `TRS_API` and the visibility it carries |
+| `status.h` | `tda_Status`, what every fallible operation returns |
+| `span.h` | `tda_Span` / `tda_SpanMut`, a non-owning view over contiguous elems |
+| `cmp.h` | `tda_Cmp` and `tda_Eq`, plus ready-made ones for the built-in types |
+| `hash.h` | `tda_Hasher`, `tda_Hash`, hashers for the built-in types and `tda_hash_combine` |
+| `rng.h` | `tda_Rng` — a seeded generator, and uniform ints, floats and bools drawn from one |
+| `print.h` | `tda_FPrint`, the printer a container is handed to show itself, plus ready-made ones for the built-in types |
+| `util.h` | `TDA_SWAP`, `TDA_UNUSED`, `TDA_STRINGIFY` |
+| `export.h` | `TDA_API` and the visibility it carries |
 
 **`alloc`** — memory, explicit and swappable.
 
 | | |
 |---|---|
-| `alloc.h` | the `trs_Al` interface and the `trs_alloc` / `trs_calloc` / `trs_realloc` / `trs_dealloc` wrappers |
+| `alloc.h` | the `tda_Al` interface and the `tda_alloc` / `tda_calloc` / `tda_realloc` / `tda_dealloc` wrappers |
 | `default.h` | malloc and friends |
 | `arena.h` | bump allocation, freed all at once |
 | `pool.h` | fixed-size blocks off a free list |
@@ -96,7 +96,7 @@ uses stays the better habit.
 
 | | |
 |---|---|
-| `fn.h` | `trs_Pred`, `trs_Fold`, `trs_Gen`, `trs_UnOp`, `trs_BinOp` |
+| `fn.h` | `tda_Pred`, `tda_Fold`, `tda_Gen`, `tda_UnOp`, `tda_BinOp` |
 | `search.h` | find and its kin, count, the all_of/any_of/none_of trio, min_elem and max_elem, and the binary family over a sorted span |
 | `sort.h` | sort and sort_stable, insertion_sort, partial_sort, nth_elem and the is_sorted checks |
 | `heap.h` | make_heap, push_heap, pop_heap, sort_heap and the is_heap checks |
@@ -114,16 +114,16 @@ uses stays the better habit.
 
 | | |
 |---|---|
-| `arr.h` | `trs_Arr` — a length fixed at construction |
-| `bitset.h` | `trs_BitSet` — a set of indices, one bit each, over a fixed universe |
-| `vec.h` | `trs_Vec` — growable, one contiguous block |
-| `deque.h` | `trs_Deque` — a ring, both ends O(1) amortized |
-| `list.h` | `trs_List` — doubly linked; a position stays valid |
-| `hmap.h` | `trs_HMap` — separate chaining; an entry never moves |
-| `hset.h` | `trs_HSet` — the same table with nothing on the value side |
-| `stack.h` | `trs_Stack` — a vec through a narrower keyhole |
-| `queue.h` | `trs_Queue` — a deque through a narrower keyhole |
-| `pqueue.h` | `trs_PQueue` — a buffer kept under a heap discipline |
+| `arr.h` | `tda_Arr` — a length fixed at construction |
+| `bitset.h` | `tda_BitSet` — a set of indices, one bit each, over a fixed universe |
+| `vec.h` | `tda_Vec` — growable, one contiguous block |
+| `deque.h` | `tda_Deque` — a ring, both ends O(1) amortized |
+| `list.h` | `tda_List` — doubly linked; a position stays valid |
+| `hmap.h` | `tda_HMap` — separate chaining; an entry never moves |
+| `hset.h` | `tda_HSet` — the same table with nothing on the value side |
+| `stack.h` | `tda_Stack` — a vec through a narrower keyhole |
+| `queue.h` | `tda_Queue` — a deque through a narrower keyhole |
+| `pqueue.h` | `tda_PQueue` — a buffer kept under a heap discipline |
 
 ## Build
 
@@ -148,8 +148,8 @@ doxygen docs/Doxyfile   # -> build-docs/html/index.html
 
 ## Use it in a project
 
-trs is consumed as a source dependency; there is no `install` step and none is planned.
-Either way the target to link is the alias `trs::dsa`, which carries
+tda is consumed as a source dependency; there is no `install` step and none is planned.
+Either way the target to link is the alias `tda::tda`, which carries
 the include path and the C23 requirement with it.
 
 With `FetchContent`:
@@ -162,7 +162,7 @@ FetchContent_Declare(terse-dsa
 )
 FetchContent_MakeAvailable(terse-dsa)
 
-target_link_libraries(app PRIVATE trs::dsa)
+target_link_libraries(app PRIVATE tda::tda)
 ```
 
 As a submodule:
@@ -175,7 +175,7 @@ git submodule add https://github.com/twist347/terse-dsa.git \
 ```cmake
 add_subdirectory(thirdparty/terse-dsa)
 
-target_link_libraries(app PRIVATE trs::dsa)
+target_link_libraries(app PRIVATE tda::tda)
 ```
 
 ## License

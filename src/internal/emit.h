@@ -1,6 +1,6 @@
 #pragma once
 
-#include "trs/core/span.h"
+#include "tda/core/span.h"
 
 #include <string.h>
 
@@ -12,21 +12,21 @@
 
 /// appends one elem to 'dst' at 'out' and reports the next write position
 [[nodiscard]]
-static inline size_t trs_emit(trs_SpanMut dst, size_t out, const void *elem) {
-    memcpy(trs_span_get_mut(dst, out), elem, dst.elem_size);
+static inline size_t tda_emit(tda_SpanMut dst, size_t out, const void *elem) {
+    memcpy(tda_span_get_mut(dst, out), elem, dst.elem_size);
 
     return out + 1;
 }
 
 /// appends src[from..] and reports the next write position
 [[nodiscard]]
-static inline size_t trs_emit_rest(trs_SpanMut dst, size_t out, trs_Span src, size_t from) {
+static inline size_t tda_emit_rest(tda_SpanMut dst, size_t out, tda_Span src, size_t from) {
     if (from >= src.len) {
         return out;
     }
 
     const size_t n = src.len - from;
-    memcpy(trs_span_get_mut(dst, out), trs_span_get(src, from), n * src.elem_size);
+    memcpy(tda_span_get_mut(dst, out), tda_span_get(src, from), n * src.elem_size);
 
     return out + n;
 }

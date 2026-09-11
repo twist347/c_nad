@@ -1,7 +1,7 @@
-#include "trs/ds/arr.h"
+#include "tda/ds/arr.h"
 
-#include "trs/algo/compare.h"
-#include "trs/core/util.h"
+#include "tda/algo/compare.h"
+#include "tda/core/util.h"
 
 #include "internal/ptr.h"
 
@@ -18,33 +18,33 @@
      assert(!(a)->data || (a)->len > 0), \
      assert((a)->al))
 
-struct trs_Arr {
+struct tda_Arr {
     void *data;
     size_t len;
     size_t elem_size;
-    trs_Al *al;
+    tda_Al *al;
 };
 
 [[nodiscard]]
-static trs_Status new_impl(bool zeroed, size_t len, size_t elem_size, trs_Al *al, trs_Arr **out);
+static tda_Status new_impl(bool zeroed, size_t len, size_t elem_size, tda_Al *al, tda_Arr **out);
 
-static void set_fields(trs_Arr *obj, void *data, size_t len, size_t elem_size, trs_Al *al);
+static void set_fields(tda_Arr *obj, void *data, size_t len, size_t elem_size, tda_Al *al);
 
 /// hands the block back and leaves an empty arr on the same allocator
-static void release_data(trs_Arr *self);
+static void release_data(tda_Arr *self);
 
 [[nodiscard]]
-static size_t len_bytes(const trs_Arr *self);
+static size_t len_bytes(const tda_Arr *self);
 
 [[nodiscard]]
-static const unsigned char *arr_offset(const trs_Arr *self, size_t idx);
+static const unsigned char *arr_offset(const tda_Arr *self, size_t idx);
 
 [[nodiscard]]
-static unsigned char *arr_offset_mut(trs_Arr *self, size_t idx);
+static unsigned char *arr_offset_mut(tda_Arr *self, size_t idx);
 
 /* ========== lifetime ========== */
 
-trs_Status trs_arr_new_len(size_t len, size_t elem_size, trs_Al *al, trs_Arr **out) {
+tda_Status tda_arr_new_len(size_t len, size_t elem_size, tda_Al *al, tda_Arr **out) {
     assert(elem_size > 0);
     assert(al);
     assert(out);
@@ -52,15 +52,15 @@ trs_Status trs_arr_new_len(size_t len, size_t elem_size, trs_Al *al, trs_Arr **o
     return new_impl(true, len, elem_size, al, out);
 }
 
-trs_Status trs_arr_from_data(const void *data, size_t len, size_t elem_size, trs_Al *al, trs_Arr **out) {
+tda_Status tda_arr_from_data(const void *data, size_t len, size_t elem_size, tda_Al *al, tda_Arr **out) {
     assert(data || len == 0);
     assert(elem_size > 0);
     assert(al);
     assert(out);
 
-    trs_Arr *arr;
-    const trs_Status st = new_impl(false, len, elem_size, al, &arr);
-    if (TRS_STATUS_IS_ERR(st)) {
+    tda_Arr *arr;
+    const tda_Status st = new_impl(false, len, elem_size, al, &arr);
+    if (TDA_STATUS_IS_ERR(st)) {
         return st;
     }
 
@@ -70,60 +70,60 @@ trs_Status trs_arr_from_data(const void *data, size_t len, size_t elem_size, trs
 
     *out = arr;
 
-    return TRS_STATUS_OK;
+    return TDA_STATUS_OK;
 }
 
-trs_Status trs_arr_from_span(trs_Span s, trs_Al *al, trs_Arr **out) {
-    TRS_SPAN_ASSERT(s);
+tda_Status tda_arr_from_span(tda_Span s, tda_Al *al, tda_Arr **out) {
+    TDA_SPAN_ASSERT(s);
     assert(al);
     assert(out);
 
-    return trs_arr_from_data(s.data, s.len, s.elem_size, al, out);
+    return tda_arr_from_data(s.data, s.len, s.elem_size, al, out);
 }
 
-void trs_arr_drop(trs_Arr *self) {
+void tda_arr_drop(tda_Arr *self) {
     if (!self) {
         return;
     }
 
     ASSERT_ARR(self);
 
-    trs_Al *al_copy = self->al;
-    trs_dealloc(al_copy, self->data, len_bytes(self));
-    trs_dealloc(al_copy, self, sizeof(trs_Arr));
+    tda_Al *al_copy = self->al;
+    tda_dealloc(al_copy, self->data, len_bytes(self));
+    tda_dealloc(al_copy, self, sizeof(tda_Arr));
 }
 
 /* ========== copy ========== */
 
-trs_Status trs_arr_copy(const trs_Arr *self, trs_Arr **out) {
+tda_Status tda_arr_copy(const tda_Arr *self, tda_Arr **out) {
     ASSERT_ARR(self);
 
-    return trs_arr_copy_with(self, self->al, out);
+    return tda_arr_copy_with(self, self->al, out);
 }
 
-trs_Status trs_arr_copy_with(const trs_Arr *self, trs_Al *al, trs_Arr **out) {
+tda_Status tda_arr_copy_with(const tda_Arr *self, tda_Al *al, tda_Arr **out) {
     ASSERT_ARR(self);
     assert(al);
 
-    return trs_arr_from_span(trs_arr_to_span(self), al, out);
+    return tda_arr_from_span(tda_arr_to_span(self), al, out);
 }
 
-trs_Status trs_arr_copy_assign(const trs_Arr *self, trs_Arr *other) {
+tda_Status tda_arr_copy_assign(const tda_Arr *self, tda_Arr *other) {
     ASSERT_ARR(self);
     ASSERT_ARR(other);
     assert(self->elem_size == other->elem_size);
 
     if (self == other) {
-        return TRS_STATUS_OK;
+        return TDA_STATUS_OK;
     }
 
     const size_t self_bytes = len_bytes(self);
     const size_t other_bytes = len_bytes(other);
 
     if (self_bytes != other_bytes) {
-        void *new_data = trs_realloc(other->al, other->data, other_bytes, self_bytes);
+        void *new_data = tda_realloc(other->al, other->data, other_bytes, self_bytes);
         if (self_bytes > 0 && !new_data) {
-            return TRS_STATUS_ERR_NO_MEM;
+            return TDA_STATUS_ERR_NO_MEM;
         }
 
         other->data = new_data;
@@ -136,86 +136,86 @@ trs_Status trs_arr_copy_assign(const trs_Arr *self, trs_Arr *other) {
 
     ASSERT_ARR(other);
 
-    return TRS_STATUS_OK;
+    return TDA_STATUS_OK;
 }
 
-trs_Status trs_arr_move_assign(trs_Arr *self, trs_Arr *other) {
+tda_Status tda_arr_move_assign(tda_Arr *self, tda_Arr *other) {
     ASSERT_ARR(self);
     ASSERT_ARR(other);
     assert(self->elem_size == other->elem_size);
 
     if (self == other) {
-        return TRS_STATUS_OK;
+        return TDA_STATUS_OK;
     }
 
     // one allocator: the block is handed over as it is. What 'other' held ends up in 'self' and is released
     // there, through the very allocator that made it
     if (self->al == other->al) {
-        TRS_SWAP(*self, *other);
+        TDA_SWAP(*self, *other);
         release_data(self);
 
         ASSERT_ARR(self);
         ASSERT_ARR(other);
 
-        return TRS_STATUS_OK;
+        return TDA_STATUS_OK;
     }
 
     // two allocators: the whole copy is built on the target's before anything of it is
     // touched, so a refusal leaves both as they were
-    trs_Arr *obj;
-    const trs_Status st = trs_arr_copy_with(self, other->al, &obj);
-    if (TRS_STATUS_IS_ERR(st)) {
+    tda_Arr *obj;
+    const tda_Status st = tda_arr_copy_with(self, other->al, &obj);
+    if (TDA_STATUS_IS_ERR(st)) {
         return st;
     }
 
-    TRS_SWAP(*other, *obj);
-    trs_arr_drop(obj);
+    TDA_SWAP(*other, *obj);
+    tda_arr_drop(obj);
     release_data(self);
 
     ASSERT_ARR(self);
     ASSERT_ARR(other);
 
-    return TRS_STATUS_OK;
+    return TDA_STATUS_OK;
 }
 
 /* ========== compare ========== */
 
-bool trs_arr_eq(const trs_Arr *a, const trs_Arr *b) {
+bool tda_arr_eq(const tda_Arr *a, const tda_Arr *b) {
     ASSERT_ARR(a);
     ASSERT_ARR(b);
 
-    return trs_span_eq(trs_arr_to_span(a), trs_arr_to_span(b));
+    return tda_span_eq(tda_arr_to_span(a), tda_arr_to_span(b));
 }
 
-bool trs_arr_eq_by(const trs_Arr *a, const trs_Arr *b, trs_Eq eq) {
+bool tda_arr_eq_by(const tda_Arr *a, const tda_Arr *b, tda_Eq eq) {
     ASSERT_ARR(a);
     ASSERT_ARR(b);
     assert(eq);
 
-    return trs_span_eq_by(trs_arr_to_span(a), trs_arr_to_span(b), eq);
+    return tda_span_eq_by(tda_arr_to_span(a), tda_arr_to_span(b), eq);
 }
 
 /* ========== info ========== */
 
-size_t trs_arr_len(const trs_Arr *self) {
+size_t tda_arr_len(const tda_Arr *self) {
     ASSERT_ARR(self);
 
     return self->len;
 }
 
-size_t trs_arr_elem_size(const trs_Arr *self) {
+size_t tda_arr_elem_size(const tda_Arr *self) {
     ASSERT_ARR(self);
 
     return self->elem_size;
 }
 
-size_t trs_arr_bytes(const trs_Arr *self) {
+size_t tda_arr_bytes(const tda_Arr *self) {
     ASSERT_ARR(self);
 
     return len_bytes(self);
 }
 
-trs_Al *trs_arr_al(const trs_Arr *self) {
+tda_Al *tda_arr_al(const tda_Arr *self) {
     ASSERT_ARR(self);
 
     return self->al;
@@ -223,49 +223,49 @@ trs_Al *trs_arr_al(const trs_Arr *self) {
 
 /* ========== access ========== */
 
-const void *trs_arr_front(const trs_Arr *self) {
+const void *tda_arr_front(const tda_Arr *self) {
     ASSERT_ARR(self);
     assert(self->len > 0);
 
     return arr_offset(self, 0);
 }
 
-void *trs_arr_front_mut(trs_Arr *self) {
+void *tda_arr_front_mut(tda_Arr *self) {
     ASSERT_ARR(self);
     assert(self->len > 0);
 
     return arr_offset_mut(self, 0);
 }
 
-const void *trs_arr_back(const trs_Arr *self) {
+const void *tda_arr_back(const tda_Arr *self) {
     ASSERT_ARR(self);
     assert(self->len > 0);
 
     return arr_offset(self, self->len - 1);
 }
 
-void *trs_arr_back_mut(trs_Arr *self) {
+void *tda_arr_back_mut(tda_Arr *self) {
     ASSERT_ARR(self);
     assert(self->len > 0);
 
     return arr_offset_mut(self, self->len - 1);
 }
 
-const void *trs_arr_get(const trs_Arr *self, size_t idx) {
+const void *tda_arr_get(const tda_Arr *self, size_t idx) {
     ASSERT_ARR(self);
     assert(idx < self->len);
 
     return arr_offset(self, idx);
 }
 
-void *trs_arr_get_mut(trs_Arr *self, size_t idx) {
+void *tda_arr_get_mut(tda_Arr *self, size_t idx) {
     ASSERT_ARR(self);
     assert(idx < self->len);
 
     return arr_offset_mut(self, idx);
 }
 
-void trs_arr_set(trs_Arr *self, size_t idx, const void *val) {
+void tda_arr_set(tda_Arr *self, size_t idx, const void *val) {
     ASSERT_ARR(self);
     assert(val);
     assert(idx < self->len);
@@ -273,13 +273,13 @@ void trs_arr_set(trs_Arr *self, size_t idx, const void *val) {
     memcpy(arr_offset_mut(self, idx), val, self->elem_size);
 }
 
-const void *trs_arr_data(const trs_Arr *self) {
+const void *tda_arr_data(const tda_Arr *self) {
     ASSERT_ARR(self);
 
     return self->data;
 }
 
-void *trs_arr_data_mut(trs_Arr *self) {
+void *tda_arr_data_mut(tda_Arr *self) {
     ASSERT_ARR(self);
 
     return self->data;
@@ -287,7 +287,7 @@ void *trs_arr_data_mut(trs_Arr *self) {
 
 /* ========== mods ========== */
 
-void trs_arr_swap(trs_Arr *self, trs_Arr *other) {
+void tda_arr_swap(tda_Arr *self, tda_Arr *other) {
     ASSERT_ARR(self);
     ASSERT_ARR(other);
     assert(self->elem_size == other->elem_size);
@@ -297,59 +297,59 @@ void trs_arr_swap(trs_Arr *self, trs_Arr *other) {
         return;
     }
 
-    TRS_SWAP(*self, *other);
+    TDA_SWAP(*self, *other);
 
     ASSERT_ARR(self);
     ASSERT_ARR(other);
 }
 
-void trs_arr_swap_elems(trs_Arr *self, size_t i, size_t j) {
+void tda_arr_swap_elems(tda_Arr *self, size_t i, size_t j) {
     ASSERT_ARR(self);
 
-    trs_span_swap_elems(trs_arr_to_span_mut(self), i, j);
+    tda_span_swap_elems(tda_arr_to_span_mut(self), i, j);
 }
 
 /* ========== to span ========== */
 
-trs_SpanMut trs_arr_to_span_mut(trs_Arr *self) {
+tda_SpanMut tda_arr_to_span_mut(tda_Arr *self) {
     ASSERT_ARR(self);
 
-    return trs_span_from_data_mut(self->data, self->len, self->elem_size);
+    return tda_span_from_data_mut(self->data, self->len, self->elem_size);
 }
 
-trs_Span trs_arr_to_span(const trs_Arr *self) {
+tda_Span tda_arr_to_span(const tda_Arr *self) {
     ASSERT_ARR(self);
 
-    return trs_span_from_data(self->data, self->len, self->elem_size);
+    return tda_span_from_data(self->data, self->len, self->elem_size);
 }
 
 /* ========== print ========== */
 
-void trs_arr_fprint(const trs_Arr *self, FILE *stream, trs_FPrint fprint) {
+void tda_arr_fprint(const tda_Arr *self, FILE *stream, tda_FPrint fprint) {
     ASSERT_ARR(self);
     assert(stream);
     assert(fprint);
 
-    trs_span_fprint(trs_arr_to_span(self), stream, fprint);
+    tda_span_fprint(tda_arr_to_span(self), stream, fprint);
 }
 
-void trs_arr_print(const trs_Arr *self, trs_FPrint fprint) {
+void tda_arr_print(const tda_Arr *self, tda_FPrint fprint) {
     ASSERT_ARR(self);
     assert(fprint);
 
-    trs_arr_fprint(self, stdout, fprint);
+    tda_arr_fprint(self, stdout, fprint);
 }
 
 /* ========== internals ========== */
 
-static trs_Status new_impl(bool zeroed, size_t len, size_t elem_size, trs_Al *al, trs_Arr **out) {
+static tda_Status new_impl(bool zeroed, size_t len, size_t elem_size, tda_Al *al, tda_Arr **out) {
     assert(elem_size > 0);
     assert(al);
     assert(out);
 
-    trs_Arr *obj = trs_alloc(al, sizeof(trs_Arr));
+    tda_Arr *obj = tda_alloc(al, sizeof(tda_Arr));
     if (!obj) {
-        return TRS_STATUS_ERR_NO_MEM;
+        return TDA_STATUS_ERR_NO_MEM;
     }
 
     void *data = nullptr;
@@ -359,7 +359,7 @@ static trs_Status new_impl(bool zeroed, size_t len, size_t elem_size, trs_Al *al
         if (ckd_mul(&bytes, len, elem_size)) {
             goto fail;
         }
-        data = zeroed ? trs_calloc(al, len, elem_size) : trs_alloc(al, bytes);
+        data = zeroed ? tda_calloc(al, len, elem_size) : tda_alloc(al, bytes);
         if (!data) {
             goto fail;
         }
@@ -370,34 +370,34 @@ static trs_Status new_impl(bool zeroed, size_t len, size_t elem_size, trs_Al *al
     ASSERT_ARR(obj);
 
     *out = obj;
-    return TRS_STATUS_OK;
+    return TDA_STATUS_OK;
 
 fail:
-    trs_dealloc(al, obj, sizeof(trs_Arr));
-    return TRS_STATUS_ERR_NO_MEM;
+    tda_dealloc(al, obj, sizeof(tda_Arr));
+    return TDA_STATUS_ERR_NO_MEM;
 }
 
-static void set_fields(trs_Arr *obj, void *data, size_t len, size_t elem_size, trs_Al *al) {
+static void set_fields(tda_Arr *obj, void *data, size_t len, size_t elem_size, tda_Al *al) {
     obj->data = data;
     obj->len = len;
     obj->elem_size = elem_size;
     obj->al = al;
 }
 
-static void release_data(trs_Arr *self) {
-    trs_dealloc(self->al, self->data, len_bytes(self));
+static void release_data(tda_Arr *self) {
+    tda_dealloc(self->al, self->data, len_bytes(self));
     self->data = nullptr;
     self->len = 0;
 }
 
-static size_t len_bytes(const trs_Arr *self) {
+static size_t len_bytes(const tda_Arr *self) {
     return self->len * self->elem_size;
 }
 
-static const unsigned char *arr_offset(const trs_Arr *self, size_t idx) {
-    return trs_byte_offset(self->data, self->elem_size, idx);
+static const unsigned char *arr_offset(const tda_Arr *self, size_t idx) {
+    return tda_byte_offset(self->data, self->elem_size, idx);
 }
 
-static unsigned char *arr_offset_mut(trs_Arr *self, size_t idx) {
-    return trs_byte_offset_mut(self->data, self->elem_size, idx);
+static unsigned char *arr_offset_mut(tda_Arr *self, size_t idx) {
+    return tda_byte_offset_mut(self->data, self->elem_size, idx);
 }

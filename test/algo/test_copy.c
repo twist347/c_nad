@@ -1,5 +1,5 @@
-#include "trs/algo/copy.h"
-#include "trs/core/util.h"
+#include "tda/algo/copy.h"
+#include "tda/core/util.h"
 
 #include "support/pair.h"
 
@@ -14,7 +14,7 @@ void tearDown() {
 }
 
 static bool is_even(const void *elem, void *ctx) {
-    TRS_UNUSED(ctx);
+    TDA_UNUSED(ctx);
 
     return *(const int32_t *) elem % 2 == 0;
 }
@@ -29,7 +29,7 @@ static void test_copy_transfers_every_elem() {
     constexpr int32_t src_buf[4] = {1, 2, 3, 4};
     int32_t dst_buf[4] = {0, 0, 0, 0};
 
-    trs_span_copy(TRS_SPAN_FROM_DATA_MUT(int32_t, dst_buf, 4), TRS_SPAN_FROM_DATA(int32_t, src_buf, 4));
+    tda_span_copy(TDA_SPAN_FROM_DATA_MUT(int32_t, dst_buf, 4), TDA_SPAN_FROM_DATA(int32_t, src_buf, 4));
 
     TEST_ASSERT_EQUAL_INT32_ARRAY(src_buf, dst_buf, 4);
 }
@@ -38,7 +38,7 @@ static void test_copy_empty_is_noop() {
     constexpr int32_t src_buf[2] = {7, 8};
     int32_t dst_buf[2] = {1, 2};
 
-    trs_span_copy(TRS_SPAN_FROM_DATA_MUT(int32_t, dst_buf, 0), TRS_SPAN_FROM_DATA(int32_t, src_buf, 0));
+    tda_span_copy(TDA_SPAN_FROM_DATA_MUT(int32_t, dst_buf, 0), TDA_SPAN_FROM_DATA(int32_t, src_buf, 0));
 
     constexpr int32_t expected[2] = {1, 2};
     TEST_ASSERT_EQUAL_INT32_ARRAY(expected, dst_buf, 2);
@@ -47,9 +47,9 @@ static void test_copy_empty_is_noop() {
 // same buffer on both sides is a defined no-op, not an aliasing violation
 static void test_copy_onto_itself_is_noop() {
     int32_t buf[3] = {1, 2, 3};
-    const trs_SpanMut s = TRS_SPAN_FROM_DATA_MUT(int32_t, buf, 3);
+    const tda_SpanMut s = TDA_SPAN_FROM_DATA_MUT(int32_t, buf, 3);
 
-    trs_span_copy(s, trs_span_mut_to_span(s));
+    tda_span_copy(s, tda_span_mut_to_span(s));
 
     constexpr int32_t expected[3] = {1, 2, 3};
     TEST_ASSERT_EQUAL_INT32_ARRAY(expected, buf, 3);
@@ -58,9 +58,9 @@ static void test_copy_onto_itself_is_noop() {
 static void test_copy_stays_within_the_subspan() {
     constexpr int32_t src_buf[2] = {7, 8};
     int32_t dst_buf[4] = {0, 0, 0, 0};
-    const trs_SpanMut dst = TRS_SPAN_FROM_DATA_MUT(int32_t, dst_buf, 4);
+    const tda_SpanMut dst = TDA_SPAN_FROM_DATA_MUT(int32_t, dst_buf, 4);
 
-    trs_span_copy(trs_span_sub_mut(dst, 1, 2), TRS_SPAN_FROM_DATA(int32_t, src_buf, 2));
+    tda_span_copy(tda_span_sub_mut(dst, 1, 2), TDA_SPAN_FROM_DATA(int32_t, src_buf, 2));
 
     constexpr int32_t expected[4] = {0, 7, 8, 0};
     TEST_ASSERT_EQUAL_INT32_ARRAY(expected, dst_buf, 4);
@@ -71,7 +71,7 @@ static void test_copy_moves_whole_elements() {
     constexpr Pair src_buf[2] = {{1, 2}, {3, 4}};
     Pair dst_buf[2] = {{0, 0}, {0, 0}};
 
-    trs_span_copy(TRS_SPAN_FROM_DATA_MUT(Pair, dst_buf, 2), TRS_SPAN_FROM_DATA(Pair, src_buf, 2));
+    tda_span_copy(TDA_SPAN_FROM_DATA_MUT(Pair, dst_buf, 2), TDA_SPAN_FROM_DATA(Pair, src_buf, 2));
 
     TEST_ASSERT_EQUAL_INT64(1, dst_buf[0].a);
     TEST_ASSERT_EQUAL_INT64(2, dst_buf[0].b);
@@ -84,10 +84,10 @@ static void test_copy_moves_whole_elements() {
 // shifting right overlaps: a plain memcpy would smear the first element
 static void test_copy_overlapping_shifts_right() {
     int32_t buf[5] = {1, 2, 3, 4, 5};
-    const trs_SpanMut s = TRS_SPAN_FROM_DATA_MUT(int32_t, buf, 5);
+    const tda_SpanMut s = TDA_SPAN_FROM_DATA_MUT(int32_t, buf, 5);
 
     // buf[2..4] <- buf[1..3]
-    trs_span_copy_overlapping(trs_span_sub_mut(s, 2, 3), trs_span_mut_to_span(trs_span_sub_mut(s, 1, 3)));
+    tda_span_copy_overlapping(tda_span_sub_mut(s, 2, 3), tda_span_mut_to_span(tda_span_sub_mut(s, 1, 3)));
 
     constexpr int32_t expected[5] = {1, 2, 2, 3, 4};
     TEST_ASSERT_EQUAL_INT32_ARRAY(expected, buf, 5);
@@ -95,10 +95,10 @@ static void test_copy_overlapping_shifts_right() {
 
 static void test_copy_overlapping_shifts_left() {
     int32_t buf[5] = {1, 2, 3, 4, 5};
-    const trs_SpanMut s = TRS_SPAN_FROM_DATA_MUT(int32_t, buf, 5);
+    const tda_SpanMut s = TDA_SPAN_FROM_DATA_MUT(int32_t, buf, 5);
 
     // buf[0..2] <- buf[2..4]
-    trs_span_copy_overlapping(trs_span_sub_mut(s, 0, 3), trs_span_mut_to_span(trs_span_sub_mut(s, 2, 3)));
+    tda_span_copy_overlapping(tda_span_sub_mut(s, 0, 3), tda_span_mut_to_span(tda_span_sub_mut(s, 2, 3)));
 
     constexpr int32_t expected[5] = {3, 4, 5, 4, 5};
     TEST_ASSERT_EQUAL_INT32_ARRAY(expected, buf, 5);
@@ -106,29 +106,29 @@ static void test_copy_overlapping_shifts_left() {
 
 static void test_copy_overlapping_onto_itself_is_noop() {
     int32_t buf[3] = {1, 2, 3};
-    const trs_SpanMut s = TRS_SPAN_FROM_DATA_MUT(int32_t, buf, 3);
+    const tda_SpanMut s = TDA_SPAN_FROM_DATA_MUT(int32_t, buf, 3);
 
-    trs_span_copy_overlapping(s, trs_span_mut_to_span(s));
+    tda_span_copy_overlapping(s, tda_span_mut_to_span(s));
 
     constexpr int32_t expected[3] = {1, 2, 3};
     TEST_ASSERT_EQUAL_INT32_ARRAY(expected, buf, 3);
 }
 
-// disjoint ranges must behave exactly like trs_span_copy
+// disjoint ranges must behave exactly like tda_span_copy
 static void test_copy_overlapping_handles_disjoint_ranges() {
     constexpr int32_t src_buf[2] = {7, 8};
     int32_t dst_buf[2] = {0, 0};
 
-    trs_span_copy_overlapping(TRS_SPAN_FROM_DATA_MUT(int32_t, dst_buf, 2), TRS_SPAN_FROM_DATA(int32_t, src_buf, 2));
+    tda_span_copy_overlapping(TDA_SPAN_FROM_DATA_MUT(int32_t, dst_buf, 2), TDA_SPAN_FROM_DATA(int32_t, src_buf, 2));
 
     TEST_ASSERT_EQUAL_INT32_ARRAY(src_buf, dst_buf, 2);
 }
 
 static void test_copy_overlapping_empty_is_noop() {
     int32_t buf[2] = {1, 2};
-    const trs_SpanMut s = TRS_SPAN_FROM_DATA_MUT(int32_t, buf, 0);
+    const tda_SpanMut s = TDA_SPAN_FROM_DATA_MUT(int32_t, buf, 0);
 
-    trs_span_copy_overlapping(s, trs_span_mut_to_span(s));
+    tda_span_copy_overlapping(s, tda_span_mut_to_span(s));
 
     constexpr int32_t expected[2] = {1, 2};
     TEST_ASSERT_EQUAL_INT32_ARRAY(expected, buf, 2);
@@ -140,9 +140,9 @@ static void test_copy_if_takes_only_the_matching_elems() {
     constexpr int32_t src[6] = {1, 2, 3, 4, 5, 6};
     int32_t dst[6] = {0};
 
-    const size_t n = trs_span_copy_if(
-        TRS_SPAN_FROM_DATA_MUT(int32_t, dst, 6),
-        TRS_SPAN_FROM_DATA(int32_t, src, 6),
+    const size_t n = tda_span_copy_if(
+        TDA_SPAN_FROM_DATA_MUT(int32_t, dst, 6),
+        TDA_SPAN_FROM_DATA(int32_t, src, 6),
         is_even,
         nullptr
     );
@@ -158,9 +158,9 @@ static void test_copy_if_leaves_the_tail_of_dst_alone() {
     constexpr int32_t src[4] = {1, 2, 3, 4};
     int32_t dst[6] = {7, 7, 7, 7, 7, 7};
 
-    const size_t n = trs_span_copy_if(
-        TRS_SPAN_FROM_DATA_MUT(int32_t, dst, 6),
-        TRS_SPAN_FROM_DATA(int32_t, src, 4),
+    const size_t n = tda_span_copy_if(
+        TDA_SPAN_FROM_DATA_MUT(int32_t, dst, 6),
+        TDA_SPAN_FROM_DATA(int32_t, src, 4),
         is_even,
         nullptr
     );
@@ -174,9 +174,9 @@ static void test_copy_if_takes_everything_when_all_match() {
     constexpr int32_t src[3] = {2, 4, 6};
     int32_t dst[3] = {0};
 
-    const size_t n = trs_span_copy_if(
-        TRS_SPAN_FROM_DATA_MUT(int32_t, dst, 3),
-        TRS_SPAN_FROM_DATA(int32_t, src, 3),
+    const size_t n = tda_span_copy_if(
+        TDA_SPAN_FROM_DATA_MUT(int32_t, dst, 3),
+        TDA_SPAN_FROM_DATA(int32_t, src, 3),
         is_even,
         nullptr
     );
@@ -189,9 +189,9 @@ static void test_copy_if_takes_nothing_when_none_match() {
     constexpr int32_t src[3] = {1, 3, 5};
     int32_t dst[3] = {9, 9, 9};
 
-    const size_t n = trs_span_copy_if(
-        TRS_SPAN_FROM_DATA_MUT(int32_t, dst, 3),
-        TRS_SPAN_FROM_DATA(int32_t, src, 3),
+    const size_t n = tda_span_copy_if(
+        TDA_SPAN_FROM_DATA_MUT(int32_t, dst, 3),
+        TDA_SPAN_FROM_DATA(int32_t, src, 3),
         is_even,
         nullptr
     );
@@ -206,9 +206,9 @@ static void test_copy_if_of_an_empty_source_is_zero() {
 
     TEST_ASSERT_EQUAL_size_t(
         0,
-        trs_span_copy_if(
-            TRS_SPAN_FROM_DATA_MUT(int32_t, dst, 2),
-            TRS_SPAN_FROM_DATA(int32_t, nullptr, 0),
+        tda_span_copy_if(
+            TDA_SPAN_FROM_DATA_MUT(int32_t, dst, 2),
+            TDA_SPAN_FROM_DATA(int32_t, nullptr, 0),
             is_even,
             nullptr
         )
@@ -220,9 +220,9 @@ static void test_copy_if_passes_the_ctx_through() {
     int32_t dst[5] = {0};
     int32_t bound = 3;
 
-    const size_t n = trs_span_copy_if(
-        TRS_SPAN_FROM_DATA_MUT(int32_t, dst, 5),
-        TRS_SPAN_FROM_DATA(int32_t, src, 5),
+    const size_t n = tda_span_copy_if(
+        TDA_SPAN_FROM_DATA_MUT(int32_t, dst, 5),
+        TDA_SPAN_FROM_DATA(int32_t, src, 5),
         greater_than,
         &bound
     );
@@ -236,9 +236,9 @@ static void test_copy_if_keeps_the_source_order() {
     constexpr int32_t src[7] = {6, 1, 4, 3, 2, 5, 8};
     int32_t dst[7] = {0};
 
-    const size_t n = trs_span_copy_if(
-        TRS_SPAN_FROM_DATA_MUT(int32_t, dst, 7),
-        TRS_SPAN_FROM_DATA(int32_t, src, 7),
+    const size_t n = tda_span_copy_if(
+        TDA_SPAN_FROM_DATA_MUT(int32_t, dst, 7),
+        TDA_SPAN_FROM_DATA(int32_t, src, 7),
         is_even,
         nullptr
     );
@@ -252,10 +252,10 @@ static void test_copy_if_moves_whole_elems() {
     constexpr Pair src[3] = {{-1, 10}, {1, 20}, {-2, 30}};
     Pair dst[3] = {0};
 
-    const size_t n = trs_span_copy_if(
-        TRS_SPAN_FROM_DATA_MUT(Pair, dst, 3),
-        TRS_SPAN_FROM_DATA(Pair, src, 3),
-        trs_test_pair_a_is_positive,
+    const size_t n = tda_span_copy_if(
+        TDA_SPAN_FROM_DATA_MUT(Pair, dst, 3),
+        TDA_SPAN_FROM_DATA(Pair, src, 3),
+        tda_test_pair_a_is_positive,
         nullptr
     );
 

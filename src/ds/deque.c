@@ -1,4 +1,4 @@
-#include "trs/ds/deque.h"
+#include "tda/ds/deque.h"
 
 #include "internal/ptr.h"
 
@@ -21,7 +21,7 @@
 static constexpr size_t DEQUE_GROWTH_BASE = 1;
 static constexpr size_t DEQUE_GROWTH_FACTOR = 2;
 
-struct trs_Deque {
+struct tda_Deque {
     void *data;
     size_t len;
     size_t cap;
@@ -29,66 +29,66 @@ struct trs_Deque {
     // with two indices a full ring and an empty one look exactly alike
     size_t head;
     size_t elem_size;
-    trs_Al *al;
+    tda_Al *al;
 };
 
 [[nodiscard]]
-static trs_Status new_impl(bool zeroed, size_t len, size_t cap, size_t elem_size, trs_Al *al, trs_Deque **out);
+static tda_Status new_impl(bool zeroed, size_t len, size_t cap, size_t elem_size, tda_Al *al, tda_Deque **out);
 
-static void set_fields(trs_Deque *obj, void *data, size_t len, size_t cap, size_t elem_size, trs_Al *al);
+static void set_fields(tda_Deque *obj, void *data, size_t len, size_t cap, size_t elem_size, tda_Al *al);
 
 /// hands the block back and leaves an empty deque on the same allocator
-static void release_data(trs_Deque *self);
+static void release_data(tda_Deque *self);
 
 [[nodiscard]]
-static size_t next_cap(const trs_Deque *self);
+static size_t next_cap(const tda_Deque *self);
 
 [[nodiscard]]
-static trs_Status grow(trs_Deque *self);
+static tda_Status grow(tda_Deque *self);
 
 /// room for one more elem, growing the ring when it is full
 [[nodiscard]]
-static trs_Status reserve_one(trs_Deque *self);
+static tda_Status reserve_one(tda_Deque *self);
 
 [[nodiscard]]
-static size_t len_bytes(const trs_Deque *self);
+static size_t len_bytes(const tda_Deque *self);
 
 [[nodiscard]]
-static size_t cap_bytes(const trs_Deque *self);
+static size_t cap_bytes(const tda_Deque *self);
 
 /// the slot holding the elem at 'idx' counted from the front. One subtraction and no
 /// division: 'idx' is below cap, so head + idx overshoots by less than one lap
 [[nodiscard]]
-static size_t slot_of(const trs_Deque *self, size_t idx);
+static size_t slot_of(const tda_Deque *self, size_t idx);
 
 [[nodiscard]]
-static const unsigned char *slot_at(const trs_Deque *self, size_t slot);
+static const unsigned char *slot_at(const tda_Deque *self, size_t slot);
 
 [[nodiscard]]
-static unsigned char *slot_at_mut(trs_Deque *self, size_t slot);
+static unsigned char *slot_at_mut(tda_Deque *self, size_t slot);
 
 [[nodiscard]]
-static const unsigned char *elem_at(const trs_Deque *self, size_t idx);
+static const unsigned char *elem_at(const tda_Deque *self, size_t idx);
 
 [[nodiscard]]
-static unsigned char *elem_at_mut(trs_Deque *self, size_t idx);
+static unsigned char *elem_at_mut(tda_Deque *self, size_t idx);
 
 /// how many elems sit between head and the end of the buffer — the length of the first
 /// of the at most two runs the contents form
 [[nodiscard]]
-static size_t first_run(const trs_Deque *self);
+static size_t first_run(const tda_Deque *self);
 
 /// every elem, in ring order, into 'dst' bytes. The caller guarantees the room
-static void copy_out(const trs_Deque *self, void *dst);
+static void copy_out(const tda_Deque *self, void *dst);
 
 /// the inverse: 'src' bytes over every elem, in ring order
-static void copy_in(trs_Deque *self, const void *src);
+static void copy_in(tda_Deque *self, const void *src);
 
-static void move_elem(trs_Deque *self, size_t to, size_t from);
+static void move_elem(tda_Deque *self, size_t to, size_t from);
 
 /* ========== lifetime ========== */
 
-trs_Status trs_deque_new(size_t elem_size, trs_Al *al, trs_Deque **out) {
+tda_Status tda_deque_new(size_t elem_size, tda_Al *al, tda_Deque **out) {
     assert(elem_size > 0);
     assert(al);
     assert(out);
@@ -96,7 +96,7 @@ trs_Status trs_deque_new(size_t elem_size, trs_Al *al, trs_Deque **out) {
     return new_impl(false, 0, 0, elem_size, al, out);
 }
 
-trs_Status trs_deque_new_len(size_t len, size_t elem_size, trs_Al *al, trs_Deque **out) {
+tda_Status tda_deque_new_len(size_t len, size_t elem_size, tda_Al *al, tda_Deque **out) {
     assert(elem_size > 0);
     assert(al);
     assert(out);
@@ -104,7 +104,7 @@ trs_Status trs_deque_new_len(size_t len, size_t elem_size, trs_Al *al, trs_Deque
     return new_impl(true, len, len, elem_size, al, out);
 }
 
-trs_Status trs_deque_new_cap(size_t cap, size_t elem_size, trs_Al *al, trs_Deque **out) {
+tda_Status tda_deque_new_cap(size_t cap, size_t elem_size, tda_Al *al, tda_Deque **out) {
     assert(elem_size > 0);
     assert(al);
     assert(out);
@@ -112,15 +112,15 @@ trs_Status trs_deque_new_cap(size_t cap, size_t elem_size, trs_Al *al, trs_Deque
     return new_impl(false, 0, cap, elem_size, al, out);
 }
 
-trs_Status trs_deque_from_data(const void *data, size_t len, size_t elem_size, trs_Al *al, trs_Deque **out) {
+tda_Status tda_deque_from_data(const void *data, size_t len, size_t elem_size, tda_Al *al, tda_Deque **out) {
     assert(data || len == 0);
     assert(elem_size > 0);
     assert(al);
     assert(out);
 
-    trs_Deque *deque;
-    const trs_Status st = new_impl(false, len, len, elem_size, al, &deque);
-    if (TRS_STATUS_IS_ERR(st)) {
+    tda_Deque *deque;
+    const tda_Status st = new_impl(false, len, len, elem_size, al, &deque);
+    if (TDA_STATUS_IS_ERR(st)) {
         return st;
     }
 
@@ -131,45 +131,45 @@ trs_Status trs_deque_from_data(const void *data, size_t len, size_t elem_size, t
 
     *out = deque;
 
-    return TRS_STATUS_OK;
+    return TDA_STATUS_OK;
 }
 
-trs_Status trs_deque_from_span(trs_Span s, trs_Al *al, trs_Deque **out) {
-    TRS_SPAN_ASSERT(s);
+tda_Status tda_deque_from_span(tda_Span s, tda_Al *al, tda_Deque **out) {
+    TDA_SPAN_ASSERT(s);
     assert(al);
     assert(out);
 
-    return trs_deque_from_data(s.data, s.len, s.elem_size, al, out);
+    return tda_deque_from_data(s.data, s.len, s.elem_size, al, out);
 }
 
-void trs_deque_drop(trs_Deque *self) {
+void tda_deque_drop(tda_Deque *self) {
     if (!self) {
         return;
     }
 
     ASSERT_DEQUE(self);
 
-    trs_Al *al_copy = self->al;
-    trs_dealloc(al_copy, self->data, cap_bytes(self));
-    trs_dealloc(al_copy, self, sizeof(trs_Deque));
+    tda_Al *al_copy = self->al;
+    tda_dealloc(al_copy, self->data, cap_bytes(self));
+    tda_dealloc(al_copy, self, sizeof(tda_Deque));
 }
 
 /* ========== copy ========== */
 
-trs_Status trs_deque_copy(const trs_Deque *self, trs_Deque **out) {
+tda_Status tda_deque_copy(const tda_Deque *self, tda_Deque **out) {
     ASSERT_DEQUE(self);
 
-    return trs_deque_copy_with(self, self->al, out);
+    return tda_deque_copy_with(self, self->al, out);
 }
 
-trs_Status trs_deque_copy_with(const trs_Deque *self, trs_Al *al, trs_Deque **out) {
+tda_Status tda_deque_copy_with(const tda_Deque *self, tda_Al *al, tda_Deque **out) {
     ASSERT_DEQUE(self);
     assert(al);
     assert(out);
 
-    trs_Deque *copy;
-    const trs_Status st = new_impl(false, self->len, self->len, self->elem_size, al, &copy);
-    if (TRS_STATUS_IS_ERR(st)) {
+    tda_Deque *copy;
+    const tda_Status st = new_impl(false, self->len, self->len, self->elem_size, al, &copy);
+    if (TDA_STATUS_IS_ERR(st)) {
         return st;
     }
 
@@ -178,20 +178,20 @@ trs_Status trs_deque_copy_with(const trs_Deque *self, trs_Al *al, trs_Deque **ou
 
     *out = copy;
 
-    return TRS_STATUS_OK;
+    return TDA_STATUS_OK;
 }
 
-trs_Status trs_deque_copy_assign(const trs_Deque *self, trs_Deque *other) {
+tda_Status tda_deque_copy_assign(const tda_Deque *self, tda_Deque *other) {
     ASSERT_DEQUE(self);
     ASSERT_DEQUE(other);
     assert(self->elem_size == other->elem_size);
 
     if (self == other) {
-        return TRS_STATUS_OK;
+        return TDA_STATUS_OK;
     }
 
-    const trs_Status st = trs_deque_reserve(other, self->len);
-    if (TRS_STATUS_IS_ERR(st)) {
+    const tda_Status st = tda_deque_reserve(other, self->len);
+    if (TDA_STATUS_IS_ERR(st)) {
         return st;
     }
 
@@ -202,60 +202,60 @@ trs_Status trs_deque_copy_assign(const trs_Deque *self, trs_Deque *other) {
 
     ASSERT_DEQUE(other);
 
-    return TRS_STATUS_OK;
+    return TDA_STATUS_OK;
 }
 
-trs_Status trs_deque_move_assign(trs_Deque *self, trs_Deque *other) {
+tda_Status tda_deque_move_assign(tda_Deque *self, tda_Deque *other) {
     ASSERT_DEQUE(self);
     ASSERT_DEQUE(other);
     assert(self->elem_size == other->elem_size);
 
     if (self == other) {
-        return TRS_STATUS_OK;
+        return TDA_STATUS_OK;
     }
 
     // one allocator: the block is handed over, ring and all. What 'other' held ends up in 'self' and is released
     // there, through the very allocator that made it
     if (self->al == other->al) {
-        TRS_SWAP(*self, *other);
+        TDA_SWAP(*self, *other);
         release_data(self);
 
         ASSERT_DEQUE(self);
         ASSERT_DEQUE(other);
 
-        return TRS_STATUS_OK;
+        return TDA_STATUS_OK;
     }
 
     // two allocators: the whole copy is built on the target's before anything of it is
     // touched, so a refusal leaves both as they were
-    trs_Deque *obj;
-    const trs_Status st = trs_deque_copy_with(self, other->al, &obj);
-    if (TRS_STATUS_IS_ERR(st)) {
+    tda_Deque *obj;
+    const tda_Status st = tda_deque_copy_with(self, other->al, &obj);
+    if (TDA_STATUS_IS_ERR(st)) {
         return st;
     }
 
-    TRS_SWAP(*other, *obj);
-    trs_deque_drop(obj);
+    TDA_SWAP(*other, *obj);
+    tda_deque_drop(obj);
     release_data(self);
 
     ASSERT_DEQUE(self);
     ASSERT_DEQUE(other);
 
-    return TRS_STATUS_OK;
+    return TDA_STATUS_OK;
 }
 
-void trs_deque_copy_to_span(const trs_Deque *self, trs_SpanMut dst) {
+void tda_deque_copy_to_span(const tda_Deque *self, tda_SpanMut dst) {
     ASSERT_DEQUE(self);
-    TRS_SPAN_ASSERT(dst);
+    TDA_SPAN_ASSERT(dst);
     assert(dst.elem_size == self->elem_size);
     assert(dst.len == self->len);
 
     copy_out(self, dst.data);
 }
 
-void trs_deque_copy_from_span(trs_Deque *self, trs_Span src) {
+void tda_deque_copy_from_span(tda_Deque *self, tda_Span src) {
     ASSERT_DEQUE(self);
-    TRS_SPAN_ASSERT(src);
+    TDA_SPAN_ASSERT(src);
     assert(src.elem_size == self->elem_size);
     assert(src.len == self->len);
 
@@ -264,7 +264,7 @@ void trs_deque_copy_from_span(trs_Deque *self, trs_Span src) {
 
 /* ========== compare ========== */
 
-bool trs_deque_eq(const trs_Deque *a, const trs_Deque *b) {
+bool tda_deque_eq(const tda_Deque *a, const tda_Deque *b) {
     ASSERT_DEQUE(a);
     ASSERT_DEQUE(b);
     assert(a->elem_size == b->elem_size);
@@ -288,7 +288,7 @@ bool trs_deque_eq(const trs_Deque *a, const trs_Deque *b) {
     return true;
 }
 
-bool trs_deque_eq_by(const trs_Deque *a, const trs_Deque *b, trs_Eq eq) {
+bool tda_deque_eq_by(const tda_Deque *a, const tda_Deque *b, tda_Eq eq) {
     ASSERT_DEQUE(a);
     ASSERT_DEQUE(b);
     assert(a->elem_size == b->elem_size);
@@ -313,31 +313,31 @@ bool trs_deque_eq_by(const trs_Deque *a, const trs_Deque *b, trs_Eq eq) {
 
 /* ========== info ========== */
 
-size_t trs_deque_len(const trs_Deque *self) {
+size_t tda_deque_len(const tda_Deque *self) {
     ASSERT_DEQUE(self);
 
     return self->len;
 }
 
-size_t trs_deque_cap(const trs_Deque *self) {
+size_t tda_deque_cap(const tda_Deque *self) {
     ASSERT_DEQUE(self);
 
     return self->cap;
 }
 
-size_t trs_deque_elem_size(const trs_Deque *self) {
+size_t tda_deque_elem_size(const tda_Deque *self) {
     ASSERT_DEQUE(self);
 
     return self->elem_size;
 }
 
-size_t trs_deque_bytes(const trs_Deque *self) {
+size_t tda_deque_bytes(const tda_Deque *self) {
     ASSERT_DEQUE(self);
 
     return len_bytes(self);
 }
 
-trs_Al *trs_deque_al(const trs_Deque *self) {
+tda_Al *tda_deque_al(const tda_Deque *self) {
     ASSERT_DEQUE(self);
 
     return self->al;
@@ -345,49 +345,49 @@ trs_Al *trs_deque_al(const trs_Deque *self) {
 
 /* ========== access ========== */
 
-const void *trs_deque_front(const trs_Deque *self) {
+const void *tda_deque_front(const tda_Deque *self) {
     ASSERT_DEQUE(self);
     assert(self->len > 0);
 
     return elem_at(self, 0);
 }
 
-void *trs_deque_front_mut(trs_Deque *self) {
+void *tda_deque_front_mut(tda_Deque *self) {
     ASSERT_DEQUE(self);
     assert(self->len > 0);
 
     return elem_at_mut(self, 0);
 }
 
-const void *trs_deque_back(const trs_Deque *self) {
+const void *tda_deque_back(const tda_Deque *self) {
     ASSERT_DEQUE(self);
     assert(self->len > 0);
 
     return elem_at(self, self->len - 1);
 }
 
-void *trs_deque_back_mut(trs_Deque *self) {
+void *tda_deque_back_mut(tda_Deque *self) {
     ASSERT_DEQUE(self);
     assert(self->len > 0);
 
     return elem_at_mut(self, self->len - 1);
 }
 
-const void *trs_deque_get(const trs_Deque *self, size_t idx) {
+const void *tda_deque_get(const tda_Deque *self, size_t idx) {
     ASSERT_DEQUE(self);
     assert(idx < self->len);
 
     return elem_at(self, idx);
 }
 
-void *trs_deque_get_mut(trs_Deque *self, size_t idx) {
+void *tda_deque_get_mut(tda_Deque *self, size_t idx) {
     ASSERT_DEQUE(self);
     assert(idx < self->len);
 
     return elem_at_mut(self, idx);
 }
 
-void trs_deque_set(trs_Deque *self, size_t idx, const void *val) {
+void tda_deque_set(tda_Deque *self, size_t idx, const void *val) {
     ASSERT_DEQUE(self);
     assert(val);
     assert(idx < self->len);
@@ -397,12 +397,12 @@ void trs_deque_set(trs_Deque *self, size_t idx, const void *val) {
 
 /* ========== mods ========== */
 
-trs_Status trs_deque_push_front(trs_Deque *self, const void *val) {
+tda_Status tda_deque_push_front(tda_Deque *self, const void *val) {
     ASSERT_DEQUE(self);
     assert(val);
 
-    const trs_Status st = reserve_one(self);
-    if (TRS_STATUS_IS_ERR(st)) {
+    const tda_Status st = reserve_one(self);
+    if (TDA_STATUS_IS_ERR(st)) {
         return st;
     }
 
@@ -411,25 +411,25 @@ trs_Status trs_deque_push_front(trs_Deque *self, const void *val) {
     memcpy(slot_at_mut(self, self->head), val, self->elem_size);
     ++self->len;
 
-    return TRS_STATUS_OK;
+    return TDA_STATUS_OK;
 }
 
-trs_Status trs_deque_push_back(trs_Deque *self, const void *val) {
+tda_Status tda_deque_push_back(tda_Deque *self, const void *val) {
     ASSERT_DEQUE(self);
     assert(val);
 
-    const trs_Status st = reserve_one(self);
-    if (TRS_STATUS_IS_ERR(st)) {
+    const tda_Status st = reserve_one(self);
+    if (TDA_STATUS_IS_ERR(st)) {
         return st;
     }
 
     memcpy(elem_at_mut(self, self->len), val, self->elem_size);
     ++self->len;
 
-    return TRS_STATUS_OK;
+    return TDA_STATUS_OK;
 }
 
-void trs_deque_pop_front(trs_Deque *self) {
+void tda_deque_pop_front(tda_Deque *self) {
     ASSERT_DEQUE(self);
     assert(self->len > 0);
 
@@ -437,20 +437,20 @@ void trs_deque_pop_front(trs_Deque *self) {
     --self->len;
 }
 
-void trs_deque_pop_back(trs_Deque *self) {
+void tda_deque_pop_back(tda_Deque *self) {
     ASSERT_DEQUE(self);
     assert(self->len > 0);
 
     --self->len;
 }
 
-trs_Status trs_deque_insert(trs_Deque *self, size_t idx, const void *val) {
+tda_Status tda_deque_insert(tda_Deque *self, size_t idx, const void *val) {
     ASSERT_DEQUE(self);
     assert(val);
     assert(idx <= self->len);
 
-    const trs_Status st = reserve_one(self);
-    if (TRS_STATUS_IS_ERR(st)) {
+    const tda_Status st = reserve_one(self);
+    if (TDA_STATUS_IS_ERR(st)) {
         return st;
     }
 
@@ -474,10 +474,10 @@ trs_Status trs_deque_insert(trs_Deque *self, size_t idx, const void *val) {
 
     memcpy(elem_at_mut(self, idx), val, self->elem_size);
 
-    return TRS_STATUS_OK;
+    return TDA_STATUS_OK;
 }
 
-void trs_deque_remove(trs_Deque *self, size_t idx) {
+void tda_deque_remove(tda_Deque *self, size_t idx) {
     ASSERT_DEQUE(self);
     assert(idx < self->len);
 
@@ -496,36 +496,36 @@ void trs_deque_remove(trs_Deque *self, size_t idx) {
     --self->len;
 }
 
-void trs_deque_clear(trs_Deque *self) {
+void tda_deque_clear(tda_Deque *self) {
     ASSERT_DEQUE(self);
 
     self->len = 0;
     self->head = 0;
 }
 
-trs_Status trs_deque_reserve(trs_Deque *self, size_t new_cap) {
+tda_Status tda_deque_reserve(tda_Deque *self, size_t new_cap) {
     ASSERT_DEQUE(self);
 
     if (new_cap <= self->cap) {
-        return TRS_STATUS_OK;
+        return TDA_STATUS_OK;
     }
 
     size_t new_bytes;
     if (ckd_mul(&new_bytes, new_cap, self->elem_size)) {
-        return TRS_STATUS_ERR_NO_MEM;
+        return TDA_STATUS_ERR_NO_MEM;
     }
 
     // a fresh block rather than a realloc: growing in place would leave the wrapped
     // part sitting before the seam, where the new capacity does not reach it. The
     // contents are unrolled into the new block instead, which is the same two memcpy
     // a realloc would have needed anyway
-    void *data = trs_alloc(self->al, new_bytes);
+    void *data = tda_alloc(self->al, new_bytes);
     if (!data) {
-        return TRS_STATUS_ERR_NO_MEM;
+        return TDA_STATUS_ERR_NO_MEM;
     }
 
     copy_out(self, data);
-    trs_dealloc(self->al, self->data, cap_bytes(self));
+    tda_dealloc(self->al, self->data, cap_bytes(self));
 
     self->data = data;
     self->cap = new_cap;
@@ -533,34 +533,34 @@ trs_Status trs_deque_reserve(trs_Deque *self, size_t new_cap) {
 
     ASSERT_DEQUE(self);
 
-    return TRS_STATUS_OK;
+    return TDA_STATUS_OK;
 }
 
-trs_Status trs_deque_shrink_to_fit(trs_Deque *self) {
+tda_Status tda_deque_shrink_to_fit(tda_Deque *self) {
     ASSERT_DEQUE(self);
 
     if (self->len == self->cap) {
-        return TRS_STATUS_OK;
+        return TDA_STATUS_OK;
     }
 
     if (self->len == 0) {
-        trs_dealloc(self->al, self->data, cap_bytes(self));
+        tda_dealloc(self->al, self->data, cap_bytes(self));
         self->data = nullptr;
         self->cap = 0;
         self->head = 0;
 
         ASSERT_DEQUE(self);
 
-        return TRS_STATUS_OK;
+        return TDA_STATUS_OK;
     }
 
-    void *data = trs_alloc(self->al, len_bytes(self));
+    void *data = tda_alloc(self->al, len_bytes(self));
     if (!data) {
-        return TRS_STATUS_ERR_NO_MEM;
+        return TDA_STATUS_ERR_NO_MEM;
     }
 
     copy_out(self, data);
-    trs_dealloc(self->al, self->data, cap_bytes(self));
+    tda_dealloc(self->al, self->data, cap_bytes(self));
 
     self->data = data;
     self->cap = self->len;
@@ -568,20 +568,20 @@ trs_Status trs_deque_shrink_to_fit(trs_Deque *self) {
 
     ASSERT_DEQUE(self);
 
-    return TRS_STATUS_OK;
+    return TDA_STATUS_OK;
 }
 
-trs_Status trs_deque_resize(trs_Deque *self, size_t new_len) {
+tda_Status tda_deque_resize(tda_Deque *self, size_t new_len) {
     ASSERT_DEQUE(self);
 
     if (new_len <= self->len) {
         self->len = new_len;
-        return TRS_STATUS_OK;
+        return TDA_STATUS_OK;
     }
 
     if (new_len > self->cap) {
-        const trs_Status st = trs_deque_reserve(self, new_len);
-        if (TRS_STATUS_IS_ERR(st)) {
+        const tda_Status st = tda_deque_reserve(self, new_len);
+        if (TDA_STATUS_IS_ERR(st)) {
             return st;
         }
     }
@@ -595,10 +595,10 @@ trs_Status trs_deque_resize(trs_Deque *self, size_t new_len) {
 
     ASSERT_DEQUE(self);
 
-    return TRS_STATUS_OK;
+    return TDA_STATUS_OK;
 }
 
-void trs_deque_swap(trs_Deque *self, trs_Deque *other) {
+void tda_deque_swap(tda_Deque *self, tda_Deque *other) {
     ASSERT_DEQUE(self);
     ASSERT_DEQUE(other);
     assert(self->elem_size == other->elem_size);
@@ -608,13 +608,13 @@ void trs_deque_swap(trs_Deque *self, trs_Deque *other) {
         return;
     }
 
-    TRS_SWAP(*self, *other);
+    TDA_SWAP(*self, *other);
 
     ASSERT_DEQUE(self);
     ASSERT_DEQUE(other);
 }
 
-void trs_deque_swap_elems(trs_Deque *self, size_t i, size_t j) {
+void tda_deque_swap_elems(tda_Deque *self, size_t i, size_t j) {
     ASSERT_DEQUE(self);
     assert(i < self->len);
     assert(j < self->len);
@@ -623,17 +623,17 @@ void trs_deque_swap_elems(trs_Deque *self, size_t i, size_t j) {
         return;
     }
 
-    trs_bytes_swap(elem_at_mut(self, i), elem_at_mut(self, j), self->elem_size);
+    tda_bytes_swap(elem_at_mut(self, i), elem_at_mut(self, j), self->elem_size);
 }
 
 /* ========== print ========== */
 
-void trs_deque_fprint(const trs_Deque *self, FILE *stream, trs_FPrint fprint) {
+void tda_deque_fprint(const tda_Deque *self, FILE *stream, tda_FPrint fprint) {
     ASSERT_DEQUE(self);
     assert(stream);
     assert(fprint);
 
-    // spelled out rather than delegated to trs_span_fprint: there is no span to
+    // spelled out rather than delegated to tda_span_fprint: there is no span to
     // delegate with. The format is the same one on purpose
     fputc('[', stream);
     for (size_t i = 0; i < self->len; ++i) {
@@ -645,24 +645,24 @@ void trs_deque_fprint(const trs_Deque *self, FILE *stream, trs_FPrint fprint) {
     fputs("]\n", stream);
 }
 
-void trs_deque_print(const trs_Deque *self, trs_FPrint fprint) {
+void tda_deque_print(const tda_Deque *self, tda_FPrint fprint) {
     ASSERT_DEQUE(self);
     assert(fprint);
 
-    trs_deque_fprint(self, stdout, fprint);
+    tda_deque_fprint(self, stdout, fprint);
 }
 
 /* ========== internals ========== */
 
-static trs_Status new_impl(bool zeroed, size_t len, size_t cap, size_t elem_size, trs_Al *al, trs_Deque **out) {
+static tda_Status new_impl(bool zeroed, size_t len, size_t cap, size_t elem_size, tda_Al *al, tda_Deque **out) {
     assert(len <= cap);
     assert(elem_size > 0);
     assert(al);
     assert(out);
 
-    trs_Deque *obj = trs_alloc(al, sizeof(trs_Deque));
+    tda_Deque *obj = tda_alloc(al, sizeof(tda_Deque));
     if (!obj) {
-        return TRS_STATUS_ERR_NO_MEM;
+        return TDA_STATUS_ERR_NO_MEM;
     }
 
     void *data = nullptr;
@@ -672,7 +672,7 @@ static trs_Status new_impl(bool zeroed, size_t len, size_t cap, size_t elem_size
         if (ckd_mul(&bytes, cap, elem_size)) {
             goto fail;
         }
-        data = trs_alloc(al, bytes);
+        data = tda_alloc(al, bytes);
         if (!data) {
             goto fail;
         }
@@ -686,14 +686,14 @@ static trs_Status new_impl(bool zeroed, size_t len, size_t cap, size_t elem_size
     ASSERT_DEQUE(obj);
 
     *out = obj;
-    return TRS_STATUS_OK;
+    return TDA_STATUS_OK;
 
 fail:
-    trs_dealloc(al, obj, sizeof(trs_Deque));
-    return TRS_STATUS_ERR_NO_MEM;
+    tda_dealloc(al, obj, sizeof(tda_Deque));
+    return TDA_STATUS_ERR_NO_MEM;
 }
 
-static void set_fields(trs_Deque *obj, void *data, size_t len, size_t cap, size_t elem_size, trs_Al *al) {
+static void set_fields(tda_Deque *obj, void *data, size_t len, size_t cap, size_t elem_size, tda_Al *al) {
     obj->data = data;
     obj->len = len;
     obj->cap = cap;
@@ -702,7 +702,7 @@ static void set_fields(trs_Deque *obj, void *data, size_t len, size_t cap, size_
     obj->al = al;
 }
 
-static size_t next_cap(const trs_Deque *self) {
+static size_t next_cap(const tda_Deque *self) {
     if (self->cap == 0) {
         return DEQUE_GROWTH_BASE;
     }
@@ -715,44 +715,44 @@ static size_t next_cap(const trs_Deque *self) {
     return grown;
 }
 
-static trs_Status reserve_one(trs_Deque *self) {
-    return self->len == self->cap ? grow(self) : TRS_STATUS_OK;
+static tda_Status reserve_one(tda_Deque *self) {
+    return self->len == self->cap ? grow(self) : TDA_STATUS_OK;
 }
 
-static trs_Status grow(trs_Deque *self) {
+static tda_Status grow(tda_Deque *self) {
     assert(self->len == self->cap);
 
     if (self->cap == SIZE_MAX) {
-        return TRS_STATUS_ERR_NO_MEM;
+        return TDA_STATUS_ERR_NO_MEM;
     }
 
     const size_t wanted = next_cap(self);
 
-    const trs_Status st = trs_deque_reserve(self, wanted);
-    if (TRS_STATUS_IS_OK(st) || wanted <= self->cap + 1) {
+    const tda_Status st = tda_deque_reserve(self, wanted);
+    if (TDA_STATUS_IS_OK(st) || wanted <= self->cap + 1) {
         return st;
     }
 
-    return trs_deque_reserve(self, self->cap + 1);
+    return tda_deque_reserve(self, self->cap + 1);
 }
 
-static void release_data(trs_Deque *self) {
-    trs_dealloc(self->al, self->data, cap_bytes(self));
+static void release_data(tda_Deque *self) {
+    tda_dealloc(self->al, self->data, cap_bytes(self));
     self->data = nullptr;
     self->len = 0;
     self->cap = 0;
     self->head = 0;
 }
 
-static size_t len_bytes(const trs_Deque *self) {
+static size_t len_bytes(const tda_Deque *self) {
     return self->len * self->elem_size;
 }
 
-static size_t cap_bytes(const trs_Deque *self) {
+static size_t cap_bytes(const tda_Deque *self) {
     return self->cap * self->elem_size;
 }
 
-static size_t slot_of(const trs_Deque *self, size_t idx) {
+static size_t slot_of(const tda_Deque *self, size_t idx) {
     assert(self->cap > 0);
     assert(idx < self->cap);
 
@@ -761,29 +761,29 @@ static size_t slot_of(const trs_Deque *self, size_t idx) {
     return raw < self->cap ? raw : raw - self->cap;
 }
 
-static const unsigned char *slot_at(const trs_Deque *self, size_t slot) {
-    return trs_byte_offset(self->data, self->elem_size, slot);
+static const unsigned char *slot_at(const tda_Deque *self, size_t slot) {
+    return tda_byte_offset(self->data, self->elem_size, slot);
 }
 
-static unsigned char *slot_at_mut(trs_Deque *self, size_t slot) {
-    return trs_byte_offset_mut(self->data, self->elem_size, slot);
+static unsigned char *slot_at_mut(tda_Deque *self, size_t slot) {
+    return tda_byte_offset_mut(self->data, self->elem_size, slot);
 }
 
-static const unsigned char *elem_at(const trs_Deque *self, size_t idx) {
+static const unsigned char *elem_at(const tda_Deque *self, size_t idx) {
     return slot_at(self, slot_of(self, idx));
 }
 
-static unsigned char *elem_at_mut(trs_Deque *self, size_t idx) {
+static unsigned char *elem_at_mut(tda_Deque *self, size_t idx) {
     return slot_at_mut(self, slot_of(self, idx));
 }
 
-static size_t first_run(const trs_Deque *self) {
+static size_t first_run(const tda_Deque *self) {
     const size_t to_end = self->cap - self->head;
 
     return to_end < self->len ? to_end : self->len;
 }
 
-static void copy_out(const trs_Deque *self, void *dst) {
+static void copy_out(const tda_Deque *self, void *dst) {
     if (self->len == 0) {
         return;
     }
@@ -793,14 +793,14 @@ static void copy_out(const trs_Deque *self, void *dst) {
 
     if (run < self->len) {
         memcpy(
-            trs_byte_offset_mut(dst, self->elem_size, run),
+            tda_byte_offset_mut(dst, self->elem_size, run),
             slot_at(self, 0),
             (self->len - run) * self->elem_size
         );
     }
 }
 
-static void copy_in(trs_Deque *self, const void *src) {
+static void copy_in(tda_Deque *self, const void *src) {
     if (self->len == 0) {
         return;
     }
@@ -811,13 +811,13 @@ static void copy_in(trs_Deque *self, const void *src) {
     if (run < self->len) {
         memcpy(
             slot_at_mut(self, 0),
-            trs_byte_offset(src, self->elem_size, run),
+            tda_byte_offset(src, self->elem_size, run),
             (self->len - run) * self->elem_size
         );
     }
 }
 
-static void move_elem(trs_Deque *self, size_t to, size_t from) {
+static void move_elem(tda_Deque *self, size_t to, size_t from) {
     // two distinct slots of the same ring, so they never overlap
     memcpy(elem_at_mut(self, to), elem_at_mut(self, from), self->elem_size);
 }

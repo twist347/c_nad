@@ -20,10 +20,10 @@ BRIEF_MEMBER_DESC      = NO
 # @bigo{n} -> a "Complexity: O(n)" paragraph. ^^ is a newline
 ALIASES                = "bigo{1}=@par Complexity^^O(\1)"
 
-# drop TRS_API from the signatures shown; all three lines are needed for that
+# drop TDA_API from the signatures shown; all three lines are needed for that
 MACRO_EXPANSION        = YES
 EXPAND_ONLY_PREDEF     = YES
-PREDEFINED             = TRS_API=
+PREDEFINED             = TDA_API=
 
 QUIET                  = YES
 WARN_NO_PARAMDOC       = YES

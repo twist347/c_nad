@@ -1,7 +1,7 @@
 // for @snippet
 
-#include "trs/core/print.h"
-#include "trs/core/span.h"
+#include "tda/core/print.h"
+#include "tda/core/span.h"
 
 #include <inttypes.h>
 #include <stdint.h>
@@ -24,21 +24,21 @@ static void fprint_person(FILE *stream, const void *x) {
 
 int main() {
     /// [ready]
-    const trs_Span nums = TRS_SPAN_OF(int32_t, 5, 3, 1);
-    trs_span_print(nums, trs_fprint_i32); // [5, 3, 1]
+    const tda_Span nums = TDA_SPAN_OF(int32_t, 5, 3, 1);
+    tda_span_print(nums, tda_fprint_i32); // [5, 3, 1]
 
     // cstr reads a pointer to a pointer, quotes what it finds, and gives a null pointer a
     // form of its own. It needs a type name of its own too: the macro writes 'const T',
     // and 'const const char *' is not a type
     typedef const char *Cstr;
 
-    const trs_Span names = TRS_SPAN_OF(Cstr, "ann", nullptr, "bo, jr");
-    trs_span_print(names, trs_fprint_cstr); // ["ann", null, "bo, jr"]
+    const tda_Span names = TDA_SPAN_OF(Cstr, "ann", nullptr, "bo, jr");
+    tda_span_print(names, tda_fprint_cstr); // ["ann", null, "bo, jr"]
     /// [ready]
 
     /// [use]
-    const trs_Span people = TRS_SPAN_OF(Person, { "ann", 31 }, { "bo", 4 });
-    trs_span_print(people, fprint_person); // [ann(31), bo(4)]
+    const tda_Span people = TDA_SPAN_OF(Person, { "ann", 31 }, { "bo", 4 });
+    tda_span_print(people, fprint_person); // [ann(31), bo(4)]
     /// [use]
 
     return 0;

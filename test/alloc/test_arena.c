@@ -1,5 +1,5 @@
-#include "trs/alloc/arena.h"
-#include "trs/alloc/default.h"
+#include "tda/alloc/arena.h"
+#include "tda/alloc/default.h"
 
 #include <unity.h>
 
@@ -53,8 +53,8 @@ static void probe_dealloc(void *ctx, void *ptr, size_t size) {
     free(ptr);
 }
 
-static trs_Al probe_al() {
-    return (trs_Al){
+static tda_Al probe_al() {
+    return (tda_Al){
         .ctx = &probe,
         .alloc = probe_alloc,
         .calloc = nullptr,
@@ -73,26 +73,26 @@ void tearDown() {
 /* ========== lifetime ========== */
 
 static void test_new_starts_empty() {
-    trs_Al *arena = trs_al_arena_new(trs_al_default(), 1024);
+    tda_Al *arena = tda_al_arena_new(tda_al_default(), 1024);
     TEST_ASSERT_NOT_NULL(arena);
 
-    const trs_AlArenaStats st = trs_al_arena_stats(arena);
+    const tda_AlArenaStats st = tda_al_arena_stats(arena);
     TEST_ASSERT_EQUAL_size_t(1024, st.cap);
     TEST_ASSERT_EQUAL_size_t(0, st.used);
     TEST_ASSERT_EQUAL_size_t(1024, st.available);
 
-    trs_al_arena_drop(arena);
+    tda_al_arena_drop(arena);
 }
 
 // the arena borrows its parent: everything it took must go back on drop
 static void test_drop_returns_everything_to_the_parent() {
-    trs_Al parent = probe_al();
+    tda_Al parent = probe_al();
 
-    trs_Al *arena = trs_al_arena_new(&parent, 256);
+    tda_Al *arena = tda_al_arena_new(&parent, 256);
     TEST_ASSERT_NOT_NULL(arena);
-    TEST_ASSERT_EQUAL_size_t(3, probe.live); // buffer, context, the trs_Al itself
+    TEST_ASSERT_EQUAL_size_t(3, probe.live); // buffer, context, the tda_Al itself
 
-    trs_al_arena_drop(arena);
+    tda_al_arena_drop(arena);
     TEST_ASSERT_EQUAL_size_t(0, probe.live);
 }
 
@@ -100,50 +100,50 @@ static void test_drop_returns_everything_to_the_parent() {
 static void test_new_cleans_up_after_a_failing_parent() {
     for (size_t fail_at = 0; fail_at < 3; ++fail_at) {
         probe = (Probe){.fail_after = fail_at};
-        trs_Al parent = probe_al();
+        tda_Al parent = probe_al();
 
-        TEST_ASSERT_NULL(trs_al_arena_new(&parent, 256));
+        TEST_ASSERT_NULL(tda_al_arena_new(&parent, 256));
         TEST_ASSERT_EQUAL_size_t(0, probe.live);
     }
 }
 
 static void test_drop_null_is_noop() {
-    trs_al_arena_drop(nullptr);
+    tda_al_arena_drop(nullptr);
 }
 
 /* ========== alloc ========== */
 
 static void test_alloc_advances_by_the_aligned_size() {
-    trs_Al *arena = trs_al_arena_new(trs_al_default(), 1024);
+    tda_Al *arena = tda_al_arena_new(tda_al_default(), 1024);
 
-    void *p = trs_alloc(arena, 1);
+    void *p = tda_alloc(arena, 1);
     TEST_ASSERT_NOT_NULL(p);
 
-    const trs_AlArenaStats st = trs_al_arena_stats(arena);
+    const tda_AlArenaStats st = tda_al_arena_stats(arena);
     TEST_ASSERT_EQUAL_size_t(aligned(1), st.used);
     TEST_ASSERT_EQUAL_size_t(1024 - aligned(1), st.available);
 
-    trs_al_arena_drop(arena);
+    tda_al_arena_drop(arena);
 }
 
 static void test_every_block_is_aligned() {
-    trs_Al *arena = trs_al_arena_new(trs_al_default(), 1024);
+    tda_Al *arena = tda_al_arena_new(tda_al_default(), 1024);
 
     for (size_t size = 1; size <= 40; size += 7) {
-        void *p = trs_alloc(arena, size);
+        void *p = tda_alloc(arena, size);
         TEST_ASSERT_NOT_NULL(p);
         TEST_ASSERT_EQUAL_size_t(0, (uintptr_t) p % ALIGNMENT);
     }
 
-    trs_al_arena_drop(arena);
+    tda_al_arena_drop(arena);
 }
 
 // consecutive blocks are disjoint — writing one must not disturb its neighbour
 static void test_blocks_do_not_overlap() {
-    trs_Al *arena = trs_al_arena_new(trs_al_default(), 1024);
+    tda_Al *arena = tda_al_arena_new(tda_al_default(), 1024);
 
-    unsigned char *a = trs_alloc(arena, 16);
-    unsigned char *b = trs_alloc(arena, 16);
+    unsigned char *a = tda_alloc(arena, 16);
+    unsigned char *b = tda_alloc(arena, 16);
     TEST_ASSERT_NOT_NULL(a);
     TEST_ASSERT_NOT_NULL(b);
     TEST_ASSERT_TRUE(a != b);
@@ -153,114 +153,114 @@ static void test_blocks_do_not_overlap() {
     TEST_ASSERT_EQUAL_UINT8(0x11, a[15]);
     TEST_ASSERT_EQUAL_UINT8(0x22, b[0]);
 
-    trs_al_arena_drop(arena);
+    tda_al_arena_drop(arena);
 }
 
 static void test_alloc_zero_is_null_and_does_not_move_the_offset() {
-    trs_Al *arena = trs_al_arena_new(trs_al_default(), 256);
+    tda_Al *arena = tda_al_arena_new(tda_al_default(), 256);
 
-    TEST_ASSERT_NULL(trs_alloc(arena, 0));
-    TEST_ASSERT_EQUAL_size_t(0, trs_al_arena_stats(arena).used);
+    TEST_ASSERT_NULL(tda_alloc(arena, 0));
+    TEST_ASSERT_EQUAL_size_t(0, tda_al_arena_stats(arena).used);
 
-    trs_al_arena_drop(arena);
+    tda_al_arena_drop(arena);
 }
 
 // exhaustion is a runtime state, not a bug: it returns nullptr and changes nothing
 static void test_alloc_beyond_the_capacity_fails() {
-    trs_Al *arena = trs_al_arena_new(trs_al_default(), 64);
+    tda_Al *arena = tda_al_arena_new(tda_al_default(), 64);
 
-    TEST_ASSERT_NULL(trs_alloc(arena, 65));
-    TEST_ASSERT_EQUAL_size_t(0, trs_al_arena_stats(arena).used);
+    TEST_ASSERT_NULL(tda_alloc(arena, 65));
+    TEST_ASSERT_EQUAL_size_t(0, tda_al_arena_stats(arena).used);
 
     // a request that still fits is unaffected by the failed one
-    TEST_ASSERT_NOT_NULL(trs_alloc(arena, 16));
+    TEST_ASSERT_NOT_NULL(tda_alloc(arena, 16));
 
-    trs_al_arena_drop(arena);
+    tda_al_arena_drop(arena);
 }
 
 static void test_arena_can_be_filled_exactly() {
-    trs_Al *arena = trs_al_arena_new(trs_al_default(), 4 * ALIGNMENT);
+    tda_Al *arena = tda_al_arena_new(tda_al_default(), 4 * ALIGNMENT);
 
     for (size_t i = 0; i < 4; ++i) {
-        TEST_ASSERT_NOT_NULL(trs_alloc(arena, ALIGNMENT));
+        TEST_ASSERT_NOT_NULL(tda_alloc(arena, ALIGNMENT));
     }
 
-    const trs_AlArenaStats st = trs_al_arena_stats(arena);
+    const tda_AlArenaStats st = tda_al_arena_stats(arena);
     TEST_ASSERT_EQUAL_size_t(4 * ALIGNMENT, st.used);
     TEST_ASSERT_EQUAL_size_t(0, st.available);
 
     // and the next one has nowhere to go
-    TEST_ASSERT_NULL(trs_alloc(arena, 1));
+    TEST_ASSERT_NULL(tda_alloc(arena, 1));
 
-    trs_al_arena_drop(arena);
+    tda_al_arena_drop(arena);
 }
 
 // rounding up must be accounted for: a small request still consumes a whole slot
 static void test_capacity_accounts_for_rounding() {
-    trs_Al *arena = trs_al_arena_new(trs_al_default(), ALIGNMENT);
+    tda_Al *arena = tda_al_arena_new(tda_al_default(), ALIGNMENT);
 
-    TEST_ASSERT_NOT_NULL(trs_alloc(arena, 1));
-    TEST_ASSERT_EQUAL_size_t(0, trs_al_arena_stats(arena).available);
-    TEST_ASSERT_NULL(trs_alloc(arena, 1));
+    TEST_ASSERT_NOT_NULL(tda_alloc(arena, 1));
+    TEST_ASSERT_EQUAL_size_t(0, tda_al_arena_stats(arena).available);
+    TEST_ASSERT_NULL(tda_alloc(arena, 1));
 
-    trs_al_arena_drop(arena);
+    tda_al_arena_drop(arena);
 }
 
 /* ========== calloc ========== */
 
 static void test_calloc_zeroes_the_block() {
-    trs_Al *arena = trs_al_arena_new(trs_al_default(), 1024);
+    tda_Al *arena = tda_al_arena_new(tda_al_default(), 1024);
 
-    const unsigned char *p = trs_calloc(arena, 8, 4);
+    const unsigned char *p = tda_calloc(arena, 8, 4);
     TEST_ASSERT_NOT_NULL(p);
     for (size_t i = 0; i < 32; ++i) {
         TEST_ASSERT_EQUAL_UINT8(0, p[i]);
     }
 
-    trs_al_arena_drop(arena);
+    tda_al_arena_drop(arena);
 }
 
 // a reused arena must not hand out the previous tenant's bytes through calloc
 static void test_calloc_zeroes_reused_memory() {
-    trs_Al *arena = trs_al_arena_new(trs_al_default(), 1024);
+    tda_Al *arena = tda_al_arena_new(tda_al_default(), 1024);
 
-    unsigned char *first = trs_alloc(arena, 32);
+    unsigned char *first = tda_alloc(arena, 32);
     TEST_ASSERT_NOT_NULL(first);
     memset(first, 0xFF, 32);
 
-    trs_al_arena_reset(arena);
+    tda_al_arena_reset(arena);
 
-    const unsigned char *second = trs_calloc(arena, 8, 4);
+    const unsigned char *second = tda_calloc(arena, 8, 4);
     TEST_ASSERT_EQUAL_PTR(first, second);
     for (size_t i = 0; i < 32; ++i) {
         TEST_ASSERT_EQUAL_UINT8(0, second[i]);
     }
 
-    trs_al_arena_drop(arena);
+    tda_al_arena_drop(arena);
 }
 
 static void test_calloc_rejects_overflow() {
-    trs_Al *arena = trs_al_arena_new(trs_al_default(), 256);
+    tda_Al *arena = tda_al_arena_new(tda_al_default(), 256);
 
-    TEST_ASSERT_NULL(trs_calloc(arena, SIZE_MAX, 2));
-    TEST_ASSERT_EQUAL_size_t(0, trs_al_arena_stats(arena).used);
+    TEST_ASSERT_NULL(tda_calloc(arena, SIZE_MAX, 2));
+    TEST_ASSERT_EQUAL_size_t(0, tda_al_arena_stats(arena).used);
 
-    trs_al_arena_drop(arena);
+    tda_al_arena_drop(arena);
 }
 
 /* ========== realloc ========== */
 
-// the arena has no realloc hook, so trs_realloc falls back to alloc + copy
+// the arena has no realloc hook, so tda_realloc falls back to alloc + copy
 static void test_realloc_falls_back_to_a_fresh_block() {
-    trs_Al *arena = trs_al_arena_new(trs_al_default(), 1024);
+    tda_Al *arena = tda_al_arena_new(tda_al_default(), 1024);
 
-    unsigned char *p = trs_alloc(arena, 16);
+    unsigned char *p = tda_alloc(arena, 16);
     TEST_ASSERT_NOT_NULL(p);
     for (size_t i = 0; i < 16; ++i) {
         p[i] = (unsigned char) (i + 1);
     }
 
-    unsigned char *q = trs_realloc(arena, p, 16, 64);
+    unsigned char *q = tda_realloc(arena, p, 16, 64);
     TEST_ASSERT_NOT_NULL(q);
     TEST_ASSERT_TRUE(p != q);
     for (size_t i = 0; i < 16; ++i) {
@@ -268,72 +268,72 @@ static void test_realloc_falls_back_to_a_fresh_block() {
     }
 
     // the old block is not reclaimed — both slots are still charged
-    TEST_ASSERT_EQUAL_size_t(16 + 64, trs_al_arena_stats(arena).used);
+    TEST_ASSERT_EQUAL_size_t(16 + 64, tda_al_arena_stats(arena).used);
 
-    trs_al_arena_drop(arena);
+    tda_al_arena_drop(arena);
 }
 
 /* ========== dealloc / reset ========== */
 
 // individual frees are deliberately no-ops: only reset reclaims space
 static void test_dealloc_does_not_reclaim() {
-    trs_Al *arena = trs_al_arena_new(trs_al_default(), 256);
+    tda_Al *arena = tda_al_arena_new(tda_al_default(), 256);
 
-    void *p = trs_alloc(arena, 32);
-    const size_t used = trs_al_arena_stats(arena).used;
+    void *p = tda_alloc(arena, 32);
+    const size_t used = tda_al_arena_stats(arena).used;
 
-    trs_dealloc(arena, p, 32);
-    TEST_ASSERT_EQUAL_size_t(used, trs_al_arena_stats(arena).used);
+    tda_dealloc(arena, p, 32);
+    TEST_ASSERT_EQUAL_size_t(used, tda_al_arena_stats(arena).used);
 
-    trs_al_arena_drop(arena);
+    tda_al_arena_drop(arena);
 }
 
 static void test_reset_reclaims_everything() {
-    trs_Al *arena = trs_al_arena_new(trs_al_default(), 256);
+    tda_Al *arena = tda_al_arena_new(tda_al_default(), 256);
 
-    void *first = trs_alloc(arena, 32);
-    TEST_ASSERT_NOT_NULL(trs_alloc(arena, 32));
+    void *first = tda_alloc(arena, 32);
+    TEST_ASSERT_NOT_NULL(tda_alloc(arena, 32));
 
-    trs_al_arena_reset(arena);
+    tda_al_arena_reset(arena);
 
-    const trs_AlArenaStats st = trs_al_arena_stats(arena);
+    const tda_AlArenaStats st = tda_al_arena_stats(arena);
     TEST_ASSERT_EQUAL_size_t(0, st.used);
     TEST_ASSERT_EQUAL_size_t(256, st.available);
 
     // the arena hands out the same memory again
-    TEST_ASSERT_EQUAL_PTR(first, trs_alloc(arena, 32));
+    TEST_ASSERT_EQUAL_PTR(first, tda_alloc(arena, 32));
 
-    trs_al_arena_drop(arena);
+    tda_al_arena_drop(arena);
 }
 
 static void test_reset_of_an_untouched_arena_is_harmless() {
-    trs_Al *arena = trs_al_arena_new(trs_al_default(), 128);
+    tda_Al *arena = tda_al_arena_new(tda_al_default(), 128);
 
-    trs_al_arena_reset(arena);
-    TEST_ASSERT_EQUAL_size_t(0, trs_al_arena_stats(arena).used);
+    tda_al_arena_reset(arena);
+    TEST_ASSERT_EQUAL_size_t(0, tda_al_arena_stats(arena).used);
 
-    trs_al_arena_drop(arena);
+    tda_al_arena_drop(arena);
 }
 
 /* ========== composition ========== */
 
 // an arena is an ordinary allocator, so it can serve as another arena's parent
 static void test_arena_can_feed_another_arena() {
-    trs_Al *outer = trs_al_arena_new(trs_al_default(), 4096);
+    tda_Al *outer = tda_al_arena_new(tda_al_default(), 4096);
     TEST_ASSERT_NOT_NULL(outer);
 
-    trs_Al *inner = trs_al_arena_new(outer, 256);
+    tda_Al *inner = tda_al_arena_new(outer, 256);
     TEST_ASSERT_NOT_NULL(inner);
 
-    unsigned char *p = trs_alloc(inner, 64);
+    unsigned char *p = tda_alloc(inner, 64);
     TEST_ASSERT_NOT_NULL(p);
     memset(p, 0x7E, 64);
     TEST_ASSERT_EQUAL_UINT8(0x7E, p[63]);
 
-    TEST_ASSERT_EQUAL_size_t(256, trs_al_arena_stats(inner).cap);
+    TEST_ASSERT_EQUAL_size_t(256, tda_al_arena_stats(inner).cap);
 
-    trs_al_arena_drop(inner);
-    trs_al_arena_drop(outer);
+    tda_al_arena_drop(inner);
+    tda_al_arena_drop(outer);
 }
 
 int main() {

@@ -1,6 +1,6 @@
-#include "trs/algo/permute.h"
-#include "trs/algo/search.h"
-#include "trs/core/util.h"
+#include "tda/algo/permute.h"
+#include "tda/algo/search.h"
+#include "tda/core/util.h"
 
 #include <unity.h>
 
@@ -19,12 +19,12 @@ typedef struct {
 } Tagged;
 
 static int cmp_tagged(const void *a, const void *b) {
-    return trs_cmp_i32(&((const Tagged *) a)->key, &((const Tagged *) b)->key);
+    return tda_cmp_i32(&((const Tagged *) a)->key, &((const Tagged *) b)->key);
 }
 
 // a predicate that needs nothing: ctx stays null
 static bool is_even(const void *elem, void *ctx) {
-    TRS_UNUSED(ctx);
+    TDA_UNUSED(ctx);
 
     return *(const int32_t *) elem % 2 == 0;
 }
@@ -45,7 +45,7 @@ static void test_find_reports_the_first_match() {
     constexpr int32_t key = 1;
 
     size_t idx = 999;
-    TEST_ASSERT_TRUE(trs_span_find(TRS_SPAN_FROM_DATA(int32_t, buf, 5), &key, trs_eq_i32, &idx));
+    TEST_ASSERT_TRUE(tda_span_find(TDA_SPAN_FROM_DATA(int32_t, buf, 5), &key, tda_eq_i32, &idx));
     TEST_ASSERT_EQUAL_size_t(1, idx);
 }
 
@@ -55,7 +55,7 @@ static void test_find_miss_leaves_the_out_param_alone() {
     constexpr int32_t key = 9;
 
     size_t idx = 777;
-    TEST_ASSERT_FALSE(trs_span_find(TRS_SPAN_FROM_DATA(int32_t, buf, 3), &key, trs_eq_i32, &idx));
+    TEST_ASSERT_FALSE(tda_span_find(TDA_SPAN_FROM_DATA(int32_t, buf, 3), &key, tda_eq_i32, &idx));
     TEST_ASSERT_EQUAL_size_t(777, idx);
 }
 
@@ -64,7 +64,7 @@ static void test_find_in_an_empty_span_misses() {
     constexpr int32_t key = 1;
 
     size_t idx = 555;
-    TEST_ASSERT_FALSE(trs_span_find(TRS_SPAN_FROM_DATA(int32_t, buf, 0), &key, trs_eq_i32, &idx));
+    TEST_ASSERT_FALSE(tda_span_find(TDA_SPAN_FROM_DATA(int32_t, buf, 0), &key, tda_eq_i32, &idx));
     TEST_ASSERT_EQUAL_size_t(555, idx);
 }
 
@@ -73,18 +73,18 @@ static void test_find_matches_the_last_elem() {
     constexpr int32_t key = 4;
 
     size_t idx = 0;
-    TEST_ASSERT_TRUE(trs_span_find(TRS_SPAN_FROM_DATA(int32_t, buf, 4), &key, trs_eq_i32, &idx));
+    TEST_ASSERT_TRUE(tda_span_find(TDA_SPAN_FROM_DATA(int32_t, buf, 4), &key, tda_eq_i32, &idx));
     TEST_ASSERT_EQUAL_size_t(3, idx);
 }
 
 // searching a subspan reports an index relative to that subspan
 static void test_find_index_is_relative_to_the_span() {
     constexpr int32_t buf[5] = {1, 2, 3, 4, 5};
-    const trs_Span s = TRS_SPAN_FROM_DATA(int32_t, buf, 5);
+    const tda_Span s = TDA_SPAN_FROM_DATA(int32_t, buf, 5);
     constexpr int32_t key = 4;
 
     size_t idx = 0;
-    TEST_ASSERT_TRUE(trs_span_find(trs_span_sub(s, 2, 3), &key, trs_eq_i32, &idx));
+    TEST_ASSERT_TRUE(tda_span_find(tda_span_sub(s, 2, 3), &key, tda_eq_i32, &idx));
     TEST_ASSERT_EQUAL_size_t(1, idx);
 }
 
@@ -95,23 +95,23 @@ static void test_contains() {
     constexpr int32_t present = 2;
     constexpr int32_t absent = 9;
 
-    TEST_ASSERT_TRUE(trs_span_contains(TRS_SPAN_FROM_DATA(int32_t, buf, 3), &present, trs_eq_i32));
-    TEST_ASSERT_FALSE(trs_span_contains(TRS_SPAN_FROM_DATA(int32_t, buf, 3), &absent, trs_eq_i32));
+    TEST_ASSERT_TRUE(tda_span_contains(TDA_SPAN_FROM_DATA(int32_t, buf, 3), &present, tda_eq_i32));
+    TEST_ASSERT_FALSE(tda_span_contains(TDA_SPAN_FROM_DATA(int32_t, buf, 3), &absent, tda_eq_i32));
 }
 
 static void test_count_tallies_every_match() {
     constexpr int32_t buf[6] = {1, 2, 1, 3, 1, 4};
     constexpr int32_t key = 1;
 
-    TEST_ASSERT_EQUAL_size_t(3, trs_span_count(TRS_SPAN_FROM_DATA(int32_t, buf, 6), &key, trs_eq_i32));
+    TEST_ASSERT_EQUAL_size_t(3, tda_span_count(TDA_SPAN_FROM_DATA(int32_t, buf, 6), &key, tda_eq_i32));
 }
 
 static void test_count_of_an_absent_key_is_zero() {
     constexpr int32_t buf[3] = {1, 2, 3};
     constexpr int32_t key = 9;
 
-    TEST_ASSERT_EQUAL_size_t(0, trs_span_count(TRS_SPAN_FROM_DATA(int32_t, buf, 3), &key, trs_eq_i32));
-    TEST_ASSERT_EQUAL_size_t(0, trs_span_count(TRS_SPAN_FROM_DATA(int32_t, buf, 0), &key, trs_eq_i32));
+    TEST_ASSERT_EQUAL_size_t(0, tda_span_count(TDA_SPAN_FROM_DATA(int32_t, buf, 3), &key, tda_eq_i32));
+    TEST_ASSERT_EQUAL_size_t(0, tda_span_count(TDA_SPAN_FROM_DATA(int32_t, buf, 0), &key, tda_eq_i32));
 }
 
 /* ========== bounds ========== */
@@ -120,65 +120,65 @@ static void test_lower_bound_stops_at_the_first_equal() {
     constexpr int32_t buf[6] = {1, 2, 2, 2, 3, 4};
     constexpr int32_t key = 2;
 
-    TEST_ASSERT_EQUAL_size_t(1, trs_span_lower_bound(TRS_SPAN_FROM_DATA(int32_t, buf, 6), &key, trs_cmp_i32));
+    TEST_ASSERT_EQUAL_size_t(1, tda_span_lower_bound(TDA_SPAN_FROM_DATA(int32_t, buf, 6), &key, tda_cmp_i32));
 }
 
 static void test_upper_bound_stops_past_the_last_equal() {
     constexpr int32_t buf[6] = {1, 2, 2, 2, 3, 4};
     constexpr int32_t key = 2;
 
-    TEST_ASSERT_EQUAL_size_t(4, trs_span_upper_bound(TRS_SPAN_FROM_DATA(int32_t, buf, 6), &key, trs_cmp_i32));
+    TEST_ASSERT_EQUAL_size_t(4, tda_span_upper_bound(TDA_SPAN_FROM_DATA(int32_t, buf, 6), &key, tda_cmp_i32));
 }
 
 // an absent key gives the insertion point, and both bounds agree on it
 static void test_bounds_agree_on_an_absent_key() {
     constexpr int32_t buf[4] = {1, 3, 5, 7};
     constexpr int32_t key = 4;
-    const trs_Span s = TRS_SPAN_FROM_DATA(int32_t, buf, 4);
+    const tda_Span s = TDA_SPAN_FROM_DATA(int32_t, buf, 4);
 
-    TEST_ASSERT_EQUAL_size_t(2, trs_span_lower_bound(s, &key, trs_cmp_i32));
-    TEST_ASSERT_EQUAL_size_t(2, trs_span_upper_bound(s, &key, trs_cmp_i32));
+    TEST_ASSERT_EQUAL_size_t(2, tda_span_lower_bound(s, &key, tda_cmp_i32));
+    TEST_ASSERT_EQUAL_size_t(2, tda_span_upper_bound(s, &key, tda_cmp_i32));
 }
 
 // past-the-end is len, which is also the "not found" reading of a bound
 static void test_bounds_past_the_end() {
     constexpr int32_t buf[3] = {1, 2, 3};
     constexpr int32_t key = 9;
-    const trs_Span s = TRS_SPAN_FROM_DATA(int32_t, buf, 3);
+    const tda_Span s = TDA_SPAN_FROM_DATA(int32_t, buf, 3);
 
-    TEST_ASSERT_EQUAL_size_t(3, trs_span_lower_bound(s, &key, trs_cmp_i32));
-    TEST_ASSERT_EQUAL_size_t(3, trs_span_upper_bound(s, &key, trs_cmp_i32));
+    TEST_ASSERT_EQUAL_size_t(3, tda_span_lower_bound(s, &key, tda_cmp_i32));
+    TEST_ASSERT_EQUAL_size_t(3, tda_span_upper_bound(s, &key, tda_cmp_i32));
 }
 
 static void test_bounds_before_the_start() {
     constexpr int32_t buf[3] = {5, 6, 7};
     constexpr int32_t key = 1;
-    const trs_Span s = TRS_SPAN_FROM_DATA(int32_t, buf, 3);
+    const tda_Span s = TDA_SPAN_FROM_DATA(int32_t, buf, 3);
 
-    TEST_ASSERT_EQUAL_size_t(0, trs_span_lower_bound(s, &key, trs_cmp_i32));
-    TEST_ASSERT_EQUAL_size_t(0, trs_span_upper_bound(s, &key, trs_cmp_i32));
+    TEST_ASSERT_EQUAL_size_t(0, tda_span_lower_bound(s, &key, tda_cmp_i32));
+    TEST_ASSERT_EQUAL_size_t(0, tda_span_upper_bound(s, &key, tda_cmp_i32));
 }
 
 static void test_bounds_on_an_empty_span() {
     constexpr int32_t buf[2] = {1, 2};
     constexpr int32_t key = 1;
-    const trs_Span s = TRS_SPAN_FROM_DATA(int32_t, buf, 0);
+    const tda_Span s = TDA_SPAN_FROM_DATA(int32_t, buf, 0);
 
-    TEST_ASSERT_EQUAL_size_t(0, trs_span_lower_bound(s, &key, trs_cmp_i32));
-    TEST_ASSERT_EQUAL_size_t(0, trs_span_upper_bound(s, &key, trs_cmp_i32));
+    TEST_ASSERT_EQUAL_size_t(0, tda_span_lower_bound(s, &key, tda_cmp_i32));
+    TEST_ASSERT_EQUAL_size_t(0, tda_span_upper_bound(s, &key, tda_cmp_i32));
 }
 
 // the span between the two bounds is exactly the run of equal elements
 static void test_bounds_delimit_the_equal_run() {
     constexpr int32_t buf[7] = {1, 2, 2, 2, 2, 3, 4};
     constexpr int32_t key = 2;
-    const trs_Span s = TRS_SPAN_FROM_DATA(int32_t, buf, 7);
+    const tda_Span s = TDA_SPAN_FROM_DATA(int32_t, buf, 7);
 
-    const size_t lo = trs_span_lower_bound(s, &key, trs_cmp_i32);
-    const size_t hi = trs_span_upper_bound(s, &key, trs_cmp_i32);
+    const size_t lo = tda_span_lower_bound(s, &key, tda_cmp_i32);
+    const size_t hi = tda_span_upper_bound(s, &key, tda_cmp_i32);
 
     TEST_ASSERT_EQUAL_size_t(4, hi - lo);
-    TEST_ASSERT_EQUAL_size_t(trs_span_count(s, &key, trs_eq_i32), hi - lo);
+    TEST_ASSERT_EQUAL_size_t(tda_span_count(s, &key, tda_eq_i32), hi - lo);
 }
 
 /* ========== binary_search ========== */
@@ -188,7 +188,7 @@ static void test_binary_search_finds_a_present_key() {
     constexpr int32_t key = 7;
 
     size_t idx = 0;
-    TEST_ASSERT_TRUE(trs_span_binary_search(TRS_SPAN_FROM_DATA(int32_t, buf, 5), &key, trs_cmp_i32, &idx));
+    TEST_ASSERT_TRUE(tda_span_binary_search(TDA_SPAN_FROM_DATA(int32_t, buf, 5), &key, tda_cmp_i32, &idx));
     TEST_ASSERT_EQUAL_size_t(3, idx);
 }
 
@@ -198,7 +198,7 @@ static void test_binary_search_reports_the_first_of_the_duplicates() {
     constexpr Tagged key = {2, -1};
 
     size_t idx = 0;
-    TEST_ASSERT_TRUE(trs_span_binary_search(TRS_SPAN_FROM_DATA(Tagged, buf, 5), &key, cmp_tagged, &idx));
+    TEST_ASSERT_TRUE(tda_span_binary_search(TDA_SPAN_FROM_DATA(Tagged, buf, 5), &key, cmp_tagged, &idx));
     TEST_ASSERT_EQUAL_size_t(1, idx);
     TEST_ASSERT_EQUAL_INT32(10, buf[idx].tag);
 }
@@ -208,7 +208,7 @@ static void test_binary_search_miss_leaves_the_out_param_alone() {
     constexpr int32_t key = 4;
 
     size_t idx = 333;
-    TEST_ASSERT_FALSE(trs_span_binary_search(TRS_SPAN_FROM_DATA(int32_t, buf, 4), &key, trs_cmp_i32, &idx));
+    TEST_ASSERT_FALSE(tda_span_binary_search(TDA_SPAN_FROM_DATA(int32_t, buf, 4), &key, tda_cmp_i32, &idx));
     TEST_ASSERT_EQUAL_size_t(333, idx);
 }
 
@@ -218,7 +218,7 @@ static void test_binary_search_key_past_the_end_misses() {
     constexpr int32_t key = 9;
 
     size_t idx = 111;
-    TEST_ASSERT_FALSE(trs_span_binary_search(TRS_SPAN_FROM_DATA(int32_t, buf, 3), &key, trs_cmp_i32, &idx));
+    TEST_ASSERT_FALSE(tda_span_binary_search(TDA_SPAN_FROM_DATA(int32_t, buf, 3), &key, tda_cmp_i32, &idx));
     TEST_ASSERT_EQUAL_size_t(111, idx);
 }
 
@@ -227,19 +227,19 @@ static void test_binary_search_on_an_empty_span_misses() {
     constexpr int32_t key = 1;
 
     size_t idx = 222;
-    TEST_ASSERT_FALSE(trs_span_binary_search(TRS_SPAN_FROM_DATA(int32_t, buf, 0), &key, trs_cmp_i32, &idx));
+    TEST_ASSERT_FALSE(tda_span_binary_search(TDA_SPAN_FROM_DATA(int32_t, buf, 0), &key, tda_cmp_i32, &idx));
     TEST_ASSERT_EQUAL_size_t(222, idx);
 }
 
 // every element of a sorted span must be findable, including both edges
 static void test_binary_search_finds_every_element() {
     constexpr int32_t buf[6] = {2, 4, 6, 8, 10, 12};
-    const trs_Span s = TRS_SPAN_FROM_DATA(int32_t, buf, 6);
+    const tda_Span s = TDA_SPAN_FROM_DATA(int32_t, buf, 6);
 
     for (size_t i = 0; i < 6; ++i) {
         const int32_t key = buf[i];
         size_t idx = 999;
-        TEST_ASSERT_TRUE(trs_span_binary_search(s, &key, trs_cmp_i32, &idx));
+        TEST_ASSERT_TRUE(tda_span_binary_search(s, &key, tda_cmp_i32, &idx));
         TEST_ASSERT_EQUAL_size_t(i, idx);
     }
 }
@@ -250,7 +250,7 @@ static void test_find_if_reports_the_first_match() {
     constexpr int32_t buf[5] = {3, 1, 4, 2, 6};
 
     size_t idx = 999;
-    TEST_ASSERT_TRUE(trs_span_find_if(TRS_SPAN_FROM_DATA(int32_t, buf, 5), is_even, nullptr, &idx));
+    TEST_ASSERT_TRUE(tda_span_find_if(TDA_SPAN_FROM_DATA(int32_t, buf, 5), is_even, nullptr, &idx));
     TEST_ASSERT_EQUAL_size_t(2, idx);
 }
 
@@ -258,13 +258,13 @@ static void test_find_if_miss_leaves_the_out_param_alone() {
     constexpr int32_t buf[3] = {1, 3, 5};
 
     size_t idx = 777;
-    TEST_ASSERT_FALSE(trs_span_find_if(TRS_SPAN_FROM_DATA(int32_t, buf, 3), is_even, nullptr, &idx));
+    TEST_ASSERT_FALSE(tda_span_find_if(TDA_SPAN_FROM_DATA(int32_t, buf, 3), is_even, nullptr, &idx));
     TEST_ASSERT_EQUAL_size_t(777, idx);
 }
 
 static void test_find_if_on_an_empty_span_finds_nothing() {
     size_t idx = 555;
-    TEST_ASSERT_FALSE(trs_span_find_if(TRS_SPAN_FROM_DATA(int32_t, nullptr, 0), is_even, nullptr, &idx));
+    TEST_ASSERT_FALSE(tda_span_find_if(TDA_SPAN_FROM_DATA(int32_t, nullptr, 0), is_even, nullptr, &idx));
     TEST_ASSERT_EQUAL_size_t(555, idx);
 }
 
@@ -274,25 +274,25 @@ static void test_find_if_passes_the_ctx_through() {
     int32_t bound = 3;
 
     size_t idx = 999;
-    TEST_ASSERT_TRUE(trs_span_find_if(TRS_SPAN_FROM_DATA(int32_t, buf, 5), greater_than, &bound, &idx));
+    TEST_ASSERT_TRUE(tda_span_find_if(TDA_SPAN_FROM_DATA(int32_t, buf, 5), greater_than, &bound, &idx));
     TEST_ASSERT_EQUAL_size_t(3, idx);
 
     bound = 4;
-    TEST_ASSERT_TRUE(trs_span_find_if(TRS_SPAN_FROM_DATA(int32_t, buf, 5), greater_than, &bound, &idx));
+    TEST_ASSERT_TRUE(tda_span_find_if(TDA_SPAN_FROM_DATA(int32_t, buf, 5), greater_than, &bound, &idx));
     TEST_ASSERT_EQUAL_size_t(4, idx);
 }
 
 static void test_count_if_counts_every_match() {
     constexpr int32_t buf[6] = {1, 2, 3, 4, 5, 6};
 
-    TEST_ASSERT_EQUAL_size_t(3, trs_span_count_if(TRS_SPAN_FROM_DATA(int32_t, buf, 6), is_even, nullptr));
+    TEST_ASSERT_EQUAL_size_t(3, tda_span_count_if(TDA_SPAN_FROM_DATA(int32_t, buf, 6), is_even, nullptr));
 }
 
 static void test_count_if_of_none_is_zero() {
     constexpr int32_t buf[3] = {1, 3, 5};
 
-    TEST_ASSERT_EQUAL_size_t(0, trs_span_count_if(TRS_SPAN_FROM_DATA(int32_t, buf, 3), is_even, nullptr));
-    TEST_ASSERT_EQUAL_size_t(0, trs_span_count_if(TRS_SPAN_FROM_DATA(int32_t, nullptr, 0), is_even, nullptr));
+    TEST_ASSERT_EQUAL_size_t(0, tda_span_count_if(TDA_SPAN_FROM_DATA(int32_t, buf, 3), is_even, nullptr));
+    TEST_ASSERT_EQUAL_size_t(0, tda_span_count_if(TDA_SPAN_FROM_DATA(int32_t, nullptr, 0), is_even, nullptr));
 }
 
 /* ========== partition_point ========== */
@@ -300,22 +300,22 @@ static void test_count_if_of_none_is_zero() {
 static void test_partition_point_finds_the_boundary() {
     constexpr int32_t buf[6] = {2, 4, 6, 1, 3, 5};
 
-    TEST_ASSERT_EQUAL_size_t(3, trs_span_partition_point(TRS_SPAN_FROM_DATA(int32_t, buf, 6), is_even, nullptr));
+    TEST_ASSERT_EQUAL_size_t(3, tda_span_partition_point(TDA_SPAN_FROM_DATA(int32_t, buf, 6), is_even, nullptr));
 }
 
 static void test_partition_point_at_the_ends_and_on_empty() {
     constexpr int32_t all[3] = {2, 4, 6};
     constexpr int32_t none[3] = {1, 3, 5};
 
-    TEST_ASSERT_EQUAL_size_t(3, trs_span_partition_point(TRS_SPAN_FROM_DATA(int32_t, all, 3), is_even, nullptr));
-    TEST_ASSERT_EQUAL_size_t(0, trs_span_partition_point(TRS_SPAN_FROM_DATA(int32_t, none, 3), is_even, nullptr));
-    TEST_ASSERT_EQUAL_size_t(0, trs_span_partition_point(TRS_SPAN_FROM_DATA(int32_t, nullptr, 0), is_even, nullptr));
+    TEST_ASSERT_EQUAL_size_t(3, tda_span_partition_point(TDA_SPAN_FROM_DATA(int32_t, all, 3), is_even, nullptr));
+    TEST_ASSERT_EQUAL_size_t(0, tda_span_partition_point(TDA_SPAN_FROM_DATA(int32_t, none, 3), is_even, nullptr));
+    TEST_ASSERT_EQUAL_size_t(0, tda_span_partition_point(TDA_SPAN_FROM_DATA(int32_t, nullptr, 0), is_even, nullptr));
 }
 
 // it is a binary search, so it must land where a linear scan would
 static void test_partition_point_matches_a_linear_scan() {
     constexpr int32_t buf[9] = {20, 18, 15, 12, 9, 7, 4, 2, 1};
-    const trs_Span s = TRS_SPAN_FROM_DATA(int32_t, buf, 9);
+    const tda_Span s = TDA_SPAN_FROM_DATA(int32_t, buf, 9);
 
     for (int32_t bound = 0; bound <= 21; ++bound) {
         size_t linear = 0;
@@ -323,31 +323,31 @@ static void test_partition_point_matches_a_linear_scan() {
             ++linear;
         }
 
-        TEST_ASSERT_EQUAL_size_t(linear, trs_span_partition_point(s, greater_than, &bound));
+        TEST_ASSERT_EQUAL_size_t(linear, tda_span_partition_point(s, greater_than, &bound));
     }
 }
 
 // with "less than key" over a sorted span it is lower_bound, by construction
 static void test_partition_point_generalizes_lower_bound() {
     constexpr int32_t buf[7] = {1, 2, 2, 2, 3, 4, 5};
-    const trs_Span s = TRS_SPAN_FROM_DATA(int32_t, buf, 7);
+    const tda_Span s = TDA_SPAN_FROM_DATA(int32_t, buf, 7);
 
     for (int32_t key = 0; key <= 6; ++key) {
         TEST_ASSERT_EQUAL_size_t(
-            trs_span_lower_bound(s, &key, trs_cmp_i32),
-            trs_span_partition_point(s, less_than, &key)
+            tda_span_lower_bound(s, &key, tda_cmp_i32),
+            tda_span_partition_point(s, less_than, &key)
         );
     }
 }
 
-// what trs_span_partition returns is where partition_point then lands
+// what tda_span_partition returns is where partition_point then lands
 static void test_partition_point_agrees_with_partition() {
     int32_t buf[7] = {7, 2, 9, 4, 1, 6, 3};
-    const trs_SpanMut m = TRS_SPAN_FROM_DATA_MUT(int32_t, buf, 7);
+    const tda_SpanMut m = TDA_SPAN_FROM_DATA_MUT(int32_t, buf, 7);
 
-    const size_t boundary = trs_span_partition(m, is_even, nullptr);
+    const size_t boundary = tda_span_partition(m, is_even, nullptr);
 
-    TEST_ASSERT_EQUAL_size_t(boundary, trs_span_partition_point(trs_span_mut_to_span(m), is_even, nullptr));
+    TEST_ASSERT_EQUAL_size_t(boundary, tda_span_partition_point(tda_span_mut_to_span(m), is_even, nullptr));
 }
 
 /* ========== all_of / any_of / none_of ========== */
@@ -356,32 +356,32 @@ static void test_all_of_holds_only_when_every_elem_satisfies() {
     constexpr int32_t all[3] = {2, 4, 6};
     constexpr int32_t one_odd[3] = {2, 4, 5};
 
-    TEST_ASSERT_TRUE(trs_span_all_of(TRS_SPAN_FROM_DATA(int32_t, all, 3), is_even, nullptr));
-    TEST_ASSERT_FALSE(trs_span_all_of(TRS_SPAN_FROM_DATA(int32_t, one_odd, 3), is_even, nullptr));
+    TEST_ASSERT_TRUE(tda_span_all_of(TDA_SPAN_FROM_DATA(int32_t, all, 3), is_even, nullptr));
+    TEST_ASSERT_FALSE(tda_span_all_of(TDA_SPAN_FROM_DATA(int32_t, one_odd, 3), is_even, nullptr));
 }
 
 static void test_any_of_holds_when_at_least_one_satisfies() {
     constexpr int32_t one_even[3] = {1, 3, 4};
     constexpr int32_t none_even[3] = {1, 3, 5};
 
-    TEST_ASSERT_TRUE(trs_span_any_of(TRS_SPAN_FROM_DATA(int32_t, one_even, 3), is_even, nullptr));
-    TEST_ASSERT_FALSE(trs_span_any_of(TRS_SPAN_FROM_DATA(int32_t, none_even, 3), is_even, nullptr));
+    TEST_ASSERT_TRUE(tda_span_any_of(TDA_SPAN_FROM_DATA(int32_t, one_even, 3), is_even, nullptr));
+    TEST_ASSERT_FALSE(tda_span_any_of(TDA_SPAN_FROM_DATA(int32_t, none_even, 3), is_even, nullptr));
 }
 
 static void test_none_of_is_the_negation_of_any_of() {
     constexpr int32_t buf[3] = {1, 3, 5};
 
-    TEST_ASSERT_TRUE(trs_span_none_of(TRS_SPAN_FROM_DATA(int32_t, buf, 3), is_even, nullptr));
-    TEST_ASSERT_FALSE(trs_span_none_of(TRS_SPAN_FROM_DATA(int32_t, buf, 3), greater_than, &(int32_t){2}));
+    TEST_ASSERT_TRUE(tda_span_none_of(TDA_SPAN_FROM_DATA(int32_t, buf, 3), is_even, nullptr));
+    TEST_ASSERT_FALSE(tda_span_none_of(TDA_SPAN_FROM_DATA(int32_t, buf, 3), greater_than, &(int32_t){2}));
 }
 
 // the empty span: all_of is vacuously true, any_of false, none_of true
 static void test_the_quantifiers_agree_on_an_empty_span() {
-    const trs_Span empty = TRS_SPAN_FROM_DATA(int32_t, nullptr, 0);
+    const tda_Span empty = TDA_SPAN_FROM_DATA(int32_t, nullptr, 0);
 
-    TEST_ASSERT_TRUE(trs_span_all_of(empty, is_even, nullptr));
-    TEST_ASSERT_FALSE(trs_span_any_of(empty, is_even, nullptr));
-    TEST_ASSERT_TRUE(trs_span_none_of(empty, is_even, nullptr));
+    TEST_ASSERT_TRUE(tda_span_all_of(empty, is_even, nullptr));
+    TEST_ASSERT_FALSE(tda_span_any_of(empty, is_even, nullptr));
+    TEST_ASSERT_TRUE(tda_span_none_of(empty, is_even, nullptr));
 }
 
 static size_t cmp_calls = 0;
@@ -389,7 +389,7 @@ static size_t cmp_calls = 0;
 static int cmp_counting_i32(const void *a, const void *b) {
     ++cmp_calls;
 
-    return trs_cmp_i32(a, b);
+    return tda_cmp_i32(a, b);
 }
 
 /* ========== equal_range ========== */
@@ -398,7 +398,7 @@ static void test_equal_range_covers_the_whole_run() {
     constexpr int32_t buf[7] = {1, 2, 2, 2, 3, 4, 5};
     constexpr int32_t key = 2;
 
-    const trs_Range r = trs_span_equal_range(TRS_SPAN_FROM_DATA(int32_t, buf, 7), &key, trs_cmp_i32);
+    const tda_Range r = tda_span_equal_range(TDA_SPAN_FROM_DATA(int32_t, buf, 7), &key, tda_cmp_i32);
 
     TEST_ASSERT_EQUAL_size_t(1, r.lo);
     TEST_ASSERT_EQUAL_size_t(4, r.hi);
@@ -407,13 +407,13 @@ static void test_equal_range_covers_the_whole_run() {
 // the two ends must agree with the bounds taken separately
 static void test_equal_range_agrees_with_the_bounds() {
     constexpr int32_t buf[7] = {1, 2, 2, 2, 3, 4, 5};
-    const trs_Span s = TRS_SPAN_FROM_DATA(int32_t, buf, 7);
+    const tda_Span s = TDA_SPAN_FROM_DATA(int32_t, buf, 7);
 
     for (int32_t key = 0; key <= 6; ++key) {
-        const trs_Range r = trs_span_equal_range(s, &key, trs_cmp_i32);
+        const tda_Range r = tda_span_equal_range(s, &key, tda_cmp_i32);
 
-        TEST_ASSERT_EQUAL_size_t(trs_span_lower_bound(s, &key, trs_cmp_i32), r.lo);
-        TEST_ASSERT_EQUAL_size_t(trs_span_upper_bound(s, &key, trs_cmp_i32), r.hi);
+        TEST_ASSERT_EQUAL_size_t(tda_span_lower_bound(s, &key, tda_cmp_i32), r.lo);
+        TEST_ASSERT_EQUAL_size_t(tda_span_upper_bound(s, &key, tda_cmp_i32), r.hi);
     }
 }
 
@@ -422,7 +422,7 @@ static void test_equal_range_of_a_missing_key_is_empty() {
     constexpr int32_t buf[4] = {1, 3, 5, 7};
     constexpr int32_t key = 4;
 
-    const trs_Range r = trs_span_equal_range(TRS_SPAN_FROM_DATA(int32_t, buf, 4), &key, trs_cmp_i32);
+    const tda_Range r = tda_span_equal_range(TDA_SPAN_FROM_DATA(int32_t, buf, 4), &key, tda_cmp_i32);
 
     TEST_ASSERT_EQUAL_size_t(2, r.lo);
     TEST_ASSERT_EQUAL_size_t(2, r.hi);
@@ -434,21 +434,21 @@ static void test_equal_range_at_the_ends_and_on_empty() {
     constexpr int32_t high = 9;
     constexpr int32_t all = 2;
 
-    const trs_Span s = TRS_SPAN_FROM_DATA(int32_t, buf, 3);
+    const tda_Span s = TDA_SPAN_FROM_DATA(int32_t, buf, 3);
 
-    trs_Range r = trs_span_equal_range(s, &low, trs_cmp_i32);
+    tda_Range r = tda_span_equal_range(s, &low, tda_cmp_i32);
     TEST_ASSERT_EQUAL_size_t(0, r.lo);
     TEST_ASSERT_EQUAL_size_t(0, r.hi);
 
-    r = trs_span_equal_range(s, &high, trs_cmp_i32);
+    r = tda_span_equal_range(s, &high, tda_cmp_i32);
     TEST_ASSERT_EQUAL_size_t(3, r.lo);
     TEST_ASSERT_EQUAL_size_t(3, r.hi);
 
-    r = trs_span_equal_range(s, &all, trs_cmp_i32);
+    r = tda_span_equal_range(s, &all, tda_cmp_i32);
     TEST_ASSERT_EQUAL_size_t(0, r.lo);
     TEST_ASSERT_EQUAL_size_t(3, r.hi);
 
-    r = trs_span_equal_range(TRS_SPAN_FROM_DATA(int32_t, nullptr, 0), &all, trs_cmp_i32);
+    r = tda_span_equal_range(TDA_SPAN_FROM_DATA(int32_t, nullptr, 0), &all, tda_cmp_i32);
     TEST_ASSERT_EQUAL_size_t(0, r.lo);
     TEST_ASSERT_EQUAL_size_t(0, r.hi);
 }
@@ -458,14 +458,14 @@ static void test_equal_range_at_the_ends_and_on_empty() {
 static void test_equal_range_does_not_search_the_whole_span_twice() {
     constexpr int32_t buf[16] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15};
     constexpr int32_t key = 14;
-    const trs_Span s = TRS_SPAN_FROM_DATA(int32_t, buf, 16);
+    const tda_Span s = TDA_SPAN_FROM_DATA(int32_t, buf, 16);
 
     cmp_calls = 0;
-    (void) trs_span_lower_bound(s, &key, cmp_counting_i32);
+    (void) tda_span_lower_bound(s, &key, cmp_counting_i32);
     const size_t one_full_descent = cmp_calls;
 
     cmp_calls = 0;
-    const trs_Range r = trs_span_equal_range(s, &key, cmp_counting_i32);
+    const tda_Range r = tda_span_equal_range(s, &key, cmp_counting_i32);
 
     TEST_ASSERT_EQUAL_size_t(14, r.lo);
     TEST_ASSERT_EQUAL_size_t(15, r.hi);
@@ -476,37 +476,37 @@ static void test_equal_range_does_not_search_the_whole_span_twice() {
 
 static void test_min_and_max_elem() {
     constexpr int32_t buf[5] = {3, 1, 4, 1, 5};
-    const trs_Span s = TRS_SPAN_FROM_DATA(int32_t, buf, 5);
+    const tda_Span s = TDA_SPAN_FROM_DATA(int32_t, buf, 5);
 
-    TEST_ASSERT_EQUAL_size_t(1, trs_span_min_elem(s, trs_cmp_i32));
-    TEST_ASSERT_EQUAL_size_t(4, trs_span_max_elem(s, trs_cmp_i32));
+    TEST_ASSERT_EQUAL_size_t(1, tda_span_min_elem(s, tda_cmp_i32));
+    TEST_ASSERT_EQUAL_size_t(4, tda_span_max_elem(s, tda_cmp_i32));
 }
 
 // ties resolve to the earliest index, for both ends
 static void test_extremes_pick_the_first_of_equals() {
     constexpr Tagged buf[4] = {{1, 10}, {5, 20}, {1, 11}, {5, 21}};
-    const trs_Span s = TRS_SPAN_FROM_DATA(Tagged, buf, 4);
+    const tda_Span s = TDA_SPAN_FROM_DATA(Tagged, buf, 4);
 
-    TEST_ASSERT_EQUAL_size_t(0, trs_span_min_elem(s, cmp_tagged));
-    TEST_ASSERT_EQUAL_size_t(1, trs_span_max_elem(s, cmp_tagged));
+    TEST_ASSERT_EQUAL_size_t(0, tda_span_min_elem(s, cmp_tagged));
+    TEST_ASSERT_EQUAL_size_t(1, tda_span_max_elem(s, cmp_tagged));
 }
 
 static void test_extremes_of_a_single_elem() {
     constexpr int32_t buf[1] = {42};
-    const trs_Span s = TRS_SPAN_FROM_DATA(int32_t, buf, 1);
+    const tda_Span s = TDA_SPAN_FROM_DATA(int32_t, buf, 1);
 
-    TEST_ASSERT_EQUAL_size_t(0, trs_span_min_elem(s, trs_cmp_i32));
-    TEST_ASSERT_EQUAL_size_t(0, trs_span_max_elem(s, trs_cmp_i32));
+    TEST_ASSERT_EQUAL_size_t(0, tda_span_min_elem(s, tda_cmp_i32));
+    TEST_ASSERT_EQUAL_size_t(0, tda_span_max_elem(s, tda_cmp_i32));
 }
 
 static void test_extremes_at_the_edges() {
     constexpr int32_t ascending[4] = {1, 2, 3, 4};
     constexpr int32_t descending[4] = {4, 3, 2, 1};
 
-    TEST_ASSERT_EQUAL_size_t(0, trs_span_min_elem(TRS_SPAN_FROM_DATA(int32_t, ascending, 4), trs_cmp_i32));
-    TEST_ASSERT_EQUAL_size_t(3, trs_span_max_elem(TRS_SPAN_FROM_DATA(int32_t, ascending, 4), trs_cmp_i32));
-    TEST_ASSERT_EQUAL_size_t(3, trs_span_min_elem(TRS_SPAN_FROM_DATA(int32_t, descending, 4), trs_cmp_i32));
-    TEST_ASSERT_EQUAL_size_t(0, trs_span_max_elem(TRS_SPAN_FROM_DATA(int32_t, descending, 4), trs_cmp_i32));
+    TEST_ASSERT_EQUAL_size_t(0, tda_span_min_elem(TDA_SPAN_FROM_DATA(int32_t, ascending, 4), tda_cmp_i32));
+    TEST_ASSERT_EQUAL_size_t(3, tda_span_max_elem(TDA_SPAN_FROM_DATA(int32_t, ascending, 4), tda_cmp_i32));
+    TEST_ASSERT_EQUAL_size_t(3, tda_span_min_elem(TDA_SPAN_FROM_DATA(int32_t, descending, 4), tda_cmp_i32));
+    TEST_ASSERT_EQUAL_size_t(0, tda_span_max_elem(TDA_SPAN_FROM_DATA(int32_t, descending, 4), tda_cmp_i32));
 }
 
 /* ========== minmax_elem ========== */
@@ -514,7 +514,7 @@ static void test_extremes_at_the_edges() {
 static void test_minmax_elem_finds_both_ends() {
     constexpr int32_t buf[5] = {3, 1, 4, 5, 2};
 
-    const trs_MinMax mm = trs_span_minmax_elem(TRS_SPAN_FROM_DATA(int32_t, buf, 5), trs_cmp_i32);
+    const tda_MinMax mm = tda_span_minmax_elem(TDA_SPAN_FROM_DATA(int32_t, buf, 5), tda_cmp_i32);
 
     TEST_ASSERT_EQUAL_size_t(1, mm.min);
     TEST_ASSERT_EQUAL_size_t(3, mm.max);
@@ -523,19 +523,19 @@ static void test_minmax_elem_finds_both_ends() {
 // one pass must give exactly what the two separate passes give
 static void test_minmax_elem_agrees_with_min_and_max() {
     constexpr int32_t buf[6] = {5, 5, 1, 9, 1, 9};
-    const trs_Span s = TRS_SPAN_FROM_DATA(int32_t, buf, 6);
+    const tda_Span s = TDA_SPAN_FROM_DATA(int32_t, buf, 6);
 
-    const trs_MinMax mm = trs_span_minmax_elem(s, trs_cmp_i32);
+    const tda_MinMax mm = tda_span_minmax_elem(s, tda_cmp_i32);
 
-    TEST_ASSERT_EQUAL_size_t(trs_span_min_elem(s, trs_cmp_i32), mm.min);
-    TEST_ASSERT_EQUAL_size_t(trs_span_max_elem(s, trs_cmp_i32), mm.max);
+    TEST_ASSERT_EQUAL_size_t(tda_span_min_elem(s, tda_cmp_i32), mm.min);
+    TEST_ASSERT_EQUAL_size_t(tda_span_max_elem(s, tda_cmp_i32), mm.max);
 }
 
 // ties go to the FIRST elem on both sides, unlike std::minmax_element
 static void test_minmax_elem_breaks_ties_towards_the_front() {
     constexpr int32_t buf[4] = {2, 2, 2, 2};
 
-    const trs_MinMax mm = trs_span_minmax_elem(TRS_SPAN_FROM_DATA(int32_t, buf, 4), trs_cmp_i32);
+    const tda_MinMax mm = tda_span_minmax_elem(TDA_SPAN_FROM_DATA(int32_t, buf, 4), tda_cmp_i32);
 
     TEST_ASSERT_EQUAL_size_t(0, mm.min);
     TEST_ASSERT_EQUAL_size_t(0, mm.max);
@@ -544,7 +544,7 @@ static void test_minmax_elem_breaks_ties_towards_the_front() {
 static void test_minmax_elem_of_a_single_elem() {
     constexpr int32_t buf[1] = {7};
 
-    const trs_MinMax mm = trs_span_minmax_elem(TRS_SPAN_FROM_DATA(int32_t, buf, 1), trs_cmp_i32);
+    const tda_MinMax mm = tda_span_minmax_elem(TDA_SPAN_FROM_DATA(int32_t, buf, 1), tda_cmp_i32);
 
     TEST_ASSERT_EQUAL_size_t(0, mm.min);
     TEST_ASSERT_EQUAL_size_t(0, mm.max);
@@ -558,7 +558,7 @@ static void test_find_sub_reports_the_first_occurrence() {
 
     size_t idx = 999;
     TEST_ASSERT_TRUE(
-        trs_span_find_sub(TRS_SPAN_FROM_DATA(int32_t, buf, 8), TRS_SPAN_FROM_DATA(int32_t, pat, 3), trs_eq_i32, &idx)
+        tda_span_find_sub(TDA_SPAN_FROM_DATA(int32_t, buf, 8), TDA_SPAN_FROM_DATA(int32_t, pat, 3), tda_eq_i32, &idx)
     );
     TEST_ASSERT_EQUAL_size_t(1, idx);
 }
@@ -569,10 +569,10 @@ static void test_find_sub_last_reports_the_last_occurrence() {
 
     size_t idx = 999;
     TEST_ASSERT_TRUE(
-        trs_span_find_sub_last(
-            TRS_SPAN_FROM_DATA(int32_t, buf, 8),
-            TRS_SPAN_FROM_DATA(int32_t, pat, 3),
-            trs_eq_i32,
+        tda_span_find_sub_last(
+            TDA_SPAN_FROM_DATA(int32_t, buf, 8),
+            TDA_SPAN_FROM_DATA(int32_t, pat, 3),
+            tda_eq_i32,
             &idx
         )
     );
@@ -583,12 +583,12 @@ static void test_find_sub_last_reports_the_last_occurrence() {
 static void test_the_two_sub_finders_agree_on_a_unique_occurrence() {
     constexpr int32_t buf[6] = {8, 8, 1, 2, 8, 8};
     constexpr int32_t pat[2] = {1, 2};
-    const trs_Span s = TRS_SPAN_FROM_DATA(int32_t, buf, 6);
-    const trs_Span sub = TRS_SPAN_FROM_DATA(int32_t, pat, 2);
+    const tda_Span s = TDA_SPAN_FROM_DATA(int32_t, buf, 6);
+    const tda_Span sub = TDA_SPAN_FROM_DATA(int32_t, pat, 2);
 
     size_t first = 0, last = 0;
-    TEST_ASSERT_TRUE(trs_span_find_sub(s, sub, trs_eq_i32, &first));
-    TEST_ASSERT_TRUE(trs_span_find_sub_last(s, sub, trs_eq_i32, &last));
+    TEST_ASSERT_TRUE(tda_span_find_sub(s, sub, tda_eq_i32, &first));
+    TEST_ASSERT_TRUE(tda_span_find_sub_last(s, sub, tda_eq_i32, &last));
     TEST_ASSERT_EQUAL_size_t(2, first);
     TEST_ASSERT_EQUAL_size_t(first, last);
 }
@@ -597,12 +597,12 @@ static void test_the_two_sub_finders_agree_on_a_unique_occurrence() {
 static void test_the_sub_finders_see_overlapping_occurrences() {
     constexpr int32_t buf[4] = {7, 7, 7, 7};
     constexpr int32_t pat[2] = {7, 7};
-    const trs_Span s = TRS_SPAN_FROM_DATA(int32_t, buf, 4);
-    const trs_Span sub = TRS_SPAN_FROM_DATA(int32_t, pat, 2);
+    const tda_Span s = TDA_SPAN_FROM_DATA(int32_t, buf, 4);
+    const tda_Span sub = TDA_SPAN_FROM_DATA(int32_t, pat, 2);
 
     size_t first = 0, last = 0;
-    TEST_ASSERT_TRUE(trs_span_find_sub(s, sub, trs_eq_i32, &first));
-    TEST_ASSERT_TRUE(trs_span_find_sub_last(s, sub, trs_eq_i32, &last));
+    TEST_ASSERT_TRUE(tda_span_find_sub(s, sub, tda_eq_i32, &first));
+    TEST_ASSERT_TRUE(tda_span_find_sub_last(s, sub, tda_eq_i32, &last));
     TEST_ASSERT_EQUAL_size_t(0, first);
     TEST_ASSERT_EQUAL_size_t(2, last);
 }
@@ -611,12 +611,12 @@ static void test_the_sub_finders_see_overlapping_occurrences() {
 static void test_find_sub_does_not_settle_for_a_prefix() {
     constexpr int32_t buf[5] = {1, 2, 9, 1, 2};
     constexpr int32_t pat[3] = {1, 2, 3};
-    const trs_Span s = TRS_SPAN_FROM_DATA(int32_t, buf, 5);
-    const trs_Span sub = TRS_SPAN_FROM_DATA(int32_t, pat, 3);
+    const tda_Span s = TDA_SPAN_FROM_DATA(int32_t, buf, 5);
+    const tda_Span sub = TDA_SPAN_FROM_DATA(int32_t, pat, 3);
 
     size_t idx = 111;
-    TEST_ASSERT_FALSE(trs_span_find_sub(s, sub, trs_eq_i32, &idx));
-    TEST_ASSERT_FALSE(trs_span_find_sub_last(s, sub, trs_eq_i32, &idx));
+    TEST_ASSERT_FALSE(tda_span_find_sub(s, sub, tda_eq_i32, &idx));
+    TEST_ASSERT_FALSE(tda_span_find_sub_last(s, sub, tda_eq_i32, &idx));
     TEST_ASSERT_EQUAL_size_t(111, idx);
 }
 
@@ -624,12 +624,12 @@ static void test_find_sub_does_not_settle_for_a_prefix() {
 static void test_the_sub_finders_match_at_the_end() {
     constexpr int32_t buf[4] = {1, 2, 3, 4};
     constexpr int32_t pat[2] = {3, 4};
-    const trs_Span s = TRS_SPAN_FROM_DATA(int32_t, buf, 4);
-    const trs_Span sub = TRS_SPAN_FROM_DATA(int32_t, pat, 2);
+    const tda_Span s = TDA_SPAN_FROM_DATA(int32_t, buf, 4);
+    const tda_Span sub = TDA_SPAN_FROM_DATA(int32_t, pat, 2);
 
     size_t first = 0, last = 0;
-    TEST_ASSERT_TRUE(trs_span_find_sub(s, sub, trs_eq_i32, &first));
-    TEST_ASSERT_TRUE(trs_span_find_sub_last(s, sub, trs_eq_i32, &last));
+    TEST_ASSERT_TRUE(tda_span_find_sub(s, sub, tda_eq_i32, &first));
+    TEST_ASSERT_TRUE(tda_span_find_sub_last(s, sub, tda_eq_i32, &last));
     TEST_ASSERT_EQUAL_size_t(2, first);
     TEST_ASSERT_EQUAL_size_t(2, last);
 }
@@ -637,11 +637,11 @@ static void test_the_sub_finders_match_at_the_end() {
 // the whole span is one of its own subspans
 static void test_the_sub_finders_match_the_whole_span() {
     constexpr int32_t buf[3] = {1, 2, 3};
-    const trs_Span s = TRS_SPAN_FROM_DATA(int32_t, buf, 3);
+    const tda_Span s = TDA_SPAN_FROM_DATA(int32_t, buf, 3);
 
     size_t first = 9, last = 9;
-    TEST_ASSERT_TRUE(trs_span_find_sub(s, s, trs_eq_i32, &first));
-    TEST_ASSERT_TRUE(trs_span_find_sub_last(s, s, trs_eq_i32, &last));
+    TEST_ASSERT_TRUE(tda_span_find_sub(s, s, tda_eq_i32, &first));
+    TEST_ASSERT_TRUE(tda_span_find_sub_last(s, s, tda_eq_i32, &last));
     TEST_ASSERT_EQUAL_size_t(0, first);
     TEST_ASSERT_EQUAL_size_t(0, last);
 }
@@ -649,12 +649,12 @@ static void test_the_sub_finders_match_the_whole_span() {
 // an empty sub occurs everywhere, so the two finders answer at opposite ends
 static void test_an_empty_sub_is_found_at_both_ends() {
     constexpr int32_t buf[3] = {1, 2, 3};
-    const trs_Span s = TRS_SPAN_FROM_DATA(int32_t, buf, 3);
-    const trs_Span empty = TRS_SPAN_FROM_DATA(int32_t, buf, 0);
+    const tda_Span s = TDA_SPAN_FROM_DATA(int32_t, buf, 3);
+    const tda_Span empty = TDA_SPAN_FROM_DATA(int32_t, buf, 0);
 
     size_t first = 9, last = 9;
-    TEST_ASSERT_TRUE(trs_span_find_sub(s, empty, trs_eq_i32, &first));
-    TEST_ASSERT_TRUE(trs_span_find_sub_last(s, empty, trs_eq_i32, &last));
+    TEST_ASSERT_TRUE(tda_span_find_sub(s, empty, tda_eq_i32, &first));
+    TEST_ASSERT_TRUE(tda_span_find_sub_last(s, empty, tda_eq_i32, &last));
     TEST_ASSERT_EQUAL_size_t(0, first);
     TEST_ASSERT_EQUAL_size_t(3, last);
 }
@@ -664,30 +664,30 @@ static void test_an_empty_sub_is_found_at_both_ends() {
 static void test_the_sub_finders_miss_when_sub_does_not_fit() {
     constexpr int32_t buf[2] = {1, 2};
     constexpr int32_t pat[3] = {1, 2, 3};
-    const trs_Span s = TRS_SPAN_FROM_DATA(int32_t, buf, 2);
-    const trs_Span sub = TRS_SPAN_FROM_DATA(int32_t, pat, 3);
-    const trs_Span empty = TRS_SPAN_FROM_DATA(int32_t, buf, 0);
+    const tda_Span s = TDA_SPAN_FROM_DATA(int32_t, buf, 2);
+    const tda_Span sub = TDA_SPAN_FROM_DATA(int32_t, pat, 3);
+    const tda_Span empty = TDA_SPAN_FROM_DATA(int32_t, buf, 0);
 
     size_t idx = 222;
-    TEST_ASSERT_FALSE(trs_span_find_sub(s, sub, trs_eq_i32, &idx));
-    TEST_ASSERT_FALSE(trs_span_find_sub_last(s, sub, trs_eq_i32, &idx));
-    TEST_ASSERT_FALSE(trs_span_find_sub(empty, sub, trs_eq_i32, &idx));
-    TEST_ASSERT_FALSE(trs_span_find_sub_last(empty, sub, trs_eq_i32, &idx));
+    TEST_ASSERT_FALSE(tda_span_find_sub(s, sub, tda_eq_i32, &idx));
+    TEST_ASSERT_FALSE(tda_span_find_sub_last(s, sub, tda_eq_i32, &idx));
+    TEST_ASSERT_FALSE(tda_span_find_sub(empty, sub, tda_eq_i32, &idx));
+    TEST_ASSERT_FALSE(tda_span_find_sub_last(empty, sub, tda_eq_i32, &idx));
     TEST_ASSERT_EQUAL_size_t(222, idx);
 }
 
-// a one elem sub is the same question trs_span_find answers
+// a one elem sub is the same question tda_span_find answers
 static void test_find_sub_of_one_elem_agrees_with_find() {
     constexpr int32_t buf[6] = {4, 5, 6, 5, 4, 5};
-    const trs_Span s = TRS_SPAN_FROM_DATA(int32_t, buf, 6);
+    const tda_Span s = TDA_SPAN_FROM_DATA(int32_t, buf, 6);
 
     for (int32_t key = 3; key <= 7; ++key) {
-        const trs_Span sub = TRS_SPAN_FROM_DATA(int32_t, &key, 1);
+        const tda_Span sub = TDA_SPAN_FROM_DATA(int32_t, &key, 1);
 
         size_t by_find = 99, by_sub = 88;
-        const bool hit = trs_span_find(s, &key, trs_eq_i32, &by_find);
+        const bool hit = tda_span_find(s, &key, tda_eq_i32, &by_find);
 
-        TEST_ASSERT_EQUAL(hit, trs_span_find_sub(s, sub, trs_eq_i32, &by_sub));
+        TEST_ASSERT_EQUAL(hit, tda_span_find_sub(s, sub, tda_eq_i32, &by_sub));
         if (hit) {
             TEST_ASSERT_EQUAL_size_t(by_find, by_sub);
         }
@@ -699,10 +699,10 @@ static void test_find_sub_of_one_elem_agrees_with_find() {
 static void test_find_run_reports_the_start_of_the_first_long_enough_run() {
     constexpr int32_t buf[9] = {1, 0, 1, 1, 0, 1, 1, 1, 0};
     constexpr int32_t key = 1;
-    const trs_Span s = TRS_SPAN_FROM_DATA(int32_t, buf, 9);
+    const tda_Span s = TDA_SPAN_FROM_DATA(int32_t, buf, 9);
 
     size_t idx = 999;
-    TEST_ASSERT_TRUE(trs_span_find_run(s, &key, 3, trs_eq_i32, &idx));
+    TEST_ASSERT_TRUE(tda_span_find_run(s, &key, 3, tda_eq_i32, &idx));
     TEST_ASSERT_EQUAL_size_t(5, idx);
 }
 
@@ -710,10 +710,10 @@ static void test_find_run_reports_the_start_of_the_first_long_enough_run() {
 static void test_find_run_of_two_stops_at_the_earlier_run() {
     constexpr int32_t buf[9] = {1, 0, 1, 1, 0, 1, 1, 1, 0};
     constexpr int32_t key = 1;
-    const trs_Span s = TRS_SPAN_FROM_DATA(int32_t, buf, 9);
+    const tda_Span s = TDA_SPAN_FROM_DATA(int32_t, buf, 9);
 
     size_t idx = 999;
-    TEST_ASSERT_TRUE(trs_span_find_run(s, &key, 2, trs_eq_i32, &idx));
+    TEST_ASSERT_TRUE(tda_span_find_run(s, &key, 2, tda_eq_i32, &idx));
     TEST_ASSERT_EQUAL_size_t(2, idx);
 }
 
@@ -723,7 +723,7 @@ static void test_find_run_does_not_add_up_scattered_matches() {
     constexpr int32_t key = 1;
 
     size_t idx = 333;
-    TEST_ASSERT_FALSE(trs_span_find_run(TRS_SPAN_FROM_DATA(int32_t, buf, 6), &key, 2, trs_eq_i32, &idx));
+    TEST_ASSERT_FALSE(tda_span_find_run(TDA_SPAN_FROM_DATA(int32_t, buf, 6), &key, 2, tda_eq_i32, &idx));
     TEST_ASSERT_EQUAL_size_t(333, idx);
 }
 
@@ -731,11 +731,11 @@ static void test_find_run_does_not_add_up_scattered_matches() {
 static void test_find_run_of_one_agrees_with_find() {
     constexpr int32_t buf[5] = {4, 5, 6, 5, 4};
     constexpr int32_t key = 5;
-    const trs_Span s = TRS_SPAN_FROM_DATA(int32_t, buf, 5);
+    const tda_Span s = TDA_SPAN_FROM_DATA(int32_t, buf, 5);
 
     size_t by_find = 0, by_run = 0;
-    TEST_ASSERT_TRUE(trs_span_find(s, &key, trs_eq_i32, &by_find));
-    TEST_ASSERT_TRUE(trs_span_find_run(s, &key, 1, trs_eq_i32, &by_run));
+    TEST_ASSERT_TRUE(tda_span_find(s, &key, tda_eq_i32, &by_find));
+    TEST_ASSERT_TRUE(tda_span_find_run(s, &key, 1, tda_eq_i32, &by_run));
     TEST_ASSERT_EQUAL_size_t(by_find, by_run);
 }
 
@@ -745,11 +745,11 @@ static void test_find_run_of_zero_is_found_at_the_front() {
     constexpr int32_t key = 9;
 
     size_t idx = 999;
-    TEST_ASSERT_TRUE(trs_span_find_run(TRS_SPAN_FROM_DATA(int32_t, buf, 3), &key, 0, trs_eq_i32, &idx));
+    TEST_ASSERT_TRUE(tda_span_find_run(TDA_SPAN_FROM_DATA(int32_t, buf, 3), &key, 0, tda_eq_i32, &idx));
     TEST_ASSERT_EQUAL_size_t(0, idx);
 
     idx = 999;
-    TEST_ASSERT_TRUE(trs_span_find_run(TRS_SPAN_FROM_DATA(int32_t, buf, 0), &key, 0, trs_eq_i32, &idx));
+    TEST_ASSERT_TRUE(tda_span_find_run(TDA_SPAN_FROM_DATA(int32_t, buf, 0), &key, 0, tda_eq_i32, &idx));
     TEST_ASSERT_EQUAL_size_t(0, idx);
 }
 
@@ -757,14 +757,14 @@ static void test_find_run_of_zero_is_found_at_the_front() {
 static void test_find_run_at_the_end_and_longer_than_the_span() {
     constexpr int32_t buf[4] = {0, 1, 1, 1};
     constexpr int32_t key = 1;
-    const trs_Span s = TRS_SPAN_FROM_DATA(int32_t, buf, 4);
+    const tda_Span s = TDA_SPAN_FROM_DATA(int32_t, buf, 4);
 
     size_t idx = 444;
-    TEST_ASSERT_TRUE(trs_span_find_run(s, &key, 3, trs_eq_i32, &idx));
+    TEST_ASSERT_TRUE(tda_span_find_run(s, &key, 3, tda_eq_i32, &idx));
     TEST_ASSERT_EQUAL_size_t(1, idx);
 
     idx = 444;
-    TEST_ASSERT_FALSE(trs_span_find_run(s, &key, 5, trs_eq_i32, &idx));
+    TEST_ASSERT_FALSE(tda_span_find_run(s, &key, 5, tda_eq_i32, &idx));
     TEST_ASSERT_EQUAL_size_t(444, idx);
 }
 
@@ -772,20 +772,20 @@ static void test_find_run_at_the_end_and_longer_than_the_span() {
 static void test_find_run_is_monotonic_in_n() {
     constexpr int32_t buf[10] = {2, 1, 1, 2, 1, 1, 1, 1, 2, 1};
     constexpr int32_t key = 1;
-    const trs_Span s = TRS_SPAN_FROM_DATA(int32_t, buf, 10);
+    const tda_Span s = TDA_SPAN_FROM_DATA(int32_t, buf, 10);
 
     size_t prev = 0;
-    TEST_ASSERT_TRUE(trs_span_find_run(s, &key, 1, trs_eq_i32, &prev));
+    TEST_ASSERT_TRUE(tda_span_find_run(s, &key, 1, tda_eq_i32, &prev));
 
     for (size_t n = 2; n <= 4; ++n) {
         size_t idx = 0;
-        TEST_ASSERT_TRUE(trs_span_find_run(s, &key, n, trs_eq_i32, &idx));
+        TEST_ASSERT_TRUE(tda_span_find_run(s, &key, n, tda_eq_i32, &idx));
         TEST_ASSERT_TRUE(idx >= prev);
         prev = idx;
     }
 
     size_t idx = 555;
-    TEST_ASSERT_FALSE(trs_span_find_run(s, &key, 5, trs_eq_i32, &idx));
+    TEST_ASSERT_FALSE(tda_span_find_run(s, &key, 5, tda_eq_i32, &idx));
 }
 
 /* ========== find_any_of ========== */
@@ -796,7 +796,7 @@ static void test_find_any_of_reports_the_first_elem_from_the_set() {
 
     size_t idx = 999;
     TEST_ASSERT_TRUE(
-        trs_span_find_any_of(TRS_SPAN_FROM_DATA(int32_t, buf, 6), TRS_SPAN_FROM_DATA(int32_t, set, 3), trs_eq_i32, &idx)
+        tda_span_find_any_of(TDA_SPAN_FROM_DATA(int32_t, buf, 6), TDA_SPAN_FROM_DATA(int32_t, set, 3), tda_eq_i32, &idx)
     );
     TEST_ASSERT_EQUAL_size_t(2, idx);
 }
@@ -808,7 +808,7 @@ static void test_find_any_of_scans_the_span_not_the_set() {
 
     size_t idx = 999;
     TEST_ASSERT_TRUE(
-        trs_span_find_any_of(TRS_SPAN_FROM_DATA(int32_t, buf, 4), TRS_SPAN_FROM_DATA(int32_t, set, 3), trs_eq_i32, &idx)
+        tda_span_find_any_of(TDA_SPAN_FROM_DATA(int32_t, buf, 4), TDA_SPAN_FROM_DATA(int32_t, set, 3), tda_eq_i32, &idx)
     );
     TEST_ASSERT_EQUAL_size_t(1, idx);
 }
@@ -819,7 +819,7 @@ static void test_find_any_of_misses_when_nothing_is_shared() {
 
     size_t idx = 666;
     TEST_ASSERT_FALSE(
-        trs_span_find_any_of(TRS_SPAN_FROM_DATA(int32_t, buf, 3), TRS_SPAN_FROM_DATA(int32_t, set, 2), trs_eq_i32, &idx)
+        tda_span_find_any_of(TDA_SPAN_FROM_DATA(int32_t, buf, 3), TDA_SPAN_FROM_DATA(int32_t, set, 2), tda_eq_i32, &idx)
     );
     TEST_ASSERT_EQUAL_size_t(666, idx);
 }
@@ -831,10 +831,10 @@ static void test_find_any_of_on_empty_sides() {
 
     size_t idx = 777;
     TEST_ASSERT_FALSE(
-        trs_span_find_any_of(TRS_SPAN_FROM_DATA(int32_t, buf, 3), TRS_SPAN_FROM_DATA(int32_t, set, 0), trs_eq_i32, &idx)
+        tda_span_find_any_of(TDA_SPAN_FROM_DATA(int32_t, buf, 3), TDA_SPAN_FROM_DATA(int32_t, set, 0), tda_eq_i32, &idx)
     );
     TEST_ASSERT_FALSE(
-        trs_span_find_any_of(TRS_SPAN_FROM_DATA(int32_t, buf, 0), TRS_SPAN_FROM_DATA(int32_t, set, 2), trs_eq_i32, &idx)
+        tda_span_find_any_of(TDA_SPAN_FROM_DATA(int32_t, buf, 0), TDA_SPAN_FROM_DATA(int32_t, set, 2), tda_eq_i32, &idx)
     );
     TEST_ASSERT_EQUAL_size_t(777, idx);
 }
@@ -843,11 +843,11 @@ static void test_find_any_of_on_empty_sides() {
 static void test_find_any_of_a_single_elem_agrees_with_find() {
     constexpr int32_t buf[5] = {9, 8, 7, 8, 9};
     constexpr int32_t set[1] = {8};
-    const trs_Span s = TRS_SPAN_FROM_DATA(int32_t, buf, 5);
+    const tda_Span s = TDA_SPAN_FROM_DATA(int32_t, buf, 5);
 
     size_t by_find = 0, by_any = 0;
-    TEST_ASSERT_TRUE(trs_span_find(s, &set[0], trs_eq_i32, &by_find));
-    TEST_ASSERT_TRUE(trs_span_find_any_of(s, TRS_SPAN_FROM_DATA(int32_t, set, 1), trs_eq_i32, &by_any));
+    TEST_ASSERT_TRUE(tda_span_find(s, &set[0], tda_eq_i32, &by_find));
+    TEST_ASSERT_TRUE(tda_span_find_any_of(s, TDA_SPAN_FROM_DATA(int32_t, set, 1), tda_eq_i32, &by_any));
     TEST_ASSERT_EQUAL_size_t(by_find, by_any);
 }
 
@@ -857,7 +857,7 @@ static void test_find_adjacent_reports_the_first_equal_pair() {
     constexpr int32_t buf[7] = {1, 2, 3, 3, 4, 5, 5};
 
     size_t idx = 999;
-    TEST_ASSERT_TRUE(trs_span_find_adjacent(TRS_SPAN_FROM_DATA(int32_t, buf, 7), trs_eq_i32, &idx));
+    TEST_ASSERT_TRUE(tda_span_find_adjacent(TDA_SPAN_FROM_DATA(int32_t, buf, 7), tda_eq_i32, &idx));
     TEST_ASSERT_EQUAL_size_t(2, idx);
 }
 
@@ -866,7 +866,7 @@ static void test_find_adjacent_misses_when_no_two_neighbours_are_equal() {
     constexpr int32_t buf[5] = {1, 2, 1, 2, 1};
 
     size_t idx = 888;
-    TEST_ASSERT_FALSE(trs_span_find_adjacent(TRS_SPAN_FROM_DATA(int32_t, buf, 5), trs_eq_i32, &idx));
+    TEST_ASSERT_FALSE(tda_span_find_adjacent(TDA_SPAN_FROM_DATA(int32_t, buf, 5), tda_eq_i32, &idx));
     TEST_ASSERT_EQUAL_size_t(888, idx);
 }
 
@@ -875,11 +875,11 @@ static void test_find_adjacent_on_the_short_spans() {
     constexpr int32_t buf[2] = {4, 4};
 
     size_t idx = 999;
-    TEST_ASSERT_FALSE(trs_span_find_adjacent(TRS_SPAN_FROM_DATA(int32_t, buf, 0), trs_eq_i32, &idx));
-    TEST_ASSERT_FALSE(trs_span_find_adjacent(TRS_SPAN_FROM_DATA(int32_t, buf, 1), trs_eq_i32, &idx));
+    TEST_ASSERT_FALSE(tda_span_find_adjacent(TDA_SPAN_FROM_DATA(int32_t, buf, 0), tda_eq_i32, &idx));
+    TEST_ASSERT_FALSE(tda_span_find_adjacent(TDA_SPAN_FROM_DATA(int32_t, buf, 1), tda_eq_i32, &idx));
     TEST_ASSERT_EQUAL_size_t(999, idx);
 
-    TEST_ASSERT_TRUE(trs_span_find_adjacent(TRS_SPAN_FROM_DATA(int32_t, buf, 2), trs_eq_i32, &idx));
+    TEST_ASSERT_TRUE(tda_span_find_adjacent(TDA_SPAN_FROM_DATA(int32_t, buf, 2), tda_eq_i32, &idx));
     TEST_ASSERT_EQUAL_size_t(0, idx);
 }
 
@@ -888,19 +888,19 @@ static void test_find_adjacent_sees_a_pair_at_the_end() {
     constexpr int32_t buf[4] = {1, 2, 3, 3};
 
     size_t idx = 0;
-    TEST_ASSERT_TRUE(trs_span_find_adjacent(TRS_SPAN_FROM_DATA(int32_t, buf, 4), trs_eq_i32, &idx));
+    TEST_ASSERT_TRUE(tda_span_find_adjacent(TDA_SPAN_FROM_DATA(int32_t, buf, 4), tda_eq_i32, &idx));
     TEST_ASSERT_EQUAL_size_t(2, idx);
 }
 
 // the same question as a run of two, so the two must answer alike
 static void test_find_adjacent_agrees_with_a_run_of_two() {
     constexpr int32_t buf[8] = {5, 1, 2, 2, 2, 7, 7, 0};
-    const trs_Span s = TRS_SPAN_FROM_DATA(int32_t, buf, 8);
+    const tda_Span s = TDA_SPAN_FROM_DATA(int32_t, buf, 8);
     constexpr int32_t key = 2;
 
     size_t by_adj = 0, by_run = 0;
-    TEST_ASSERT_TRUE(trs_span_find_adjacent(s, trs_eq_i32, &by_adj));
-    TEST_ASSERT_TRUE(trs_span_find_run(s, &key, 2, trs_eq_i32, &by_run));
+    TEST_ASSERT_TRUE(tda_span_find_adjacent(s, tda_eq_i32, &by_adj));
+    TEST_ASSERT_TRUE(tda_span_find_run(s, &key, 2, tda_eq_i32, &by_run));
     TEST_ASSERT_EQUAL_size_t(2, by_adj);
     TEST_ASSERT_EQUAL_size_t(by_adj, by_run);
 }

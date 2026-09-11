@@ -1,6 +1,6 @@
-#include "trs/algo/set.h"
-#include "trs/algo/sort.h"
-#include "trs/core/cmp.h"
+#include "tda/algo/set.h"
+#include "tda/algo/sort.h"
+#include "tda/core/cmp.h"
 
 #include "support/pair.h"
 
@@ -20,20 +20,20 @@ void tearDown() {
 // order over Pair by its first field, so two elems can be equal by 'cmp' and still be
 // told apart by the payload — that is what makes "taken from 'a'" observable
 static int cmp_pair_a(const void *lhs, const void *rhs) {
-    return trs_cmp_i64(&((const Pair *) lhs)->a, &((const Pair *) rhs)->a);
+    return tda_cmp_i64(&((const Pair *) lhs)->a, &((const Pair *) rhs)->a);
 }
 
 // a value that cannot come out of any operation, so anything left over in dst is visible
 static constexpr int32_t UNTOUCHED = 0x7f7f7f7f;
 
-static trs_Span span_of(const int32_t *v, size_t n) {
-    return trs_span_from_data(v, n, sizeof(int32_t));
+static tda_Span span_of(const int32_t *v, size_t n) {
+    return tda_span_from_data(v, n, sizeof(int32_t));
 }
 
 // runs 'op' into a dst prefilled with UNTOUCHED and checks three things at once: the
 // elems, the returned count, and that nothing was written past that count
 static void assert_writes(
-    size_t (*op)(trs_SpanMut, trs_Span, trs_Span, trs_Cmp),
+    size_t (*op)(tda_SpanMut, tda_Span, tda_Span, tda_Cmp),
     const int32_t *a, size_t an,
     const int32_t *b, size_t bn,
     const int32_t *want, size_t wn,
@@ -47,10 +47,10 @@ static void assert_writes(
     }
 
     const size_t got = op(
-        trs_span_from_data_mut(dst, cap, sizeof(int32_t)),
+        tda_span_from_data_mut(dst, cap, sizeof(int32_t)),
         span_of(a, an),
         span_of(b, bn),
-        trs_cmp_i32
+        tda_cmp_i32
     );
 
     TEST_ASSERT_EQUAL_size_t(wn, got);
@@ -66,7 +66,7 @@ static void assert_writes(
     }
 
     // the result is sorted, which is what lets these compose without a sort in between
-    TEST_ASSERT_TRUE(trs_span_is_sorted(span_of(dst, got), trs_cmp_i32));
+    TEST_ASSERT_TRUE(tda_span_is_sorted(span_of(dst, got), tda_cmp_i32));
 }
 
 /* ========== union ========== */
@@ -76,7 +76,7 @@ static void test_union_keeps_the_greater_count_of_equal_elems() {
     constexpr int32_t b[] = {2, 2, 3};
     constexpr int32_t want[] = {1, 2, 2, 2, 3, 5};
 
-    assert_writes(trs_span_set_union, a, 5, b, 3, want, 6, 8);
+    assert_writes(tda_span_set_union, a, 5, b, 3, want, 6, 8);
 }
 
 static void test_union_of_disjoint_spans_is_everything() {
@@ -84,19 +84,19 @@ static void test_union_of_disjoint_spans_is_everything() {
     constexpr int32_t b[] = {2, 4, 6};
     constexpr int32_t want[] = {1, 2, 3, 4, 5, 6};
 
-    assert_writes(trs_span_set_union, a, 3, b, 3, want, 6, 6);
+    assert_writes(tda_span_set_union, a, 3, b, 3, want, 6, 6);
 }
 
 static void test_union_with_an_empty_span_is_the_other_one() {
     constexpr int32_t a[] = {1, 2, 3};
     constexpr int32_t want[] = {1, 2, 3};
 
-    assert_writes(trs_span_set_union, a, 3, nullptr, 0, want, 3, 3);
-    assert_writes(trs_span_set_union, nullptr, 0, a, 3, want, 3, 3);
+    assert_writes(tda_span_set_union, a, 3, nullptr, 0, want, 3, 3);
+    assert_writes(tda_span_set_union, nullptr, 0, a, 3, want, 3, 3);
 }
 
 static void test_union_of_two_empty_spans_writes_nothing() {
-    assert_writes(trs_span_set_union, nullptr, 0, nullptr, 0, nullptr, 0, 0);
+    assert_writes(tda_span_set_union, nullptr, 0, nullptr, 0, nullptr, 0, 0);
 }
 
 /* ========== intersection ========== */
@@ -106,21 +106,21 @@ static void test_intersection_takes_the_lesser_count() {
     constexpr int32_t b[] = {2, 2, 3};
     constexpr int32_t want[] = {2, 2};
 
-    assert_writes(trs_span_set_intersection, a, 5, b, 3, want, 2, 3);
+    assert_writes(tda_span_set_intersection, a, 5, b, 3, want, 2, 3);
 }
 
 static void test_intersection_of_disjoint_spans_is_empty() {
     constexpr int32_t a[] = {1, 3, 5};
     constexpr int32_t b[] = {2, 4, 6};
 
-    assert_writes(trs_span_set_intersection, a, 3, b, 3, nullptr, 0, 3);
+    assert_writes(tda_span_set_intersection, a, 3, b, 3, nullptr, 0, 3);
 }
 
 static void test_intersection_with_an_empty_span_is_empty() {
     constexpr int32_t a[] = {1, 2, 3};
 
-    assert_writes(trs_span_set_intersection, a, 3, nullptr, 0, nullptr, 0, 0);
-    assert_writes(trs_span_set_intersection, nullptr, 0, a, 3, nullptr, 0, 0);
+    assert_writes(tda_span_set_intersection, a, 3, nullptr, 0, nullptr, 0, 0);
+    assert_writes(tda_span_set_intersection, nullptr, 0, a, 3, nullptr, 0, 0);
 }
 
 // Equal by 'cmp' is not identical, so WHICH side an elem comes from is observable and is
@@ -131,10 +131,10 @@ static void test_intersection_takes_its_elems_from_the_first_span() {
     constexpr Pair b[] = {{.a = 1, .b = 99}, {.a = 2, .b = 98}};
     Pair dst[2] = {};
 
-    const size_t got = trs_span_set_intersection(
-        trs_span_from_data_mut(dst, 2, sizeof(Pair)),
-        trs_span_from_data(a, 2, sizeof(Pair)),
-        trs_span_from_data(b, 2, sizeof(Pair)),
+    const size_t got = tda_span_set_intersection(
+        tda_span_from_data_mut(dst, 2, sizeof(Pair)),
+        tda_span_from_data(a, 2, sizeof(Pair)),
+        tda_span_from_data(b, 2, sizeof(Pair)),
         cmp_pair_a
     );
 
@@ -150,7 +150,7 @@ static void test_difference_spends_one_copy_per_copy() {
     constexpr int32_t b[] = {2, 2, 3};
     constexpr int32_t want[] = {1, 2, 5};
 
-    assert_writes(trs_span_set_difference, a, 5, b, 3, want, 3, 5);
+    assert_writes(tda_span_set_difference, a, 5, b, 3, want, 3, 5);
 }
 
 // elems that only 'b' has cancel nothing — the result is never longer than 'a', but what
@@ -160,20 +160,20 @@ static void test_difference_ignores_what_only_the_second_span_has() {
     constexpr int32_t b[] = {3, 4, 5, 6};
     constexpr int32_t want[] = {1, 2};
 
-    assert_writes(trs_span_set_difference, a, 2, b, 4, want, 2, 2);
+    assert_writes(tda_span_set_difference, a, 2, b, 4, want, 2, 2);
 }
 
 static void test_difference_from_an_equal_span_is_empty() {
     constexpr int32_t a[] = {1, 2, 3};
 
-    assert_writes(trs_span_set_difference, a, 3, a, 3, nullptr, 0, 3);
+    assert_writes(tda_span_set_difference, a, 3, a, 3, nullptr, 0, 3);
 }
 
 static void test_difference_with_an_empty_second_span_is_the_first() {
     constexpr int32_t a[] = {1, 2, 3};
     constexpr int32_t want[] = {1, 2, 3};
 
-    assert_writes(trs_span_set_difference, a, 3, nullptr, 0, want, 3, 3);
+    assert_writes(tda_span_set_difference, a, 3, nullptr, 0, want, 3, 3);
 }
 
 /* ========== symmetric difference ========== */
@@ -183,7 +183,7 @@ static void test_symmetric_difference_keeps_the_surplus() {
     constexpr int32_t b[] = {2, 2, 3};
     constexpr int32_t want[] = {1, 2, 3, 5};
 
-    assert_writes(trs_span_set_symmetric_difference, a, 5, b, 3, want, 4, 8);
+    assert_writes(tda_span_set_symmetric_difference, a, 5, b, 3, want, 4, 8);
 }
 
 // the surplus is taken from whichever side has more, so it is not always 'a'
@@ -192,13 +192,13 @@ static void test_symmetric_difference_takes_the_surplus_from_either_side() {
     constexpr int32_t b[] = {7, 7, 7};
     constexpr int32_t want[] = {7, 7};
 
-    assert_writes(trs_span_set_symmetric_difference, a, 1, b, 3, want, 2, 4);
+    assert_writes(tda_span_set_symmetric_difference, a, 1, b, 3, want, 2, 4);
 }
 
 static void test_symmetric_difference_of_equal_spans_is_empty() {
     constexpr int32_t a[] = {1, 2, 3};
 
-    assert_writes(trs_span_set_symmetric_difference, a, 3, a, 3, nullptr, 0, 6);
+    assert_writes(tda_span_set_symmetric_difference, a, 3, a, 3, nullptr, 0, 6);
 }
 
 static void test_symmetric_difference_of_disjoint_spans_is_everything() {
@@ -206,7 +206,7 @@ static void test_symmetric_difference_of_disjoint_spans_is_everything() {
     constexpr int32_t b[] = {2, 4};
     constexpr int32_t want[] = {1, 2, 3, 4};
 
-    assert_writes(trs_span_set_symmetric_difference, a, 2, b, 2, want, 4, 4);
+    assert_writes(tda_span_set_symmetric_difference, a, 2, b, 2, want, 4, 4);
 }
 
 /* ========== includes ========== */
@@ -215,14 +215,14 @@ static void test_includes_accepts_a_subset() {
     constexpr int32_t sup[] = {1, 2, 3, 4, 5};
     constexpr int32_t sub[] = {2, 4};
 
-    TEST_ASSERT_TRUE(trs_span_includes(span_of(sup, 5), span_of(sub, 2), trs_cmp_i32));
+    TEST_ASSERT_TRUE(tda_span_includes(span_of(sup, 5), span_of(sub, 2), tda_cmp_i32));
 }
 
 static void test_includes_rejects_a_missing_elem() {
     constexpr int32_t sup[] = {1, 2, 3};
     constexpr int32_t sub[] = {2, 9};
 
-    TEST_ASSERT_FALSE(trs_span_includes(span_of(sup, 3), span_of(sub, 2), trs_cmp_i32));
+    TEST_ASSERT_FALSE(tda_span_includes(span_of(sup, 3), span_of(sub, 2), tda_cmp_i32));
 }
 
 // a duplicate needs a duplicate: two copies are not accounted for by one
@@ -231,21 +231,21 @@ static void test_includes_counts_duplicates() {
     constexpr int32_t two[] = {2, 2};
     constexpr int32_t three[] = {2, 2, 2};
 
-    TEST_ASSERT_TRUE(trs_span_includes(span_of(sup, 4), span_of(two, 2), trs_cmp_i32));
-    TEST_ASSERT_FALSE(trs_span_includes(span_of(sup, 4), span_of(three, 3), trs_cmp_i32));
+    TEST_ASSERT_TRUE(tda_span_includes(span_of(sup, 4), span_of(two, 2), tda_cmp_i32));
+    TEST_ASSERT_FALSE(tda_span_includes(span_of(sup, 4), span_of(three, 3), tda_cmp_i32));
 }
 
 static void test_includes_of_an_empty_sub_is_true() {
     constexpr int32_t sup[] = {1, 2, 3};
 
-    TEST_ASSERT_TRUE(trs_span_includes(span_of(sup, 3), span_of(nullptr, 0), trs_cmp_i32));
-    TEST_ASSERT_TRUE(trs_span_includes(span_of(nullptr, 0), span_of(nullptr, 0), trs_cmp_i32));
+    TEST_ASSERT_TRUE(tda_span_includes(span_of(sup, 3), span_of(nullptr, 0), tda_cmp_i32));
+    TEST_ASSERT_TRUE(tda_span_includes(span_of(nullptr, 0), span_of(nullptr, 0), tda_cmp_i32));
 }
 
 static void test_includes_rejects_anything_from_an_empty_sup() {
     constexpr int32_t sub[] = {1};
 
-    TEST_ASSERT_FALSE(trs_span_includes(span_of(nullptr, 0), span_of(sub, 1), trs_cmp_i32));
+    TEST_ASSERT_FALSE(tda_span_includes(span_of(nullptr, 0), span_of(sub, 1), tda_cmp_i32));
 }
 
 // the last elem of 'sub' has to be reached without walking off 'sup'
@@ -253,7 +253,7 @@ static void test_includes_rejects_a_sub_that_runs_past_the_end() {
     constexpr int32_t sup[] = {1, 2};
     constexpr int32_t sub[] = {1, 2, 3};
 
-    TEST_ASSERT_FALSE(trs_span_includes(span_of(sup, 2), span_of(sub, 3), trs_cmp_i32));
+    TEST_ASSERT_FALSE(tda_span_includes(span_of(sup, 2), span_of(sub, 3), tda_cmp_i32));
 }
 
 /* ========== exhaustive ========== */
@@ -297,11 +297,11 @@ static void check_pair(const int32_t *a, size_t an, const int32_t *b, size_t bn)
     count_values(a, an, ca);
     count_values(b, bn, cb);
 
-    static size_t (*const ops[4])(trs_SpanMut, trs_Span, trs_Span, trs_Cmp) = {
-        trs_span_set_union,
-        trs_span_set_intersection,
-        trs_span_set_difference,
-        trs_span_set_symmetric_difference,
+    static size_t (*const ops[4])(tda_SpanMut, tda_Span, tda_Span, tda_Cmp) = {
+        tda_span_set_union,
+        tda_span_set_intersection,
+        tda_span_set_difference,
+        tda_span_set_symmetric_difference,
     };
 
     for (size_t k = 0; k < 4; ++k) {
@@ -332,7 +332,7 @@ static void check_pair(const int32_t *a, size_t an, const int32_t *b, size_t bn)
             want_includes = false;
         }
     }
-    TEST_ASSERT_EQUAL_INT(want_includes, trs_span_includes(span_of(a, an), span_of(b, bn), trs_cmp_i32));
+    TEST_ASSERT_EQUAL_INT(want_includes, tda_span_includes(span_of(a, an), span_of(b, bn), tda_cmp_i32));
 }
 
 static int32_t sweep_a[MAXLEN];

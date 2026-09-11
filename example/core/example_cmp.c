@@ -1,10 +1,10 @@
 // for @snippet
 
-#include "trs/algo/search.h"
-#include "trs/algo/sort.h"
-#include "trs/core/cmp.h"
-#include "trs/core/print.h"
-#include "trs/core/span.h"
+#include "tda/algo/search.h"
+#include "tda/algo/sort.h"
+#include "tda/core/cmp.h"
+#include "tda/core/print.h"
+#include "tda/core/span.h"
 
 #include <inttypes.h>
 #include <stdint.h>
@@ -22,7 +22,7 @@ static int cmp_person_by_age(const void *lhs, const void *rhs) {
     const Person *a = lhs;
     const Person *b = rhs;
 
-    return trs_cmp_i32(&a->age, &b->age);
+    return tda_cmp_i32(&a->age, &b->age);
 }
 
 static void fprint_person(FILE *stream, const void *x) {
@@ -34,27 +34,27 @@ static void fprint_person(FILE *stream, const void *x) {
 
 int main() {
     /// [ready]
-    const trs_SpanMut nums = TRS_SPAN_OF_MUT(int32_t, 5, 3, 1, 4, 2);
+    const tda_SpanMut nums = TDA_SPAN_OF_MUT(int32_t, 5, 3, 1, 4, 2);
 
-    trs_span_sort(nums, trs_cmp_i32);
-    trs_span_mut_print(nums, trs_fprint_i32); // [1, 2, 3, 4, 5]
+    tda_span_sort(nums, tda_cmp_i32);
+    tda_span_mut_print(nums, tda_fprint_i32); // [1, 2, 3, 4, 5]
 
-    trs_span_sort(nums, trs_cmp_desc_i32);
-    trs_span_mut_print(nums, trs_fprint_i32); // [5, 4, 3, 2, 1]
+    tda_span_sort(nums, tda_cmp_desc_i32);
+    tda_span_mut_print(nums, tda_fprint_i32); // [5, 4, 3, 2, 1]
 
     // equality is the other half: it says only whether two are the same, and it is what
     // the hash containers and the searches take
     size_t idx;
-    if (trs_span_find(trs_span_mut_to_span(nums), &(int32_t){4}, trs_eq_i32, &idx)) {
+    if (tda_span_find(tda_span_mut_to_span(nums), &(int32_t){4}, tda_eq_i32, &idx)) {
         printf("4 is at %zu\n", idx); // 4 is at 1
     }
     /// [ready]
 
     /// [use]
-    const trs_SpanMut people = TRS_SPAN_OF_MUT(Person, { "ann", 31 }, { "bo", 4 }, { "cy", 17 });
+    const tda_SpanMut people = TDA_SPAN_OF_MUT(Person, { "ann", 31 }, { "bo", 4 }, { "cy", 17 });
 
-    trs_span_sort(people, cmp_person_by_age);
-    trs_span_mut_print(people, fprint_person); // [bo(4), cy(17), ann(31)]
+    tda_span_sort(people, cmp_person_by_age);
+    tda_span_mut_print(people, fprint_person); // [bo(4), cy(17), ann(31)]
     /// [use]
 
     return 0;

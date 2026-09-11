@@ -1,5 +1,5 @@
-#include "trs/core/hash.h"
-#include "trs/core/cmp.h"
+#include "tda/core/hash.h"
+#include "tda/core/cmp.h"
 
 #include <unity.h>
 
@@ -15,7 +15,7 @@ void tearDown() {
 }
 
 // a NaN with a chosen payload — every one of them is equal to every other under
-// trs_eq_f64, so every one of them has to hash the same
+// tda_eq_f64, so every one of them has to hash the same
 static double nan_with_bits(uint64_t bits) {
     double val;
     memcpy(&val, &bits, sizeof(val));
@@ -32,37 +32,37 @@ static float nan_with_bits_f32(uint32_t bits) {
 
 /* ========== the invariant ========== */
 
-// the contract of a hash: equal keys agree. "Equal" is trs_eq_<T>, not memcmp, which is
+// the contract of a hash: equal keys agree. "Equal" is tda_eq_<T>, not memcmp, which is
 // what makes the float cases below interesting rather than obvious.
 static void test_hash_agrees_with_equality() {
     constexpr int32_t a = 42;
     constexpr int32_t b = 42;
     constexpr int32_t c = 43;
 
-    TEST_ASSERT_TRUE(trs_eq_i32(&a, &b));
-    TEST_ASSERT_EQUAL_UINT64(trs_hash_i32(&a), trs_hash_i32(&b));
-    TEST_ASSERT_NOT_EQUAL_UINT64(trs_hash_i32(&a), trs_hash_i32(&c));
+    TEST_ASSERT_TRUE(tda_eq_i32(&a, &b));
+    TEST_ASSERT_EQUAL_UINT64(tda_hash_i32(&a), tda_hash_i32(&b));
+    TEST_ASSERT_NOT_EQUAL_UINT64(tda_hash_i32(&a), tda_hash_i32(&c));
 
     constexpr uint64_t big = UINT64_MAX;
     constexpr uint64_t same = UINT64_MAX;
-    TEST_ASSERT_EQUAL_UINT64(trs_hash_u64(&big), trs_hash_u64(&same));
+    TEST_ASSERT_EQUAL_UINT64(tda_hash_u64(&big), tda_hash_u64(&same));
 
     constexpr size_t n = 7;
     constexpr ptrdiff_t d = -7;
-    TEST_ASSERT_NOT_EQUAL_UINT64(trs_hash_size(&n), trs_hash_ptrdiff(&d));
+    TEST_ASSERT_NOT_EQUAL_UINT64(tda_hash_size(&n), tda_hash_ptrdiff(&d));
 }
 
-// trs_eq_f64(-0.0, 0.0) is true while the bit patterns differ, so hashing the bits
+// tda_eq_f64(-0.0, 0.0) is true while the bit patterns differ, so hashing the bits
 // straight through would break the contract
 static void test_hash_folds_the_two_zeroes_together() {
     constexpr double neg = -0.0;
     constexpr double pos = 0.0;
-    TEST_ASSERT_TRUE(trs_eq_f64(&neg, &pos));
-    TEST_ASSERT_EQUAL_UINT64(trs_hash_f64(&neg), trs_hash_f64(&pos));
+    TEST_ASSERT_TRUE(tda_eq_f64(&neg, &pos));
+    TEST_ASSERT_EQUAL_UINT64(tda_hash_f64(&neg), tda_hash_f64(&pos));
 
     constexpr float negf = -0.0f;
     constexpr float posf = 0.0f;
-    TEST_ASSERT_EQUAL_UINT64(trs_hash_f32(&negf), trs_hash_f32(&posf));
+    TEST_ASSERT_EQUAL_UINT64(tda_hash_f32(&negf), tda_hash_f32(&posf));
 }
 
 // the other half of the same contract: this project orders NaN as equal to NaN, and a
@@ -72,34 +72,34 @@ static void test_hash_folds_every_nan_together() {
     const double payload = nan_with_bits(UINT64_C(0x7ff8000000000001));
     const double negative = nan_with_bits(UINT64_C(0xfff8000000000000));
 
-    TEST_ASSERT_TRUE(trs_eq_f64(&quiet, &payload));
-    TEST_ASSERT_EQUAL_UINT64(trs_hash_f64(&quiet), trs_hash_f64(&payload));
-    TEST_ASSERT_EQUAL_UINT64(trs_hash_f64(&quiet), trs_hash_f64(&negative));
+    TEST_ASSERT_TRUE(tda_eq_f64(&quiet, &payload));
+    TEST_ASSERT_EQUAL_UINT64(tda_hash_f64(&quiet), tda_hash_f64(&payload));
+    TEST_ASSERT_EQUAL_UINT64(tda_hash_f64(&quiet), tda_hash_f64(&negative));
 
     const float quietf = nan_with_bits_f32(UINT32_C(0x7fc00000));
     const float payloadf = nan_with_bits_f32(UINT32_C(0x7fc00001));
-    TEST_ASSERT_EQUAL_UINT64(trs_hash_f32(&quietf), trs_hash_f32(&payloadf));
+    TEST_ASSERT_EQUAL_UINT64(tda_hash_f32(&quietf), tda_hash_f32(&payloadf));
 
     // folding them onto zero would satisfy the contract too, and hand every table a
     // guaranteed collision between its two most ordinary keys
     constexpr double zero = 0.0;
-    TEST_ASSERT_NOT_EQUAL_UINT64(trs_hash_f64(&quiet), trs_hash_f64(&zero));
+    TEST_ASSERT_NOT_EQUAL_UINT64(tda_hash_f64(&quiet), tda_hash_f64(&zero));
 }
 
 // the narrow types have their own hashers, and each must keep the same contract: equal
 // keys agree, a neighbour does not
 static void test_hash_agrees_with_equality_for_every_width() {
-    TEST_ASSERT_EQUAL_UINT64(trs_hash_i8(&(int8_t){-8}), trs_hash_i8(&(int8_t){-8}));
-    TEST_ASSERT_NOT_EQUAL_UINT64(trs_hash_i8(&(int8_t){-8}), trs_hash_i8(&(int8_t){-7}));
+    TEST_ASSERT_EQUAL_UINT64(tda_hash_i8(&(int8_t){-8}), tda_hash_i8(&(int8_t){-8}));
+    TEST_ASSERT_NOT_EQUAL_UINT64(tda_hash_i8(&(int8_t){-8}), tda_hash_i8(&(int8_t){-7}));
 
-    TEST_ASSERT_EQUAL_UINT64(trs_hash_i16(&(int16_t){-16}), trs_hash_i16(&(int16_t){-16}));
-    TEST_ASSERT_NOT_EQUAL_UINT64(trs_hash_i16(&(int16_t){-16}), trs_hash_i16(&(int16_t){-15}));
+    TEST_ASSERT_EQUAL_UINT64(tda_hash_i16(&(int16_t){-16}), tda_hash_i16(&(int16_t){-16}));
+    TEST_ASSERT_NOT_EQUAL_UINT64(tda_hash_i16(&(int16_t){-16}), tda_hash_i16(&(int16_t){-15}));
 
-    TEST_ASSERT_EQUAL_UINT64(trs_hash_u16(&(uint16_t){16}), trs_hash_u16(&(uint16_t){16}));
-    TEST_ASSERT_NOT_EQUAL_UINT64(trs_hash_u16(&(uint16_t){16}), trs_hash_u16(&(uint16_t){17}));
+    TEST_ASSERT_EQUAL_UINT64(tda_hash_u16(&(uint16_t){16}), tda_hash_u16(&(uint16_t){16}));
+    TEST_ASSERT_NOT_EQUAL_UINT64(tda_hash_u16(&(uint16_t){16}), tda_hash_u16(&(uint16_t){17}));
 
-    TEST_ASSERT_EQUAL_UINT64(trs_hash_u32(&(uint32_t){32}), trs_hash_u32(&(uint32_t){32}));
-    TEST_ASSERT_NOT_EQUAL_UINT64(trs_hash_u32(&(uint32_t){32}), trs_hash_u32(&(uint32_t){33}));
+    TEST_ASSERT_EQUAL_UINT64(tda_hash_u32(&(uint32_t){32}), tda_hash_u32(&(uint32_t){32}));
+    TEST_ASSERT_NOT_EQUAL_UINT64(tda_hash_u32(&(uint32_t){32}), tda_hash_u32(&(uint32_t){33}));
 }
 
 /* ========== quality ========== */
@@ -111,9 +111,9 @@ static void test_hash_does_not_leave_zero_at_zero() {
     constexpr uint64_t zero_u = 0;
     constexpr double zero_f = 0.0;
 
-    TEST_ASSERT_NOT_EQUAL_UINT64(0, trs_hash_i32(&zero_i));
-    TEST_ASSERT_NOT_EQUAL_UINT64(0, trs_hash_u64(&zero_u));
-    TEST_ASSERT_NOT_EQUAL_UINT64(0, trs_hash_f64(&zero_f));
+    TEST_ASSERT_NOT_EQUAL_UINT64(0, tda_hash_i32(&zero_i));
+    TEST_ASSERT_NOT_EQUAL_UINT64(0, tda_hash_u64(&zero_u));
+    TEST_ASSERT_NOT_EQUAL_UINT64(0, tda_hash_f64(&zero_f));
 }
 
 // keys that share their low bits are what an unmixed hash fails on: taken modulo eight,
@@ -123,7 +123,7 @@ static void test_hash_spreads_keys_that_share_their_low_bits() {
 
     for (int32_t i = 0; i < 256; ++i) {
         const int32_t key = i * 8;
-        buckets[trs_hash_i32(&key) % 8]++;
+        buckets[tda_hash_i32(&key) % 8]++;
     }
 
     for (size_t i = 0; i < 8; ++i) {
@@ -139,11 +139,11 @@ static void test_hash_char_reads_the_byte_not_the_sign() {
     constexpr char high = (char) 200;
     constexpr unsigned char same_byte = 200;
 
-    TEST_ASSERT_EQUAL_UINT64(trs_hash_u8(&same_byte), trs_hash_char(&high));
+    TEST_ASSERT_EQUAL_UINT64(tda_hash_u8(&same_byte), tda_hash_char(&high));
 
     constexpr char a = 'a';
     constexpr char b = 'b';
-    TEST_ASSERT_NOT_EQUAL_UINT64(trs_hash_char(&a), trs_hash_char(&b));
+    TEST_ASSERT_NOT_EQUAL_UINT64(tda_hash_char(&a), tda_hash_char(&b));
 }
 
 /* ========== bytes ========== */
@@ -153,29 +153,29 @@ static void test_hash_bytes_follows_the_content() {
     constexpr unsigned char same[3] = {1, 2, 3};
     constexpr unsigned char other[3] = {1, 2, 4};
 
-    TEST_ASSERT_EQUAL_UINT64(trs_hash_bytes(a, 3), trs_hash_bytes(same, 3));
-    TEST_ASSERT_NOT_EQUAL_UINT64(trs_hash_bytes(a, 3), trs_hash_bytes(other, 3));
+    TEST_ASSERT_EQUAL_UINT64(tda_hash_bytes(a, 3), tda_hash_bytes(same, 3));
+    TEST_ASSERT_NOT_EQUAL_UINT64(tda_hash_bytes(a, 3), tda_hash_bytes(other, 3));
 
     // the length is part of the value: a prefix is a different range, not the same one
-    TEST_ASSERT_NOT_EQUAL_UINT64(trs_hash_bytes(a, 2), trs_hash_bytes(a, 3));
+    TEST_ASSERT_NOT_EQUAL_UINT64(tda_hash_bytes(a, 2), tda_hash_bytes(a, 3));
 }
 
 // an empty range is legal and must not touch the pointer
 static void test_hash_bytes_takes_an_empty_range() {
     constexpr unsigned char a[1] = {7};
 
-    TEST_ASSERT_EQUAL_UINT64(trs_hash_bytes(nullptr, 0), trs_hash_bytes(a, 0));
-    TEST_ASSERT_NOT_EQUAL_UINT64(trs_hash_bytes(a, 0), trs_hash_bytes(a, 1));
+    TEST_ASSERT_EQUAL_UINT64(tda_hash_bytes(nullptr, 0), tda_hash_bytes(a, 0));
+    TEST_ASSERT_NOT_EQUAL_UINT64(tda_hash_bytes(a, 0), tda_hash_bytes(a, 1));
 }
 
 // the string form is this one over strlen, which is also why "" and an empty range agree
 static void test_hash_cstr_is_bytes_over_the_length() {
     const char *str = "hello";
 
-    TEST_ASSERT_EQUAL_UINT64(trs_hash_bytes(str, 5), trs_hash_cstr(&str));
+    TEST_ASSERT_EQUAL_UINT64(tda_hash_bytes(str, 5), tda_hash_cstr(&str));
 
     const char *empty = "";
-    TEST_ASSERT_EQUAL_UINT64(trs_hash_bytes(nullptr, 0), trs_hash_cstr(&empty));
+    TEST_ASSERT_EQUAL_UINT64(tda_hash_bytes(nullptr, 0), tda_hash_cstr(&empty));
 }
 
 /* ========== cstr ========== */
@@ -188,9 +188,9 @@ static void test_hash_cstr_follows_content_not_address() {
     const char *c = "hellp";
 
     TEST_ASSERT_NOT_EQUAL(a, b); // two distinct buffers holding the same text
-    TEST_ASSERT_TRUE(trs_eq_cstr(&a, &b));
-    TEST_ASSERT_EQUAL_UINT64(trs_hash_cstr(&a), trs_hash_cstr(&b));
-    TEST_ASSERT_NOT_EQUAL_UINT64(trs_hash_cstr(&a), trs_hash_cstr(&c));
+    TEST_ASSERT_TRUE(tda_eq_cstr(&a, &b));
+    TEST_ASSERT_EQUAL_UINT64(tda_hash_cstr(&a), tda_hash_cstr(&b));
+    TEST_ASSERT_NOT_EQUAL_UINT64(tda_hash_cstr(&a), tda_hash_cstr(&c));
 }
 
 // null is a value here, not a broken precondition: the operand is the pointer to it
@@ -198,17 +198,17 @@ static void test_hash_cstr_keeps_null_apart_from_empty() {
     constexpr char *null_str = nullptr;
     const char *empty = "";
 
-    TEST_ASSERT_FALSE(trs_eq_cstr(&null_str, &empty));
-    TEST_ASSERT_NOT_EQUAL_UINT64(trs_hash_cstr(&null_str), trs_hash_cstr(&empty));
+    TEST_ASSERT_FALSE(tda_eq_cstr(&null_str, &empty));
+    TEST_ASSERT_NOT_EQUAL_UINT64(tda_hash_cstr(&null_str), tda_hash_cstr(&empty));
 }
 
 // a one character difference must not survive to the result — FNV-1a mixes each byte in
 static void test_hash_cstr_separates_neighbours() {
     const char *strs[4] = {"ab", "ba", "abc", "abd"};
-    trs_Hash hashes[4];
+    tda_Hash hashes[4];
 
     for (size_t i = 0; i < 4; ++i) {
-        hashes[i] = trs_hash_cstr(&strs[i]);
+        hashes[i] = tda_hash_cstr(&strs[i]);
     }
 
     for (size_t i = 0; i < 4; ++i) {
@@ -223,13 +223,13 @@ static void test_hash_cstr_separates_neighbours() {
 // the point of combining rather than xoring: a struct whose fields are swapped is a
 // different struct, and must be a different hash
 static void test_hash_combine_depends_on_order() {
-    TEST_ASSERT_NOT_EQUAL_UINT64(trs_hash_combine(1, 2), trs_hash_combine(2, 1));
+    TEST_ASSERT_NOT_EQUAL_UINT64(tda_hash_combine(1, 2), tda_hash_combine(2, 1));
 }
 
 // the same trap as in the mixer, one level up: two zero fields are an ordinary struct,
 // and folding them must not land on bucket zero
 static void test_hash_combine_does_not_leave_zero_at_zero() {
-    TEST_ASSERT_NOT_EQUAL_UINT64(0, trs_hash_combine(0, 0));
+    TEST_ASSERT_NOT_EQUAL_UINT64(0, tda_hash_combine(0, 0));
 }
 
 // what combine exists for, spelled out: the hash of a struct is its fields' hashes folded
@@ -239,10 +239,10 @@ typedef struct {
     const char *name;
 } Rec;
 
-static trs_Hash hash_rec(const void *x) {
+static tda_Hash hash_rec(const void *x) {
     const Rec *rec = x;
 
-    return trs_hash_combine(trs_hash_i32(&rec->id), trs_hash_cstr(&rec->name));
+    return tda_hash_combine(tda_hash_i32(&rec->id), tda_hash_cstr(&rec->name));
 }
 
 static void test_hash_combine_builds_a_struct_hasher() {
@@ -255,17 +255,17 @@ static void test_hash_combine_builds_a_struct_hasher() {
     TEST_ASSERT_NOT_EQUAL_UINT64(hash_rec(&a), hash_rec(&other_id));
     TEST_ASSERT_NOT_EQUAL_UINT64(hash_rec(&a), hash_rec(&other_name));
 
-    // and it is a trs_Hasher like any other
-    const trs_Hasher hasher = hash_rec;
+    // and it is a tda_Hasher like any other
+    const tda_Hasher hasher = hash_rec;
     TEST_ASSERT_EQUAL_UINT64(hash_rec(&a), hasher(&a));
 }
 
 /* ========== through the type ========== */
 
-// every one of these exists to be handed over as a trs_Hasher, which is also the check
+// every one of these exists to be handed over as a tda_Hasher, which is also the check
 // that the signatures agree with the typedef
 static void test_hashers_travel_as_the_typedef() {
-    const trs_Hasher hashers[3] = {trs_hash_i32, trs_hash_f64, trs_hash_cstr};
+    const tda_Hasher hashers[3] = {tda_hash_i32, tda_hash_f64, tda_hash_cstr};
 
     constexpr int32_t i = 5;
     constexpr double d = 5.0;

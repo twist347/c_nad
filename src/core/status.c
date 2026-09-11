@@ -1,13 +1,13 @@
-#include "trs/core/status.h"
+#include "tda/core/status.h"
 
-#include "trs/core/util.h"
+#include "tda/core/util.h"
 
-const char *trs_status_to_str(trs_Status st) {
+const char *tda_status_to_str(tda_Status st) {
     switch (st) {
-        case TRS_STATUS_OK:
-            return TRS_STRINGIFY(TRS_STATUS_OK);
-        case TRS_STATUS_ERR_NO_MEM:
-            return TRS_STRINGIFY(TRS_STATUS_ERR_NO_MEM);
+        case TDA_STATUS_OK:
+            return TDA_STRINGIFY(TDA_STATUS_OK);
+        case TDA_STATUS_ERR_NO_MEM:
+            return TDA_STRINGIFY(TDA_STATUS_ERR_NO_MEM);
     }
-    return "UNKNOWN_TRS_STATUS";
+    return "UNKNOWN_TDA_STATUS";
 }

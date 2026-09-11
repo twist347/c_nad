@@ -1,4 +1,4 @@
-#include "trs/core/cmp.h"
+#include "tda/core/cmp.h"
 
 #include <assert.h>
 #include <math.h>
@@ -36,7 +36,7 @@
     }
 
 #define DEFINE_CMP(name, T)                                    \
-    int trs_cmp_##name(const void *lhs, const void *rhs) {     \
+    int tda_cmp_##name(const void *lhs, const void *rhs) {     \
         assert(lhs);                                           \
         assert(rhs);                                           \
         return cmp_##name(*(const T *) lhs, *(const T *) rhs); \
@@ -45,12 +45,12 @@
 // no T: swapping the operands of the ascending comparator needs no type at all, which is
 // also why cstr can use this one despite its pointer-to-pointer operands
 #define DEFINE_CMP_DESC(name)                                   \
-    int trs_cmp_desc_##name(const void *lhs, const void *rhs) { \
-        return trs_cmp_##name(rhs, lhs);                        \
+    int tda_cmp_desc_##name(const void *lhs, const void *rhs) { \
+        return tda_cmp_##name(rhs, lhs);                        \
     }
 
 #define DEFINE_EQ_FORM(name, T)                               \
-    bool trs_eq_##name(const void *lhs, const void *rhs) {    \
+    bool tda_eq_##name(const void *lhs, const void *rhs) {    \
         assert(lhs);                                          \
         assert(rhs);                                          \
         return eq_##name(*(const T *) lhs, *(const T *) rhs); \
@@ -114,14 +114,14 @@ DEFINE_EQ(cstr, const char *)
 
 // the operand is a pointer to a pointer, so the cast needs a star that DEFINE_CMP
 // cannot spell — the remaining two forms come from the shared macros
-int trs_cmp_cstr(const void *lhs, const void *rhs) {
+int tda_cmp_cstr(const void *lhs, const void *rhs) {
     assert(lhs);
     assert(rhs);
 
     return cmp_cstr(*(const char *const *) lhs, *(const char *const *) rhs);
 }
 
-bool trs_eq_cstr(const void *lhs, const void *rhs) {
+bool tda_eq_cstr(const void *lhs, const void *rhs) {
     assert(lhs);
     assert(rhs);
 

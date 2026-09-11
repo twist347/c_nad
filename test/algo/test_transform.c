@@ -1,5 +1,5 @@
-#include "trs/algo/transform.h"
-#include "trs/core/util.h"
+#include "tda/algo/transform.h"
+#include "tda/core/util.h"
 
 #include "support/pair.h"
 
@@ -14,7 +14,7 @@ void tearDown() {
 }
 
 static void double_i32(void *dst, const void *src, void *ctx) {
-    TRS_UNUSED(ctx);
+    TDA_UNUSED(ctx);
 
     *(int32_t *) dst = *(const int32_t *) src * 2;
 }
@@ -25,14 +25,14 @@ static void scale_i32(void *dst, const void *src, void *ctx) {
 }
 
 static void pair_sum_into_i64(void *dst, const void *src, void *ctx) {
-    TRS_UNUSED(ctx);
+    TDA_UNUSED(ctx);
 
     const Pair *p = src;
     *(int64_t *) dst = p->a + p->b;
 }
 
 static void swap_pair_fields(void *dst, const void *src, void *ctx) {
-    TRS_UNUSED(ctx);
+    TDA_UNUSED(ctx);
 
     const Pair in = *(const Pair *) src;
     ((Pair *) dst)->a = in.b;
@@ -40,14 +40,14 @@ static void swap_pair_fields(void *dst, const void *src, void *ctx) {
 }
 
 static void add_i32(void *dst, const void *a, const void *b, void *ctx) {
-    TRS_UNUSED(ctx);
+    TDA_UNUSED(ctx);
 
     *(int32_t *) dst = *(const int32_t *) a + *(const int32_t *) b;
 }
 
 // deliberately NOT symmetric: min would pass even with the operands swapped
 static void sub_i32(void *dst, const void *a, const void *b, void *ctx) {
-    TRS_UNUSED(ctx);
+    TDA_UNUSED(ctx);
 
     *(int32_t *) dst = *(const int32_t *) a - *(const int32_t *) b;
 }
@@ -58,9 +58,9 @@ static void test_transform_maps_every_elem() {
     constexpr int32_t src[4] = {1, 2, 3, 4};
     int32_t dst[4] = {0};
 
-    trs_span_transform(
-        TRS_SPAN_FROM_DATA_MUT(int32_t, dst, 4),
-        TRS_SPAN_FROM_DATA(int32_t, src, 4),
+    tda_span_transform(
+        TDA_SPAN_FROM_DATA_MUT(int32_t, dst, 4),
+        TDA_SPAN_FROM_DATA(int32_t, src, 4),
         double_i32,
         nullptr
     );
@@ -72,9 +72,9 @@ static void test_transform_maps_every_elem() {
 // mapping a span onto itself is the common case and is allowed
 static void test_transform_works_in_place() {
     int32_t buf[4] = {1, 2, 3, 4};
-    const trs_SpanMut s = TRS_SPAN_FROM_DATA_MUT(int32_t, buf, 4);
+    const tda_SpanMut s = TDA_SPAN_FROM_DATA_MUT(int32_t, buf, 4);
 
-    trs_span_transform(s, trs_span_mut_to_span(s), double_i32, nullptr);
+    tda_span_transform(s, tda_span_mut_to_span(s), double_i32, nullptr);
 
     constexpr int32_t want[4] = {2, 4, 6, 8};
     TEST_ASSERT_EQUAL_INT32_ARRAY(want, buf, 4);
@@ -84,9 +84,9 @@ static void test_transform_leaves_the_source_alone() {
     constexpr int32_t src[3] = {1, 2, 3};
     int32_t dst[3] = {0};
 
-    trs_span_transform(
-        TRS_SPAN_FROM_DATA_MUT(int32_t, dst, 3),
-        TRS_SPAN_FROM_DATA(int32_t, src, 3),
+    tda_span_transform(
+        TDA_SPAN_FROM_DATA_MUT(int32_t, dst, 3),
+        TDA_SPAN_FROM_DATA(int32_t, src, 3),
         double_i32,
         nullptr
     );
@@ -96,9 +96,9 @@ static void test_transform_leaves_the_source_alone() {
 }
 
 static void test_transform_of_an_empty_span_writes_nothing() {
-    trs_span_transform(
-        TRS_SPAN_FROM_DATA_MUT(int32_t, nullptr, 0),
-        TRS_SPAN_FROM_DATA(int32_t, nullptr, 0),
+    tda_span_transform(
+        TDA_SPAN_FROM_DATA_MUT(int32_t, nullptr, 0),
+        TDA_SPAN_FROM_DATA(int32_t, nullptr, 0),
         double_i32,
         nullptr
     );
@@ -109,9 +109,9 @@ static void test_transform_passes_the_ctx_through() {
     int32_t dst[3] = {0};
     int32_t factor = 10;
 
-    trs_span_transform(
-        TRS_SPAN_FROM_DATA_MUT(int32_t, dst, 3),
-        TRS_SPAN_FROM_DATA(int32_t, src, 3),
+    tda_span_transform(
+        TDA_SPAN_FROM_DATA_MUT(int32_t, dst, 3),
+        TDA_SPAN_FROM_DATA(int32_t, src, 3),
         scale_i32,
         &factor
     );
@@ -125,9 +125,9 @@ static void test_transform_may_narrow_the_elem() {
     constexpr Pair src[3] = {{1, 10}, {2, 20}, {3, 30}};
     int64_t dst[3] = {0};
 
-    trs_span_transform(
-        TRS_SPAN_FROM_DATA_MUT(int64_t, dst, 3),
-        TRS_SPAN_FROM_DATA(Pair, src, 3),
+    tda_span_transform(
+        TDA_SPAN_FROM_DATA_MUT(int64_t, dst, 3),
+        TDA_SPAN_FROM_DATA(Pair, src, 3),
         pair_sum_into_i64,
         nullptr
     );
@@ -140,9 +140,9 @@ static void test_transform_writes_whole_elems() {
     constexpr Pair src[2] = {{1, 2}, {3, 4}};
     Pair dst[2] = {0};
 
-    trs_span_transform(
-        TRS_SPAN_FROM_DATA_MUT(Pair, dst, 2),
-        TRS_SPAN_FROM_DATA(Pair, src, 2),
+    tda_span_transform(
+        TDA_SPAN_FROM_DATA_MUT(Pair, dst, 2),
+        TDA_SPAN_FROM_DATA(Pair, src, 2),
         swap_pair_fields,
         nullptr
     );
@@ -160,10 +160,10 @@ static void test_zip_with_walks_both_sources_in_step() {
     constexpr int32_t b[4] = {10, 20, 30, 40};
     int32_t dst[4] = {0};
 
-    trs_span_zip_with(
-        TRS_SPAN_FROM_DATA_MUT(int32_t, dst, 4),
-        TRS_SPAN_FROM_DATA(int32_t, a, 4),
-        TRS_SPAN_FROM_DATA(int32_t, b, 4),
+    tda_span_zip_with(
+        TDA_SPAN_FROM_DATA_MUT(int32_t, dst, 4),
+        TDA_SPAN_FROM_DATA(int32_t, a, 4),
+        TDA_SPAN_FROM_DATA(int32_t, b, 4),
         add_i32,
         nullptr
     );
@@ -178,10 +178,10 @@ static void test_zip_with_keeps_the_operand_order() {
     constexpr int32_t b[3] = {2, 9, 3};
     int32_t dst[3] = {0};
 
-    trs_span_zip_with(
-        TRS_SPAN_FROM_DATA_MUT(int32_t, dst, 3),
-        TRS_SPAN_FROM_DATA(int32_t, a, 3),
-        TRS_SPAN_FROM_DATA(int32_t, b, 3),
+    tda_span_zip_with(
+        TDA_SPAN_FROM_DATA_MUT(int32_t, dst, 3),
+        TDA_SPAN_FROM_DATA(int32_t, a, 3),
+        TDA_SPAN_FROM_DATA(int32_t, b, 3),
         sub_i32,
         nullptr
     );
@@ -193,19 +193,19 @@ static void test_zip_with_keeps_the_operand_order() {
 static void test_zip_with_can_write_into_one_of_its_sources() {
     int32_t a[3] = {1, 2, 3};
     constexpr int32_t b[3] = {10, 20, 30};
-    const trs_SpanMut dst = TRS_SPAN_FROM_DATA_MUT(int32_t, a, 3);
+    const tda_SpanMut dst = TDA_SPAN_FROM_DATA_MUT(int32_t, a, 3);
 
-    trs_span_zip_with(dst, trs_span_mut_to_span(dst), TRS_SPAN_FROM_DATA(int32_t, b, 3), add_i32, nullptr);
+    tda_span_zip_with(dst, tda_span_mut_to_span(dst), TDA_SPAN_FROM_DATA(int32_t, b, 3), add_i32, nullptr);
 
     constexpr int32_t want[3] = {11, 22, 33};
     TEST_ASSERT_EQUAL_INT32_ARRAY(want, a, 3);
 }
 
 static void test_zip_with_of_empty_spans_writes_nothing() {
-    trs_span_zip_with(
-        TRS_SPAN_FROM_DATA_MUT(int32_t, nullptr, 0),
-        TRS_SPAN_FROM_DATA(int32_t, nullptr, 0),
-        TRS_SPAN_FROM_DATA(int32_t, nullptr, 0),
+    tda_span_zip_with(
+        TDA_SPAN_FROM_DATA_MUT(int32_t, nullptr, 0),
+        TDA_SPAN_FROM_DATA(int32_t, nullptr, 0),
+        TDA_SPAN_FROM_DATA(int32_t, nullptr, 0),
         add_i32,
         nullptr
     );
