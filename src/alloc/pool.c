@@ -6,7 +6,7 @@
 
 #include <assert.h>
 #include <stdckdint.h>
-#include <string.h>
+#include <stdint.h>
 
 /* ========== internals ========== */
 
@@ -27,9 +27,6 @@ typedef struct {
 
 [[nodiscard]]
 static void *pool_alloc(void *ctx, size_t size);
-
-[[nodiscard]]
-static void *pool_calloc(void *ctx, size_t num, size_t size);
 
 static void pool_dealloc(void *ctx, void *ptr, size_t size);
 
@@ -55,12 +52,9 @@ tda_Al *tda_al_pool_new(tda_Al *parent, size_t block_size, size_t block_count) {
         block_size = sizeof(PoolNode);
     }
 
-    if (block_size > SIZE_MAX - (TDA_DEFAULT_ALIGNMENT - 1)) {
+    if (tda_ckd_align_up(&block_size, block_size, TDA_DEFAULT_ALIGNMENT)) {
         return nullptr;
     }
-
-    // align up
-    block_size = tda_align_up(block_size, TDA_DEFAULT_ALIGNMENT);
 
     // allocate backing buffer
     size_t total_bytes;
@@ -101,8 +95,8 @@ tda_Al *tda_al_pool_new(tda_Al *parent, size_t block_size, size_t block_count) {
 
     obj->ctx = pool_ctx;
     obj->alloc = pool_alloc;
-    obj->calloc = pool_calloc;
-    obj->realloc = nullptr; // fallback in tda_al
+    obj->calloc = nullptr;
+    obj->realloc = nullptr;
     obj->dealloc = pool_dealloc;
 
     return obj;
@@ -170,20 +164,6 @@ static void *pool_alloc(void *ctx, size_t size) {
     return node;
 }
 
-static void *pool_calloc(void *ctx, size_t num, size_t size) {
-    assert(ctx);
-
-    size_t total;
-    if (ckd_mul(&total, num, size)) {
-        return nullptr;
-    }
-    void *ptr = pool_alloc(ctx, total);
-    if (ptr) {
-        memset(ptr, 0, total);
-    }
-    return ptr;
-}
-
 static void pool_dealloc(void *ctx, void *ptr, size_t size) {
     assert(ctx);
     TDA_UNUSED(size);
@@ -210,22 +190,18 @@ static void pool_build_free_list(PoolCtx *ctx) {
 
     // build list in reverse so that first alloc returns the first block
     for (size_t i = ctx->block_count; i > 0; --i) {
-        PoolNode *node = (PoolNode *) (ctx->data + (i - 1) * ctx->block_size);
+        PoolNode *node = (PoolNode *) tda_byte_offset_mut(ctx->data, ctx->block_size, i - 1);
         node->next = ctx->free_head;
         ctx->free_head = node;
     }
 }
 
 static bool pool_owns(const PoolCtx *ctx, const void *ptr) {
-    const unsigned char *p = ptr;
-    const unsigned char *begin = ctx->data;
-    const unsigned char *end = ctx->data + ctx->block_size * ctx->block_count;
+    // addresses, not pointers: ordering a pointer from outside the pool against the pool's
+    // own is undefined, and one from outside is exactly what this is here to catch
+    const uintptr_t addr = (uintptr_t) ptr;
+    const uintptr_t begin = (uintptr_t) ctx->data;
+    const uintptr_t end = begin + ctx->block_size * ctx->block_count;
 
-    if (p < begin || p >= end) {
-        return false;
-    }
-
-    // must be aligned to block boundary
-    const size_t offset = (size_t) (p - begin);
-    return offset % ctx->block_size == 0;
+    return addr >= begin && addr < end && (addr - begin) % ctx->block_size == 0;
 }

@@ -60,6 +60,21 @@ static inline size_t tda_align_up(size_t val, size_t alignment) {
     return (val + (alignment - 1)) & ~(alignment - 1);
 }
 
+/// tda_align_up that reports overflow instead of asserting on it: true when 'val' rounded
+/// up does not fit in size_t, and '*out' is written only when it does
+[[nodiscard]]
+static inline bool tda_ckd_align_up(size_t *out, size_t val, size_t alignment) {
+    assert(out);
+    assert(alignment > 0);
+    assert((alignment & (alignment - 1)) == 0);
+
+    if (val > SIZE_MAX - (alignment - 1)) {
+        return true;
+    }
+    *out = tda_align_up(val, alignment);
+    return false;
+}
+
 [[nodiscard]]
 static inline size_t tda_align_down(size_t val, size_t alignment) {
     assert(alignment > 0);

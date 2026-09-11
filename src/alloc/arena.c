@@ -14,9 +14,6 @@
 [[nodiscard]]
 static void *arena_alloc(void *ctx, size_t size);
 
-[[nodiscard]]
-static void *arena_calloc(void *ctx, size_t num, size_t size);
-
 /// grows or shrinks the last block where it stands, since nothing lies past it; any
 /// other block moves, and the old one stays behind like every block the arena has lent
 [[nodiscard]]
@@ -30,6 +27,11 @@ typedef struct {
     size_t cap;
     size_t offset;
 } ArenaCtx;
+
+/// whether the block at 'ptr', 'size' bytes when it was handed out, is the last one: the
+/// only block with nothing but the free tail after it
+[[nodiscard]]
+static bool is_last_block(const ArenaCtx *arena_ctx, const void *ptr, size_t size);
 
 #define ASSERT_ARENA(al)                 \
     (assert(al),                         \
@@ -69,7 +71,7 @@ tda_Al *tda_al_arena_new(tda_Al *parent, size_t cap) {
 
     obj->ctx = arena_ctx;
     obj->alloc = arena_alloc;
-    obj->calloc = arena_calloc;
+    obj->calloc = nullptr;
     obj->realloc = arena_realloc;
     obj->dealloc = arena_dealloc;
 
@@ -126,33 +128,16 @@ static void *arena_alloc(void *ctx, size_t size) {
         return nullptr;
     }
 
-    if (size > SIZE_MAX - (TDA_DEFAULT_ALIGNMENT - 1)) {
-        return nullptr;
-    }
-    const size_t aligned_size = tda_align_up(size, TDA_DEFAULT_ALIGNMENT);
+    size_t aligned_size;
     size_t end;
-    if (ckd_add(&end, arena_ctx->offset, aligned_size) || end > arena_ctx->cap) {
+    if (tda_ckd_align_up(&aligned_size, size, TDA_DEFAULT_ALIGNMENT)
+        || ckd_add(&end, arena_ctx->offset, aligned_size)
+        || end > arena_ctx->cap) {
         return nullptr;
     }
 
-    void *ptr = (unsigned char *) arena_ctx->data + arena_ctx->offset;
+    void *ptr = tda_byte_offset_mut(arena_ctx->data, 1, arena_ctx->offset);
     arena_ctx->offset += aligned_size;
-
-    return ptr;
-}
-
-static void *arena_calloc(void *ctx, size_t num, size_t size) {
-    assert(ctx);
-
-    size_t total;
-    if (ckd_mul(&total, num, size)) {
-        return nullptr;
-    }
-    void *ptr = arena_alloc(ctx, total);
-
-    if (ptr) {
-        memset(ptr, 0, total);
-    }
 
     return ptr;
 }
@@ -167,16 +152,14 @@ static void *arena_realloc(void *ctx, void *ptr, size_t old_size, size_t new_siz
         return arena_alloc(ctx, new_size);
     }
 
-    if (new_size > SIZE_MAX - (TDA_DEFAULT_ALIGNMENT - 1)) {
-        return nullptr;
-    }
-
-    const size_t start = (size_t) ((unsigned char *) ptr - (unsigned char *) arena_ctx->data);
-    if (start + tda_align_up(old_size, TDA_DEFAULT_ALIGNMENT) == arena_ctx->offset) {
-        // the last block: only the offset moves. Past it lies nothing but the free tail,
-        // so when this does not fit, no fresh block would either
+    if (is_last_block(arena_ctx, ptr, old_size)) {
+        const size_t start = arena_ctx->offset - tda_align_up(old_size, TDA_DEFAULT_ALIGNMENT);
+        size_t aligned_size;
         size_t end;
-        if (ckd_add(&end, start, tda_align_up(new_size, TDA_DEFAULT_ALIGNMENT)) || end > arena_ctx->cap) {
+        if (tda_ckd_align_up(&aligned_size, new_size, TDA_DEFAULT_ALIGNMENT) ||
+            ckd_add(&end, start, aligned_size) ||
+            end > arena_ctx->cap
+        ) {
             return nullptr;
         }
         arena_ctx->offset = end;
@@ -188,6 +171,11 @@ static void *arena_realloc(void *ctx, void *ptr, size_t old_size, size_t new_siz
         memcpy(new_ptr, ptr, old_size < new_size ? old_size : new_size);
     }
     return new_ptr;
+}
+
+static bool is_last_block(const ArenaCtx *arena_ctx, const void *ptr, size_t size) {
+    const size_t start = (size_t) tda_byte_diff(ptr, arena_ctx->data);
+    return start + tda_align_up(size, TDA_DEFAULT_ALIGNMENT) == arena_ctx->offset;
 }
 
 static void arena_dealloc(void *ctx, void *ptr, size_t size) {

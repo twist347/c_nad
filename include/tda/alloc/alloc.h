@@ -23,7 +23,7 @@
 ///
 /// A table must fill in alloc and dealloc and may leave calloc and realloc null — the
 /// wrapper builds those out of the other two, which is how the pool and the aligned
-/// allocator live.
+/// allocator live, and the arena for calloc.
 /// An allocator over another borrows it: the parent outlives the child, and the two drop
 /// in the reverse order of building.
 ///
