@@ -56,7 +56,8 @@ tda_Status tda_span_sort_stable(tda_SpanMut s, tda_Cmp cmp, tda_Al *al);
 /// @param s the span
 /// @param count how many of them; asserts count <= s.len
 /// @param cmp the order to take them by
-/// @bigo{n log k} — k is 'count'; the rest of the span is left in no particular order
+/// @bigo{n + k log k} expected, n log n at worst — k is 'count'; the rest of the span is
+///        left in no particular order
 TDA_API
 void tda_span_partial_sort(tda_SpanMut s, size_t count, tda_Cmp cmp);
 
@@ -65,7 +66,8 @@ void tda_span_partial_sort(tda_SpanMut s, size_t count, tda_Cmp cmp);
 /// @param nth the position to settle; asserts nth < s.len. Before it nothing is greater,
 ///            after it nothing is less, and neither side is ordered
 /// @param cmp the order in question
-/// @bigo{n} expected — a quickselect
+/// @bigo{n} expected, n log n at worst — a quickselect that hands a range whose pivots
+///        keep going bad to tda_span_sort
 TDA_API
 void tda_span_nth_elem(tda_SpanMut s, size_t nth, tda_Cmp cmp);
 

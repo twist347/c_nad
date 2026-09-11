@@ -54,7 +54,6 @@ set(TDA_CORE_SOURCES
         src/core/hash.c
         src/core/print.c
         src/core/rng.c
-        src/core/span.c
         src/core/status.c
 )
 

@@ -1,10 +1,12 @@
 #pragma once
 
-#include "tda/core/export.h"
 #include "tda/core/print.h"
+#include "tda/core/util.h"
 
 #include <assert.h>
 #include <stddef.h>
+#include <stdio.h>
+#include <string.h>
 
 /// @file
 
@@ -67,8 +69,17 @@ typedef struct {
 /// @param elem_size bytes in one elem, greater than 0
 /// @return the view
 /// @bigo{1}
-[[nodiscard]] TDA_API
-tda_Span tda_span_from_data(const void *data, size_t len, size_t elem_size);
+[[nodiscard]]
+static inline tda_Span tda_span_from_data(const void *data, size_t len, size_t elem_size) {
+    assert(data || len == 0);
+    assert(elem_size > 0);
+
+    return (tda_Span){
+        .data = data,
+        .len = len,
+        .elem_size = elem_size
+    };
+}
 
 /// tda_span_from_data, writable
 /// @param data the first elem; null only when 'len' is 0
@@ -76,8 +87,17 @@ tda_Span tda_span_from_data(const void *data, size_t len, size_t elem_size);
 /// @param elem_size bytes in one elem, greater than 0
 /// @return the view
 /// @bigo{1}
-[[nodiscard]] TDA_API
-tda_SpanMut tda_span_from_data_mut(void *data, size_t len, size_t elem_size);
+[[nodiscard]]
+static inline tda_SpanMut tda_span_from_data_mut(void *data, size_t len, size_t elem_size) {
+    assert(data || len == 0);
+    assert(elem_size > 0);
+
+    return (tda_SpanMut){
+        .data = data,
+        .len = len,
+        .elem_size = elem_size
+    };
+}
 
 /// @}
 
@@ -88,8 +108,16 @@ tda_SpanMut tda_span_from_data_mut(void *data, size_t len, size_t elem_size);
 /// @param s the view to give up the write rights of
 /// @return the read-only view; there is no way back
 /// @bigo{1}
-[[nodiscard]] TDA_API
-tda_Span tda_span_mut_to_span(tda_SpanMut s);
+[[nodiscard]]
+static inline tda_Span tda_span_mut_to_span(tda_SpanMut s) {
+    TDA_SPAN_ASSERT(s);
+
+    return (tda_Span){
+        .data = s.data,
+        .len = s.len,
+        .elem_size = s.elem_size
+    };
+}
 
 /// @}
 
@@ -102,8 +130,18 @@ tda_Span tda_span_mut_to_span(tda_SpanMut s);
 /// @param count elems it spans; asserts count <= self.len - idx
 /// @return the narrower view, over the same memory — nothing is copied
 /// @bigo{1}
-[[nodiscard]] TDA_API
-tda_Span tda_span_sub(tda_Span self, size_t idx, size_t count);
+[[nodiscard]]
+static inline tda_Span tda_span_sub(tda_Span self, size_t idx, size_t count) {
+    TDA_SPAN_ASSERT(self);
+    assert(idx <= self.len);
+    assert(count <= self.len - idx);
+
+    return (tda_Span){
+        .data = self.data ? (const unsigned char *) self.data + idx * self.elem_size : nullptr,
+        .len = count,
+        .elem_size = self.elem_size
+    };
+}
 
 /// tda_span_sub, writable
 /// @param self the view to narrow
@@ -111,8 +149,18 @@ tda_Span tda_span_sub(tda_Span self, size_t idx, size_t count);
 /// @param count elems it spans; asserts count <= self.len - idx
 /// @return the narrower view, over the same memory — nothing is copied
 /// @bigo{1}
-[[nodiscard]] TDA_API
-tda_SpanMut tda_span_sub_mut(tda_SpanMut self, size_t idx, size_t count);
+[[nodiscard]]
+static inline tda_SpanMut tda_span_sub_mut(tda_SpanMut self, size_t idx, size_t count) {
+    TDA_SPAN_ASSERT(self);
+    assert(idx <= self.len);
+    assert(count <= self.len - idx);
+
+    return (tda_SpanMut){
+        .data = self.data ? (unsigned char *) self.data + idx * self.elem_size : nullptr,
+        .len = count,
+        .elem_size = self.elem_size
+    };
+}
 
 /// @}
 
@@ -123,8 +171,12 @@ tda_SpanMut tda_span_sub_mut(tda_SpanMut self, size_t idx, size_t count);
 /// @param self the view
 /// @return len * elem_size
 /// @bigo{1}
-[[nodiscard]] TDA_API
-size_t tda_span_bytes(tda_Span self);
+[[nodiscard]]
+static inline size_t tda_span_bytes(tda_Span self) {
+    TDA_SPAN_ASSERT(self);
+
+    return self.len * self.elem_size;
+}
 
 /// @}
 
@@ -136,24 +188,37 @@ size_t tda_span_bytes(tda_Span self);
 /// @param idx the index; asserts idx < self.len
 /// @return a pointer to the elem
 /// @bigo{1}
-[[nodiscard]] TDA_API
-const void *tda_span_get(tda_Span self, size_t idx);
+[[nodiscard]]
+static inline const void *tda_span_get(tda_Span self, size_t idx) {
+    TDA_SPAN_ASSERT(self);
+    assert(idx < self.len);
+
+    return (const unsigned char *) self.data + idx * self.elem_size;
+}
 
 /// tda_span_get, to write through
 /// @param self the view
 /// @param idx the index; asserts idx < self.len
 /// @return a pointer to the elem
 /// @bigo{1}
-[[nodiscard]] TDA_API
-void *tda_span_get_mut(tda_SpanMut self, size_t idx);
+[[nodiscard]]
+static inline void *tda_span_get_mut(tda_SpanMut self, size_t idx) {
+    TDA_SPAN_ASSERT(self);
+    assert(idx < self.len);
+
+    return (unsigned char *) self.data + idx * self.elem_size;
+}
 
 /// writes one elem over the elem at 'idx', in the borrowed memory itself
 /// @param self the view
 /// @param idx the index; asserts idx < self.len
 /// @param val the address of the value; elem_size bytes are read from it
 /// @bigo{1}
-TDA_API
-void tda_span_set(tda_SpanMut self, size_t idx, const void *val);
+static inline void tda_span_set(tda_SpanMut self, size_t idx, const void *val) {
+    assert(val);
+
+    memcpy(tda_span_get_mut(self, idx), val, self.elem_size);
+}
 
 /// @}
 
@@ -165,8 +230,21 @@ void tda_span_set(tda_SpanMut self, size_t idx, const void *val);
 /// @param i one index; asserts it is in range
 /// @param j the other index; asserts it is in range; i == j is a no-op
 /// @bigo{1}
-TDA_API
-void tda_span_swap_elems(tda_SpanMut self, size_t i, size_t j);
+static inline void tda_span_swap_elems(tda_SpanMut self, size_t i, size_t j) {
+    TDA_SPAN_ASSERT(self);
+    assert(i < self.len);
+    assert(j < self.len);
+
+    if (i == j) {
+        return;
+    }
+
+    unsigned char *a = tda_span_get_mut(self, i);
+    unsigned char *b = tda_span_get_mut(self, j);
+    for (size_t k = 0; k < self.elem_size; ++k) {
+        TDA_SWAP(a[k], b[k]);
+    }
+}
 
 /// @}
 
@@ -178,30 +256,55 @@ void tda_span_swap_elems(tda_SpanMut self, size_t i, size_t j);
 /// @param stream where to write
 /// @param fprint the printer, one call per elem
 /// @bigo{n}
-TDA_API
-void tda_span_fprint(tda_Span self, FILE *stream, tda_FPrint fprint);
+static inline void tda_span_fprint(tda_Span self, FILE *stream, tda_FPrint fprint) {
+    TDA_SPAN_ASSERT(self);
+    assert(stream);
+    assert(fprint);
+
+    fputc('[', stream);
+    for (size_t i = 0; i < self.len; ++i) {
+        if (i > 0) {
+            fputs(", ", stream);
+        }
+        fprint(stream, tda_span_get(self, i));
+    }
+    fputs("]\n", stream);
+}
 
 /// tda_span_fprint, over a writable view
 /// @param self the view
 /// @param stream where to write
 /// @param fprint the printer, one call per elem
 /// @bigo{n}
-TDA_API
-void tda_span_mut_fprint(tda_SpanMut self, FILE *stream, tda_FPrint fprint);
+static inline void tda_span_mut_fprint(tda_SpanMut self, FILE *stream, tda_FPrint fprint) {
+    TDA_SPAN_ASSERT(self);
+    assert(stream);
+    assert(fprint);
+
+    tda_span_fprint(tda_span_mut_to_span(self), stream, fprint);
+}
 
 /// tda_span_fprint to stdout: [a, b, c] and a newline
 /// @param self the view
 /// @param fprint the printer, one call per elem
 /// @bigo{n}
-TDA_API
-void tda_span_print(tda_Span self, tda_FPrint fprint);
+static inline void tda_span_print(tda_Span self, tda_FPrint fprint) {
+    TDA_SPAN_ASSERT(self);
+    assert(fprint);
+
+    tda_span_fprint(self, stdout, fprint);
+}
 
 /// tda_span_print, over a writable view
 /// @param self the view
 /// @param fprint the printer, one call per elem
 /// @bigo{n}
-TDA_API
-void tda_span_mut_print(tda_SpanMut self, tda_FPrint fprint);
+static inline void tda_span_mut_print(tda_SpanMut self, tda_FPrint fprint) {
+    TDA_SPAN_ASSERT(self);
+    assert(fprint);
+
+    tda_span_fprint(tda_span_mut_to_span(self), stdout, fprint);
+}
 
 /// @}
 

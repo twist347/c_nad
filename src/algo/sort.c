@@ -1,16 +1,23 @@
 #include "tda/algo/sort.h"
 
 #include "tda/algo/copy.h"
+#include "tda/algo/heap.h"
 #include "tda/algo/merge.h"
 #include "tda/core/util.h"
 
 #include <assert.h>
+#include <stdbit.h>
+#include <string.h>
 
 /* ========== internals ========== */
 
 // below this many elems insertion sort wins: no partitioning overhead, and the range
 // is short enough that its quadratic cost does not show
 static constexpr size_t INSERTION_THRESHOLD = 16;
+
+// the largest elem insertion sort sets aside to slide the rest in one memmove; above it
+// every step is a swap
+static constexpr size_t INSERTION_HELD_MAX = 256;
 
 [[nodiscard]]
 static size_t median3(tda_Span s, size_t a, size_t b, size_t c, tda_Cmp cmp);
@@ -32,7 +39,16 @@ typedef struct {
 static Split partition3(tda_SpanMut s, size_t left, size_t right, size_t pivot_idx, tda_Cmp cmp);
 
 /// sorts the inclusive range [left, right]
-static void quicksort(tda_SpanMut s, size_t left, size_t right, tda_Cmp cmp);
+static void quicksort(tda_SpanMut s, size_t left, size_t right, size_t depth, tda_Cmp cmp);
+
+[[nodiscard]]
+static size_t depth_limit(size_t len);
+
+/// where the elem at 'idx' belongs among the sorted ones before it: past every one not
+/// greater, so equal elems keep their order. The elem is still in place while this looks,
+/// so the comparator is only ever handed pointers into the span, aligned as its elems are
+[[nodiscard]]
+static size_t insertion_slot(tda_Span s, size_t idx, tda_Cmp cmp);
 
 /* ========== sort ========== */
 
@@ -41,15 +57,29 @@ void tda_span_insertion_sort(tda_SpanMut s, tda_Cmp cmp) {
     assert(cmp);
 
     const tda_Span cs = tda_span_mut_to_span(s);
-    for (size_t i = 1; i < s.len; ++i) {
-        for (size_t j = i; j > 0; --j) {
-            const void *prev = tda_span_get(cs, j - 1);
-            const void *cur = tda_span_get(cs, j);
-            if (cmp(prev, cur) <= 0) {
-                break;
+
+    // too big to set aside: every step is a swap
+    if (s.elem_size > INSERTION_HELD_MAX) {
+        for (size_t i = 1; i < s.len; ++i) {
+            const size_t j = insertion_slot(cs, i, cmp);
+            for (size_t k = i; k > j; --k) {
+                tda_span_swap_elems(s, k - 1, k);
             }
-            tda_span_swap_elems(s, j - 1, j);
         }
+        return;
+    }
+
+    // set the elem aside and slide the run above its slot up in one memmove, instead of a
+    // three-move swap per step
+    unsigned char held[INSERTION_HELD_MAX];
+    for (size_t i = 1; i < s.len; ++i) {
+        const size_t j = insertion_slot(cs, i, cmp);
+        if (j == i) {
+            continue;
+        }
+        memcpy(held, tda_span_get(cs, i), s.elem_size);
+        memmove(tda_span_get_mut(s, j + 1), tda_span_get(cs, j), (i - j) * s.elem_size);
+        memcpy(tda_span_get_mut(s, j), held, s.elem_size);
     }
 }
 
@@ -61,7 +91,7 @@ void tda_span_sort(tda_SpanMut s, tda_Cmp cmp) {
         return;
     }
 
-    quicksort(s, 0, s.len - 1, cmp);
+    quicksort(s, 0, s.len - 1, depth_limit(s.len), cmp);
 }
 
 tda_Status tda_span_sort_stable(tda_SpanMut s, tda_Cmp cmp, tda_Al *al) {
@@ -141,10 +171,19 @@ void tda_span_nth_elem(tda_SpanMut s, size_t nth, tda_Cmp cmp) {
     }
 
     size_t left = 0, right = s.len - 1;
+    size_t depth = depth_limit(s.len);
 
     // left <= nth <= right holds every round, which is what keeps lt - 1 and gt + 1
     // inside the range below
     while (left < right) {
+        // the ceiling sort has, for the same reason: past it the pivots have gone bad.
+        // Sorting what is left settles nth along with the rest, O(n log n) whatever the data
+        if (depth == 0) {
+            tda_span_sort(tda_span_sub_mut(s, left, right - left + 1), cmp);
+            return;
+        }
+        --depth;
+
         const size_t pivot_idx = ninther(tda_span_mut_to_span(s), left, right, cmp);
 
         const Split p = partition3(s, left, right, pivot_idx, cmp);
@@ -252,12 +291,40 @@ static Split partition3(tda_SpanMut s, size_t left, size_t right, size_t pivot_i
     return (Split){.lt = lo, .gt = hi};
 }
 
-static void quicksort(tda_SpanMut s, size_t left, size_t right, tda_Cmp cmp) {
+static size_t insertion_slot(tda_Span s, size_t idx, tda_Cmp cmp) {
+    const void *val = tda_span_get(s, idx);
+
+    size_t slot = idx;
+    while (slot > 0 && cmp(tda_span_get(s, slot - 1), val) > 0) {
+        --slot;
+    }
+    return slot;
+}
+
+static size_t depth_limit(size_t len) {
+    assert(len > 1);
+
+    // balanced partitions need floor(log2(len)) levels; twice that is the slack allowed
+    // before the pivots are judged to have gone bad
+    return 2 * (stdc_bit_width(len) - 1);
+}
+
+static void quicksort(tda_SpanMut s, size_t left, size_t right, size_t depth, tda_Cmp cmp) {
     while (left < right) {
         if (right - left + 1 <= INSERTION_THRESHOLD) {
             tda_span_insertion_sort(tda_span_sub_mut(s, left, right - left + 1), cmp);
             return;
         }
+
+        // deeper than balanced partitions would ever go, so the pivots have gone bad;
+        // heapsort is O(n log n) whatever the data, which puts a ceiling on the worst case
+        if (depth == 0) {
+            const tda_SpanMut range = tda_span_sub_mut(s, left, right - left + 1);
+            tda_span_make_heap(range, cmp);
+            tda_span_sort_heap(range, cmp);
+            return;
+        }
+        --depth;
 
         // sampled across the range, not just at its two ends and middle: partitioning
         // leaves the smallest elem of the left side sitting at that side's last
@@ -274,12 +341,12 @@ static void quicksort(tda_SpanMut s, size_t left, size_t right, tda_Cmp cmp) {
         // halves its range every time, so the stack stays O(log n) whatever the data
         if (lt - left < right - gt) {
             if (lt > left) {
-                quicksort(s, left, lt - 1, cmp);
+                quicksort(s, left, lt - 1, depth, cmp);
             }
             left = gt + 1;
         } else {
             if (gt < right) {
-                quicksort(s, gt + 1, right, cmp);
+                quicksort(s, gt + 1, right, depth, cmp);
             }
             if (lt == left) {
                 return; // nothing sits below the pivot run

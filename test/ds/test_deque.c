@@ -865,6 +865,27 @@ static void test_resize_shrinks_from_the_back() {
     tda_deque_drop(d);
 }
 
+// resize(len + 1) is how a caller grows by one elem it then fills in place, so a run of
+// them must cost what a run of pushes does, not one allocation per call
+static void test_a_run_of_resizes_stays_amortized() {
+    tda_TestProbe probe;
+    tda_test_probe_reset(&probe);
+    tda_Al al = tda_test_probe_full(&probe);
+
+    tda_Deque *d = nullptr;
+    TDA_TEST_OK(TDA_DEQUE_NEW(int32_t, &al, &d));
+
+    for (size_t len = 1; len <= 64; ++len) {
+        TDA_TEST_OK(tda_deque_resize(d, len));
+    }
+
+    TEST_ASSERT_EQUAL_size_t(64, tda_deque_len(d));
+    TEST_ASSERT_TRUE(tda_test_probe_requests(&probe) < 20);
+
+    tda_deque_drop(d);
+    TEST_ASSERT_EQUAL_size_t(0, probe.live);
+}
+
 static void test_swap_on_one_allocator_hands_over_the_buffers() {
     tda_Deque *a = make_deque(2);
     tda_Deque *b = make_wrapped();
@@ -1237,6 +1258,7 @@ int main() {
     RUN_TEST(test_resize_grows_at_the_back_with_zeros);
     RUN_TEST(test_resize_grows_inside_a_wrapped_capacity);
     RUN_TEST(test_resize_shrinks_from_the_back);
+    RUN_TEST(test_a_run_of_resizes_stays_amortized);
     RUN_TEST(test_swap_on_one_allocator_hands_over_the_buffers);
     RUN_TEST(test_swap_of_itself_changes_nothing);
     RUN_TEST(test_swap_elems_across_the_seam);

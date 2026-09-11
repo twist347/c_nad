@@ -447,7 +447,7 @@ tda_Status tda_vec_resize(tda_Vec *self, size_t new_len) {
     }
 
     if (new_len > self->cap) {
-        const tda_Status st = tda_vec_reserve(self, new_len);
+        const tda_Status st = reserve_for(self, new_len);
         if (TDA_STATUS_IS_ERR(st)) {
             return st;
         }

@@ -138,6 +138,71 @@ static void test_insertion_sort_stays_within_the_subspan() {
     TEST_ASSERT_EQUAL_INT32_ARRAY(expected, buf, 5);
 }
 
+typedef struct {
+    alignas(32) double key;
+} Wide;
+
+// addresses, not pointers: ordering a pointer outside the array against one inside it
+// is itself undefined, and outside is exactly the case being looked for
+static uintptr_t wide_first = 0;
+static uintptr_t wide_end = 0;
+static size_t wide_strays = 0;
+
+static int cmp_wide_in_place(const void *lhs, const void *rhs) {
+    wide_strays += (uintptr_t) lhs < wide_first || (uintptr_t) lhs >= wide_end;
+    wide_strays += (uintptr_t) rhs < wide_first || (uintptr_t) rhs >= wide_end;
+
+    const Wide *a = lhs;
+    const Wide *b = rhs;
+    return (a->key > b->key) - (a->key < b->key);
+}
+
+// the comparator reads elems as their own type, so it may only ever be handed pointers
+// into the span: a copy set aside on the stack is aligned for max_align_t at best, which
+// an elem like this one outgrows
+static void test_insertion_sort_compares_elems_where_they_lie() {
+    Wide buf[12];
+    for (size_t i = 0; i < 12; ++i) {
+        buf[i] = (Wide){.key = (double) (12 - i)};
+    }
+
+    wide_first = (uintptr_t) buf;
+    wide_end = (uintptr_t) (buf + 12);
+    wide_strays = 0;
+    tda_span_insertion_sort(TDA_SPAN_FROM_DATA_MUT(Wide, buf, 12), cmp_wide_in_place);
+
+    TEST_ASSERT_EQUAL_size_t(0, wide_strays);
+    for (size_t i = 0; i < 12; ++i) {
+        TEST_ASSERT_EQUAL_DOUBLE((double) (i + 1), buf[i].key);
+    }
+}
+
+typedef struct {
+    int32_t key;
+    unsigned char payload[300];
+} Bulky;
+
+static int cmp_bulky(const void *lhs, const void *rhs) {
+    return tda_cmp_i32(&((const Bulky *) lhs)->key, &((const Bulky *) rhs)->key);
+}
+
+// too big to be set aside, so it takes the path that swaps instead of sliding
+static void test_insertion_sort_moves_elems_too_big_to_set_aside() {
+    static Bulky buf[8];
+    for (size_t i = 0; i < 8; ++i) {
+        buf[i].key = (int32_t) (8 - i);
+        memset(buf[i].payload, (int) (8 - i), sizeof(buf[i].payload));
+    }
+
+    tda_span_insertion_sort(TDA_SPAN_FROM_DATA_MUT(Bulky, buf, 8), cmp_bulky);
+
+    for (size_t i = 0; i < 8; ++i) {
+        TEST_ASSERT_EQUAL_INT32((int32_t) (i + 1), buf[i].key);
+        TEST_ASSERT_EQUAL_UINT8(i + 1, buf[i].payload[0]);
+        TEST_ASSERT_EQUAL_UINT8(i + 1, buf[i].payload[299]);
+    }
+}
+
 /* ========== sort ========== */
 
 static void test_sort_orders_a_shuffled_span() {
@@ -550,6 +615,98 @@ static void test_nth_elem_stays_linear() {
     TEST_ASSERT_LESS_THAN_size_t(8 * SCALE_N, cmp_calls);
 }
 
+// McIlroy, "A Killer Adversary for Quicksort" (1999). A value is settled only when the
+// sort first compares it, and always so that the pivot just picked turns out as bad as
+// it can be. Every quicksort that picks its pivot deterministically goes quadratic
+// against it, ninther included; only the depth cap and its heapsort fallback save one
+static int32_t *adversary_val = nullptr;
+static int32_t adversary_gas = 0;
+static int32_t adversary_solid = 0;
+static int32_t adversary_candidate = 0;
+
+static int cmp_adversary(const void *lhs, const void *rhs) {
+    ++cmp_calls;
+    const int32_t a = *(const int32_t *) lhs;
+    const int32_t b = *(const int32_t *) rhs;
+
+    if (adversary_val[a] == adversary_gas && adversary_val[b] == adversary_gas) {
+        adversary_val[a == adversary_candidate ? a : b] = adversary_solid++;
+    }
+    if (adversary_val[a] == adversary_gas) {
+        adversary_candidate = a;
+    } else if (adversary_val[b] == adversary_gas) {
+        adversary_candidate = b;
+    }
+    return (adversary_val[a] > adversary_val[b]) - (adversary_val[a] < adversary_val[b]);
+}
+
+// the elems are the indices 0..SCALE_N-1, their values in 'val' all still undecided
+static void adversary_arm(int32_t *buf, int32_t *val) {
+    adversary_val = val;
+    adversary_gas = SCALE_N - 1;
+    adversary_solid = 0;
+    adversary_candidate = 0;
+    for (size_t i = 0; i < SCALE_N; ++i) {
+        buf[i] = (int32_t) i;
+        val[i] = adversary_gas;
+    }
+}
+
+// 3.7x n*log n with the cap. Without it 29x at 4096, 98x at 16384 and 342x here
+static void test_sort_stays_n_log_n_against_an_adversary() {
+    static int32_t buf[SCALE_N];
+    static int32_t val[SCALE_N];
+
+    adversary_arm(buf, val);
+
+    cmp_calls = 0;
+    tda_span_sort(TDA_SPAN_FROM_DATA_MUT(int32_t, buf, SCALE_N), cmp_adversary);
+
+    TEST_ASSERT_LESS_THAN_size_t(2 * SCALE_LIMIT, cmp_calls);
+    for (size_t i = 1; i < SCALE_N; ++i) {
+        TEST_ASSERT_TRUE(val[buf[i - 1]] <= val[buf[i]]);
+    }
+}
+
+// the same hole in nth_elem, which partial_sort goes through: 268M comparisons here
+// without the cap, 5.9M with it
+static void test_nth_elem_stays_n_log_n_against_an_adversary() {
+    static int32_t buf[SCALE_N];
+    static int32_t val[SCALE_N];
+    adversary_arm(buf, val);
+
+    constexpr size_t nth = SCALE_N / 2;
+    cmp_calls = 0;
+    tda_span_nth_elem(TDA_SPAN_FROM_DATA_MUT(int32_t, buf, SCALE_N), nth, cmp_adversary);
+
+    TEST_ASSERT_LESS_THAN_size_t(8 * SCALE_N_LOG_N, cmp_calls);
+    for (size_t i = 0; i < nth; ++i) {
+        TEST_ASSERT_TRUE(val[buf[i]] <= val[buf[nth]]);
+    }
+    for (size_t i = nth + 1; i < SCALE_N; ++i) {
+        TEST_ASSERT_TRUE(val[buf[i]] >= val[buf[nth]]);
+    }
+}
+
+// 269M without the cap in nth_elem, 6.4M with it
+static void test_partial_sort_stays_n_log_n_against_an_adversary() {
+    static int32_t buf[SCALE_N];
+    static int32_t val[SCALE_N];
+    adversary_arm(buf, val);
+
+    constexpr size_t count = SCALE_N / 2;
+    cmp_calls = 0;
+    tda_span_partial_sort(TDA_SPAN_FROM_DATA_MUT(int32_t, buf, SCALE_N), count, cmp_adversary);
+
+    TEST_ASSERT_LESS_THAN_size_t(8 * SCALE_N_LOG_N, cmp_calls);
+    for (size_t i = 1; i < count; ++i) {
+        TEST_ASSERT_TRUE(val[buf[i - 1]] <= val[buf[i]]);
+    }
+    for (size_t i = count; i < SCALE_N; ++i) {
+        TEST_ASSERT_TRUE(val[buf[i]] >= val[buf[count - 1]]);
+    }
+}
+
 /* ========== is_sorted ========== */
 
 static void test_is_sorted_accepts_ascending() {
@@ -637,6 +794,8 @@ int main() {
     RUN_TEST(test_insertion_sort_follows_the_comparator);
     RUN_TEST(test_insertion_sort_is_stable);
     RUN_TEST(test_insertion_sort_stays_within_the_subspan);
+    RUN_TEST(test_insertion_sort_compares_elems_where_they_lie);
+    RUN_TEST(test_insertion_sort_moves_elems_too_big_to_set_aside);
 
     RUN_TEST(test_sort_orders_a_shuffled_span);
     RUN_TEST(test_sort_keeps_duplicates);
@@ -669,6 +828,9 @@ int main() {
     RUN_TEST(test_sort_stays_n_log_n_on_ordered_input);
     RUN_TEST(test_sort_stays_linear_on_equal_keys);
     RUN_TEST(test_nth_elem_stays_linear);
+    RUN_TEST(test_sort_stays_n_log_n_against_an_adversary);
+    RUN_TEST(test_nth_elem_stays_n_log_n_against_an_adversary);
+    RUN_TEST(test_partial_sort_stays_n_log_n_against_an_adversary);
 
     RUN_TEST(test_is_sorted_accepts_ascending);
     RUN_TEST(test_is_sorted_allows_equal_neighbours);

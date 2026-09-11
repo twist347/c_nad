@@ -827,6 +827,27 @@ static void test_a_run_of_extends_stays_amortized() {
     TEST_ASSERT_EQUAL_size_t(0, probe.live);
 }
 
+// resize(len + 1) is how a caller grows by one elem it then fills in place, so a run of
+// them must cost what a run of pushes does, not one allocation per call
+static void test_a_run_of_resizes_stays_amortized() {
+    tda_TestProbe probe;
+    tda_test_probe_reset(&probe);
+    tda_Al al = tda_test_probe_full(&probe);
+
+    tda_Vec *v = nullptr;
+    TDA_TEST_OK(TDA_VEC_NEW(int32_t, &al, &v));
+
+    for (size_t len = 1; len <= 64; ++len) {
+        TDA_TEST_OK(tda_vec_resize(v, len));
+    }
+
+    TEST_ASSERT_EQUAL_size_t(64, tda_vec_len(v));
+    TEST_ASSERT_TRUE(tda_test_probe_requests(&probe) < 20);
+
+    tda_vec_drop(v);
+    TEST_ASSERT_EQUAL_size_t(0, probe.live);
+}
+
 static void test_extend_moves_wide_elems_whole() {
     tda_Vec *v = nullptr;
     TDA_TEST_OK(TDA_VEC_NEW(Pair, tda_al_default(), &v));
@@ -1834,6 +1855,7 @@ int main() {
     RUN_TEST(test_extend_with_an_empty_span_changes_nothing);
     RUN_TEST(test_extend_takes_the_room_once);
     RUN_TEST(test_a_run_of_extends_stays_amortized);
+    RUN_TEST(test_a_run_of_resizes_stays_amortized);
     RUN_TEST(test_extend_moves_wide_elems_whole);
 
     RUN_TEST(test_insert_span_puts_the_run_before_the_index);

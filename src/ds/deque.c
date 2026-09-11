@@ -50,6 +50,12 @@ static tda_Status grow(tda_Deque *self);
 [[nodiscard]]
 static tda_Status reserve_one(tda_Deque *self);
 
+/// room for 'new_len' elems, asked for with the growth factor when that is the bigger of
+/// the two so a run of resizes keeps the amortized cost a run of pushes has. Falls back
+/// to the exact length when the eager request is refused
+[[nodiscard]]
+static tda_Status reserve_for(tda_Deque *self, size_t new_len);
+
 [[nodiscard]]
 static size_t len_bytes(const tda_Deque *self);
 
@@ -580,7 +586,7 @@ tda_Status tda_deque_resize(tda_Deque *self, size_t new_len) {
     }
 
     if (new_len > self->cap) {
-        const tda_Status st = tda_deque_reserve(self, new_len);
+        const tda_Status st = reserve_for(self, new_len);
         if (TDA_STATUS_IS_ERR(st)) {
             return st;
         }
@@ -713,6 +719,20 @@ static size_t next_cap(const tda_Deque *self) {
     }
 
     return grown;
+}
+
+static tda_Status reserve_for(tda_Deque *self, size_t new_len) {
+    assert(new_len > self->cap);
+
+    const size_t eager = next_cap(self);
+    if (eager > new_len) {
+        const tda_Status st = tda_deque_reserve(self, eager);
+        if (TDA_STATUS_IS_OK(st)) {
+            return st;
+        }
+    }
+
+    return tda_deque_reserve(self, new_len);
 }
 
 static tda_Status reserve_one(tda_Deque *self) {
