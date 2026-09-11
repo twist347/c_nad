@@ -848,6 +848,27 @@ static void test_a_run_of_resizes_stays_amortized() {
     TEST_ASSERT_EQUAL_size_t(0, probe.live);
 }
 
+// alone on an arena the block is always the last one, so it grows in place: what the
+// growth costs the arena is the final capacity, not every capacity passed on the way
+static void test_growing_alone_on_an_arena_costs_only_the_capacity() {
+    tda_Al *arena = tda_al_arena_new(tda_al_default(), 1 << 16);
+    TEST_ASSERT_NOT_NULL(arena);
+
+    tda_Vec *v = nullptr;
+    TDA_TEST_OK(TDA_VEC_NEW(int32_t, arena, &v));
+    const size_t before = tda_al_arena_stats(arena).used;
+
+    for (int32_t i = 0; i < 1000; ++i) {
+        TDA_TEST_OK(tda_vec_push(v, &i));
+    }
+
+    TEST_ASSERT_EQUAL_size_t(1024, tda_vec_cap(v));
+    TEST_ASSERT_EQUAL_size_t(1024 * sizeof(int32_t), tda_al_arena_stats(arena).used - before);
+
+    tda_vec_drop(v);
+    tda_al_arena_drop(arena);
+}
+
 static void test_extend_moves_wide_elems_whole() {
     tda_Vec *v = nullptr;
     TDA_TEST_OK(TDA_VEC_NEW(Pair, tda_al_default(), &v));
@@ -1856,6 +1877,7 @@ int main() {
     RUN_TEST(test_extend_takes_the_room_once);
     RUN_TEST(test_a_run_of_extends_stays_amortized);
     RUN_TEST(test_a_run_of_resizes_stays_amortized);
+    RUN_TEST(test_growing_alone_on_an_arena_costs_only_the_capacity);
     RUN_TEST(test_extend_moves_wide_elems_whole);
 
     RUN_TEST(test_insert_span_puts_the_run_before_the_index);

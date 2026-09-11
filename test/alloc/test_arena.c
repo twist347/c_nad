@@ -250,8 +250,8 @@ static void test_calloc_rejects_overflow() {
 
 /* ========== realloc ========== */
 
-// the arena has no realloc hook, so tda_realloc falls back to alloc + copy
-static void test_realloc_falls_back_to_a_fresh_block() {
+// nothing lies past the last block, so it grows where it stands and costs only the growth
+static void test_realloc_grows_the_last_block_in_place() {
     tda_Al *arena = tda_al_arena_new(tda_al_default(), 1024);
 
     unsigned char *p = tda_alloc(arena, 16);
@@ -261,14 +261,72 @@ static void test_realloc_falls_back_to_a_fresh_block() {
     }
 
     unsigned char *q = tda_realloc(arena, p, 16, 64);
+    TEST_ASSERT_EQUAL_PTR(p, q);
+    for (size_t i = 0; i < 16; ++i) {
+        TEST_ASSERT_EQUAL_UINT8((unsigned char) (i + 1), q[i]);
+    }
+    TEST_ASSERT_EQUAL_size_t(64, tda_al_arena_stats(arena).used);
+
+    tda_al_arena_drop(arena);
+}
+
+// and shrinks the same way, handing the tail back to the arena
+static void test_realloc_shrinks_the_last_block_in_place() {
+    tda_Al *arena = tda_al_arena_new(tda_al_default(), 1024);
+
+    void *p = tda_alloc(arena, 64);
+    TEST_ASSERT_NOT_NULL(p);
+
+    TEST_ASSERT_EQUAL_PTR(p, tda_realloc(arena, p, 64, 20));
+    TEST_ASSERT_EQUAL_size_t(aligned(20), tda_al_arena_stats(arena).used);
+
+    tda_al_arena_drop(arena);
+}
+
+// a block with another one after it has nowhere to grow: it moves, and the old slot stays
+// charged like every block the arena lends
+static void test_realloc_moves_a_block_that_is_not_the_last() {
+    tda_Al *arena = tda_al_arena_new(tda_al_default(), 1024);
+
+    unsigned char *p = tda_alloc(arena, 16);
+    TEST_ASSERT_NOT_NULL(p);
+    for (size_t i = 0; i < 16; ++i) {
+        p[i] = (unsigned char) (i + 1);
+    }
+    TEST_ASSERT_NOT_NULL(tda_alloc(arena, 16));
+
+    unsigned char *q = tda_realloc(arena, p, 16, 64);
     TEST_ASSERT_NOT_NULL(q);
     TEST_ASSERT_TRUE(p != q);
     for (size_t i = 0; i < 16; ++i) {
         TEST_ASSERT_EQUAL_UINT8((unsigned char) (i + 1), q[i]);
     }
+    TEST_ASSERT_EQUAL_size_t(16 + 16 + 64, tda_al_arena_stats(arena).used);
 
-    // the old block is not reclaimed — both slots are still charged
-    TEST_ASSERT_EQUAL_size_t(16 + 64, tda_al_arena_stats(arena).used);
+    tda_al_arena_drop(arena);
+}
+
+// past the last block lies only the free tail: when growing there does not fit, nothing
+// would, and the block is left as it was
+static void test_realloc_of_the_last_block_beyond_the_capacity_fails() {
+    tda_Al *arena = tda_al_arena_new(tda_al_default(), 64);
+
+    unsigned char *p = tda_alloc(arena, 32);
+    TEST_ASSERT_NOT_NULL(p);
+    memset(p, 0x5A, 32);
+
+    TEST_ASSERT_NULL(tda_realloc(arena, p, 32, 65));
+    TEST_ASSERT_EQUAL_size_t(32, tda_al_arena_stats(arena).used);
+    TEST_ASSERT_EQUAL_UINT8(0x5A, p[31]);
+
+    tda_al_arena_drop(arena);
+}
+
+static void test_realloc_of_null_is_an_alloc() {
+    tda_Al *arena = tda_al_arena_new(tda_al_default(), 256);
+
+    TEST_ASSERT_NOT_NULL(tda_realloc(arena, nullptr, 0, 32));
+    TEST_ASSERT_EQUAL_size_t(32, tda_al_arena_stats(arena).used);
 
     tda_al_arena_drop(arena);
 }
@@ -356,7 +414,11 @@ int main() {
     RUN_TEST(test_calloc_zeroes_reused_memory);
     RUN_TEST(test_calloc_rejects_overflow);
 
-    RUN_TEST(test_realloc_falls_back_to_a_fresh_block);
+    RUN_TEST(test_realloc_grows_the_last_block_in_place);
+    RUN_TEST(test_realloc_shrinks_the_last_block_in_place);
+    RUN_TEST(test_realloc_moves_a_block_that_is_not_the_last);
+    RUN_TEST(test_realloc_of_the_last_block_beyond_the_capacity_fails);
+    RUN_TEST(test_realloc_of_null_is_an_alloc);
 
     RUN_TEST(test_dealloc_does_not_reclaim);
     RUN_TEST(test_reset_reclaims_everything);

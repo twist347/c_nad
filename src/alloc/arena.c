@@ -17,6 +17,11 @@ static void *arena_alloc(void *ctx, size_t size);
 [[nodiscard]]
 static void *arena_calloc(void *ctx, size_t num, size_t size);
 
+/// grows or shrinks the last block where it stands, since nothing lies past it; any
+/// other block moves, and the old one stays behind like every block the arena has lent
+[[nodiscard]]
+static void *arena_realloc(void *ctx, void *ptr, size_t old_size, size_t new_size);
+
 static void arena_dealloc(void *ctx, void *ptr, size_t size);
 
 typedef struct {
@@ -65,7 +70,7 @@ tda_Al *tda_al_arena_new(tda_Al *parent, size_t cap) {
     obj->ctx = arena_ctx;
     obj->alloc = arena_alloc;
     obj->calloc = arena_calloc;
-    obj->realloc = nullptr;
+    obj->realloc = arena_realloc;
     obj->dealloc = arena_dealloc;
 
     return obj;
@@ -150,6 +155,39 @@ static void *arena_calloc(void *ctx, size_t num, size_t size) {
     }
 
     return ptr;
+}
+
+static void *arena_realloc(void *ctx, void *ptr, size_t old_size, size_t new_size) {
+    assert(ctx);
+    assert(new_size > 0); // tda_realloc answers a request for nothing itself
+
+    ArenaCtx *arena_ctx = ctx;
+
+    if (!ptr) {
+        return arena_alloc(ctx, new_size);
+    }
+
+    if (new_size > SIZE_MAX - (TDA_DEFAULT_ALIGNMENT - 1)) {
+        return nullptr;
+    }
+
+    const size_t start = (size_t) ((unsigned char *) ptr - (unsigned char *) arena_ctx->data);
+    if (start + tda_align_up(old_size, TDA_DEFAULT_ALIGNMENT) == arena_ctx->offset) {
+        // the last block: only the offset moves. Past it lies nothing but the free tail,
+        // so when this does not fit, no fresh block would either
+        size_t end;
+        if (ckd_add(&end, start, tda_align_up(new_size, TDA_DEFAULT_ALIGNMENT)) || end > arena_ctx->cap) {
+            return nullptr;
+        }
+        arena_ctx->offset = end;
+        return ptr;
+    }
+
+    void *new_ptr = arena_alloc(ctx, new_size);
+    if (new_ptr) {
+        memcpy(new_ptr, ptr, old_size < new_size ? old_size : new_size);
+    }
+    return new_ptr;
 }
 
 static void arena_dealloc(void *ctx, void *ptr, size_t size) {

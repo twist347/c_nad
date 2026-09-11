@@ -15,8 +15,10 @@
 /// per-block free: dealloc is a no-op, and everything returns at once through
 /// tda_al_arena_reset, which drops a whole phase of work in O(1).
 ///
-/// No realloc of its own, so tda_realloc falls back to alloc and copy. The parent is
-/// borrowed and has to outlive it.
+/// tda_realloc grows or shrinks the last block where it stands, since nothing lies past
+/// it; any other block moves and leaves its old slot charged. A vec growing alone costs
+/// the arena its capacity, one growing beside others every capacity it passed through.
+/// The parent is borrowed and has to outlive it.
 ///
 /// @par Example
 /// @snippet alloc/example_arena.c build
