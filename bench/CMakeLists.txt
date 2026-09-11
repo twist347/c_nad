@@ -3,6 +3,9 @@ function(tda_add_bench target_name source_file)
 
     target_link_libraries(${target_name} PRIVATE tda::tda)
     target_include_directories(${target_name} PRIVATE ${PROJECT_SOURCE_DIR}/thirdparty/ubench)
+    if (UNIX)
+        target_link_libraries(${target_name} PRIVATE m)
+    endif ()
     target_compile_options(${target_name} PRIVATE ${TDA_WARNINGS})
 
     set_target_properties(${target_name} PROPERTIES C_EXTENSIONS ON)

@@ -94,7 +94,7 @@ target_compile_features(tda PUBLIC c_std_${TDA_C_STANDARD})
 target_compile_options(tda PRIVATE ${TDA_WARNINGS})
 
 if (UNIX)
-    target_link_libraries(tda PUBLIC m)
+    target_link_libraries(tda PRIVATE m)
 endif ()
 
 target_compile_definitions(tda
