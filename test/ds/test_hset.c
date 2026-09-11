@@ -669,7 +669,13 @@ static void test_move_assign_hands_over_the_contents_on_one_allocator() {
     assert_has(dst, 2);
     TEST_ASSERT_EQUAL_PTR(hash_all_alike, tda_hset_hasher(dst));
 
+    // the source gives back everything, its buckets included, as every container does
     TEST_ASSERT_EQUAL_size_t(0, tda_hset_len(src));
+    TEST_ASSERT_EQUAL_size_t(0, tda_hset_bucket_count(src));
+
+    // and is still a set: the first insert makes its buckets anew
+    put(src, 5);
+    assert_has(src, 5);
 
     tda_hset_drop(src);
     tda_hset_drop(dst);
@@ -695,6 +701,7 @@ static void test_move_assign_across_allocators_empties_the_source() {
     TEST_ASSERT_EQUAL_PTR(arena, tda_hset_al(dst));
 
     TEST_ASSERT_EQUAL_size_t(0, tda_hset_len(src));
+    TEST_ASSERT_EQUAL_size_t(0, tda_hset_bucket_count(src));
     TEST_ASSERT_EQUAL_PTR(tda_al_default(), tda_hset_al(src));
 
     tda_hset_drop(src);

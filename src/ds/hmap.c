@@ -99,6 +99,10 @@ static tda_HMapNode *first_from(const tda_HMap *self, size_t idx);
 
 static void clear_nodes(tda_HMap *self);
 
+/// frees the nodes and the bucket array both, leaving a map that owns nothing: what
+/// every other container is left as once its elems have been moved out
+static void release_buckets(tda_HMap *self);
+
 /// the walk both compare doors take, with 'val_eq' null standing for the bytes
 [[nodiscard]]
 static bool eq_impl(const tda_HMap *a, const tda_HMap *b, tda_Eq val_eq);
@@ -260,7 +264,7 @@ tda_Status tda_hmap_move_assign(tda_HMap *self, tda_HMap *other) {
     // there, through the very allocator that made it
     if (self->al == other->al) {
         TDA_SWAP(*self, *other);
-        tda_hmap_clear(self);
+        release_buckets(self);
 
         ASSERT_HMAP(self);
         ASSERT_HMAP(other);
@@ -278,7 +282,7 @@ tda_Status tda_hmap_move_assign(tda_HMap *self, tda_HMap *other) {
 
     TDA_SWAP(*other, *obj);
     tda_hmap_drop(obj);
-    tda_hmap_clear(self);
+    release_buckets(self);
 
     ASSERT_HMAP(self);
     ASSERT_HMAP(other);
@@ -591,9 +595,7 @@ tda_Status tda_hmap_shrink_to_fit(tda_HMap *self) {
 
     if (self->len == 0) {
         // nothing left to hold: the map goes back to owning no buckets at all
-        tda_dealloc(self->al, self->buckets, self->bucket_count * sizeof(tda_HMapNode *));
-        self->buckets = nullptr;
-        self->bucket_count = 0;
+        release_buckets(self);
 
         ASSERT_HMAP(self);
 
@@ -819,6 +821,14 @@ static void clear_nodes(tda_HMap *self) {
             node = next;
         }
     }
+}
+
+static void release_buckets(tda_HMap *self) {
+    clear_nodes(self);
+    tda_dealloc(self->al, self->buckets, self->bucket_count * sizeof(tda_HMapNode *));
+    self->buckets = nullptr;
+    self->bucket_count = 0;
+    self->len = 0;
 }
 
 static bool eq_impl(const tda_HMap *a, const tda_HMap *b, tda_Eq val_eq) {
